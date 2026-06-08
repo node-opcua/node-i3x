@@ -165,6 +165,7 @@ describe('REST API', () => {
       payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
     });
     expect(regRes.statusCode).toBe(200);
+    expect(regRes.json().success).toBe(true);
 
     // List
     const listRes = await app.inject({
@@ -172,7 +173,7 @@ describe('REST API', () => {
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
-    expect(listRes.json().result[0].subscriptionId).toBe(subId);
+    expect(listRes.json().results[0].subscriptionId).toBe(subId);
 
     // Delete
     const delRes = await app.inject({

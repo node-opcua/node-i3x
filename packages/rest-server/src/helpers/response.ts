@@ -1,0 +1,82 @@
+// -----------------------------------------------------------------
+// @i3x/rest-server -- Response envelope helpers
+//
+// Use these instead of hand-building { success, result/results }
+// to ensure compliance with the i3X OpenAPI spec.
+// -----------------------------------------------------------------
+
+/** ErrorDetail as defined in the i3X spec. */
+export interface ErrorDetail {
+  readonly code: number;
+  readonly message: string;
+}
+
+/** SuccessResponse<T> -- wraps a single result. */
+export interface SuccessResponse<T> {
+  readonly success: true;
+  readonly result: T;
+}
+
+/** BulkResultItem<T> -- one item in a bulk response. */
+export interface BulkResultItem<T> {
+  readonly success: boolean;
+  readonly elementId?: string | null;
+  readonly subscriptionId?: string | null;
+  readonly result?: T | null;
+  readonly error?: ErrorDetail | null;
+}
+
+/** BulkResponse<T> -- wraps multiple bulk result items. */
+export interface BulkResponse<T> {
+  readonly success: true;
+  readonly results: BulkResultItem<T>[];
+}
+
+/** ObjectInstanceResponse as defined in the i3X spec. */
+export interface ObjectInstanceResponse {
+  readonly elementId: string;
+  readonly displayName: string;
+  readonly typeElementId: string;
+  readonly parentId?: string | null;
+  readonly isComposition: boolean;
+  readonly isExtended: boolean;
+  readonly metadata?: ObjectInstanceMetadata | null;
+}
+
+/** ObjectInstanceMetadata as defined in the i3X spec. */
+export interface ObjectInstanceMetadata {
+  readonly typeNamespaceUri?: string | null;
+  readonly sourceTypeId?: string | null;
+  readonly description?: string | null;
+  readonly relationships?: Record<string, unknown> | null;
+  readonly extendedAttributes?: Record<string, unknown> | null;
+  readonly system?: Record<string, unknown> | null;
+}
+
+/** RelatedObjectResult as defined in the i3X spec. */
+export interface RelatedObjectResult {
+  readonly sourceRelationship: string;
+  readonly object: ObjectInstanceResponse;
+}
+
+// -- Factory helpers --
+
+export function successResponse<T>(result: T): SuccessResponse<T> {
+  return { success: true, result };
+}
+
+export function bulkResponse<T>(results: BulkResultItem<T>[]): BulkResponse<T> {
+  return { success: true, results };
+}
+
+export function bulkSuccess<T>(
+  elementId: string, result: T,
+): BulkResultItem<T> {
+  return { success: true, elementId, result };
+}
+
+export function bulkError<T>(
+  elementId: string, code: number, message: string,
+): BulkResultItem<T> {
+  return { success: false, elementId, error: { code, message } };
+}

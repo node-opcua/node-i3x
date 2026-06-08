@@ -92,4 +92,17 @@ docker run -p 8000:8000 -e NODE_I3X_OPCUA_ENDPOINT=opc.tcp://host:4840 node-i3x
 
 ## License
 
-See LICENSE file.
+This project is dual-licensed:
+
+| License | Use Case |
+|---------|----------|
+| **AGPL-3.0** | Open-source use -- you must share your source code if you deploy this as a network service |
+| **Commercial** | Proprietary / closed-source use -- no copyleft obligations |
+
+> **The AGPL-3.0 restrictions can be lifted by acquiring a commercial
+> license at [sterfive.com](https://sterfive.com).**
+>
+> Contact [contact@sterfive.com](mailto:contact@sterfive.com) for
+> pricing and terms.
+
+See [LICENSE](./LICENSE) for full details.

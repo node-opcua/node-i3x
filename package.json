@@ -1,6 +1,7 @@
 {
   "name": "node-i3x",
   "private": true,
+  "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"

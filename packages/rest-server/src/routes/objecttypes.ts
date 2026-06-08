@@ -14,9 +14,9 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
         displayName: t.displayName,
         namespaceUri: '',
         sourceTypeId: t.sourceNodeId,
-        parentElementId: t.parentSourceNodeId
-          ? stableI3xId(t.parentSourceNodeId, 'asset')
-          : null,
+        version: null,
+        schema: {},
+        related: null,
       })),
     };
   });

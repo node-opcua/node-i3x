@@ -6,15 +6,35 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
 
   // ── GET /v1/objects ────────────────────────────────────────
-  app.get('/v1/objects', async () => {
+  app.get('/v1/objects', async (req: FastifyRequest<{ Querystring: { typeElementId?: string; includeMetadata?: boolean; root?: boolean } }>) => {
     const model = await deps.modelService.getOrBuildModel();
-    const roots = model.rootIds.map((id) => {
-      const node = model.nodesById.get(id);
-      return node
-        ? { elementId: node.id, displayName: node.name, typeElementId: '', parentId: null, isComposition: true }
-        : null;
-    }).filter(Boolean);
-    return { success: true, result: roots };
+    const { typeElementId, root } = req.query;
+
+    let nodes: Array<{ id: string; name: string; type?: string; children: string[] }>;
+
+    if (root) {
+      // Return only root objects
+      nodes = model.rootIds
+        .map((id) => model.nodesById.get(id))
+        .filter(Boolean) as Array<{ id: string; name: string; type?: string; children: string[] }>;
+    } else {
+      // Return ALL objects
+      nodes = Array.from(model.nodesById.values());
+    }
+
+    if (typeElementId) {
+      nodes = nodes.filter((n) => n.type === typeElementId);
+    }
+
+    const result = nodes.map((node) => ({
+      elementId: node.id,
+      displayName: node.name,
+      typeElementId: node.type ?? '',
+      parentId: deps.modelService.parentIdOf(model, node.id),
+      isComposition: node.children.length > 0,
+      isExtended: false,
+    }));
+    return { success: true, result };
   });
 
   // ── POST /v1/objects/list ──────────────────────────────────
@@ -30,10 +50,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           elementId: node.id, displayName: node.name,
           typeElementId: node.type ?? '', parentId: deps.modelService.parentIdOf(model, node.id),
           isComposition: node.children.length > 0,
-          children: (model.childrenById.get(node.id) ?? []).map((cId) => {
-            const c = model.nodesById.get(cId);
-            return c ? { elementId: c.id, displayName: c.name, kind: c.kind, type: c.type } : null;
-          }).filter(Boolean),
+          isExtended: false,
         },
       };
     });
@@ -67,6 +84,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
             typeElementId: child!.type ?? '',
             parentId: node.id,
             isComposition: child!.children.length > 0,
+            isExtended: false,
           },
         }));
 
@@ -83,6 +101,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
               typeElementId: parent.type ?? '',
               parentId: deps.modelService.parentIdOf(model, parent.id),
               isComposition: parent.children.length > 0,
+              isExtended: false,
             },
           });
         }
@@ -102,7 +121,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   });
 
   // ── POST /v1/objects/history ───────────────────────────────
-  app.post('/v1/objects/history', async (req: FastifyRequest<{ Body: { elementIds: string[]; startTime?: string; endTime?: string } }>) => {
+  app.post('/v1/objects/history', async (req: FastifyRequest<{ Body: { elementIds: string[]; startTime?: string; endTime?: string; maxDepth?: number } }>) => {
     const { elementIds, startTime, endTime } = req.body;
     const results = await deps.historyService.readHistory(
       elementIds,

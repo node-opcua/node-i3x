@@ -19,7 +19,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     const { subscriptionId, elementIds, maxDepth } = req.body;
     try {
       const result = await deps.subscriptionService.register(subscriptionId, elementIds, maxDepth ?? 1);
-      return { success: true, result };
+      return { success: true, results: result };
     } catch (err: unknown) {
       const e = err as Error & { statusCode?: number };
       throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
@@ -85,7 +85,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
 
   // ── POST /v1/subscriptions/list ────────────────────────────
   app.post('/v1/subscriptions/list', async (req: FastifyRequest<{ Body: { subscriptionIds: string[] } }>) => {
-    const result = deps.subscriptionService.list(req.body.subscriptionIds);
-    return { success: true, result };
+    const results = deps.subscriptionService.list(req.body.subscriptionIds);
+    return { success: true, results };
   });
 }

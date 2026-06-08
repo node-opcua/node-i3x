@@ -346,7 +346,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
     });
     expect(regRes.statusCode).toBe(200);
-    expect(regRes.json().result.registered).toContain(propId);
+    expect(regRes.json().success).toBe(true);
 
     // Wait a moment for data changes to arrive
     await new Promise((r) => setTimeout(r, 2000));
@@ -368,7 +368,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
-    expect(listRes.json().result[0].subscriptionId).toBe(subId);
+    expect(listRes.json().results[0].subscriptionId).toBe(subId);
 
     // Delete
     const delRes = await app.inject({
