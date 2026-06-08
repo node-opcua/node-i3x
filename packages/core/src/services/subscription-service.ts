@@ -85,7 +85,7 @@ export class SubscriptionService {
     elementIds: string[],
     maxDepth: number = 1,
   ): Promise<{ registered: string[]; errors: Array<{ elementId: string; error: string }> }> {
-    const sub = this._requireSub(subscriptionId);
+    const sub = this._getOrCreateSub(subscriptionId);
     const model = await this.modelService.getOrBuildModel();
 
     const registered: string[] = [];
@@ -245,6 +245,33 @@ export class SubscriptionService {
     if (!sub) throw Object.assign(
       new Error(`Subscription '${id}' not found`), { statusCode: 404 },
     );
+    return sub;
+  }
+
+  /**
+   * Return the subscription if it exists, otherwise auto-create
+   * it with the caller-provided ID.  This supports the i3X
+   * Explorer pattern where the client generates a subscriptionId
+   * and calls register() directly without a prior create().
+   */
+  private _getOrCreateSub(id: string): SubState {
+    let sub = this._subs.get(id);
+    if (!sub) {
+      this.logger.info(`Auto-creating subscription id=${id}`);
+      sub = {
+        subscriptionId: id,
+        clientId: null,
+        displayName: null,
+        monitoredObjects: [],
+        sourceToElement: new Map(),
+        updates: [],
+        nextSequence: 1,
+        runtime: null,
+        waiters: [],
+        mode: 'polling',
+      };
+      this._subs.set(id, sub);
+    }
     return sub;
   }
 

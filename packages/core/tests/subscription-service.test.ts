@@ -217,10 +217,14 @@ describe('SubscriptionService', () => {
     expect(errors[0]!.elementId).toBe('nonexistent-id');
   });
 
-  it('register() throws for unknown subscriptionId', async () => {
-    await expect(
-      svc.register('bad-id', ['anything'], 1),
-    ).rejects.toThrow(/not found/i);
+  it('register() auto-creates subscription for unknown subscriptionId', async () => {
+    const { registered, errors } = await svc.register('client-provided-id', ['nonexistent'], 1);
+    expect(registered).toHaveLength(0);
+    expect(errors).toHaveLength(1);
+    // Subscription was auto-created, so list should find it
+    const details = svc.list(['client-provided-id']);
+    expect(details).toHaveLength(1);
+    expect(details[0]!.subscriptionId).toBe('client-provided-id');
   });
 
   // ── Data changes + sequence numbers ────────────────────
