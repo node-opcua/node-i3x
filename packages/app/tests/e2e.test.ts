@@ -270,7 +270,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const opcuaClient = new OpcUaClient({
       endpointUrl,
       securityMode: 'None',
-      optimizedClient: 'disabled',
+      optimizedClient: 'auto',
     }, logger);
     const dataSource = new OpcUaDataSourceAdapter(opcuaClient, logger);
 

@@ -25,17 +25,20 @@ class MockDataSource implements IDataSourcePort {
     return [
       {
         sourceNodeId: 'ns=2;s=Machine', parentSourceNodeId: null,
-        browseName: 'Machine', displayName: 'Machine',
+        browseName: 'Machine', nsuQualifiedName: 'nsu=http://example.com/:Machine',
+        displayName: 'Machine',
         nodeClass: 'Object', dataType: null, eventNotifier: false,
       },
       {
         sourceNodeId: 'ns=2;s=Temperature', parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Temperature', displayName: 'Temperature',
+        browseName: 'Temperature', nsuQualifiedName: 'nsu=http://example.com/:Temperature',
+        displayName: 'Temperature',
         nodeClass: 'Variable', dataType: 'Double', eventNotifier: false,
       },
       {
         sourceNodeId: 'ns=2;s=Reset', parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Reset', displayName: 'Reset',
+        browseName: 'Reset', nsuQualifiedName: 'nsu=http://example.com/:Reset',
+        displayName: 'Reset',
         nodeClass: 'Method', dataType: null, eventNotifier: false,
       },
     ];

@@ -15,6 +15,8 @@ export interface SourceNodeInfo {
   readonly sourceNodeId: string;
   readonly parentSourceNodeId: string | null;
   readonly browseName: string;
+  /** Namespace-URI-qualified browse name: `"nsu=http://…:Name"` */
+  readonly nsuQualifiedName: string;
   readonly displayName: string;
   /** Source-native class name, e.g. 'Object', 'Variable', 'Method'. */
   readonly nodeClass: string;

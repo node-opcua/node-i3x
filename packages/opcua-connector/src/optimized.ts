@@ -19,6 +19,7 @@ import type { ILogger } from '@i3x/core';
  *   • Queued re-entrance protection
  *   • Automatic browseNext continuation-point handling
  *   • Hold-and-resume during network disconnections
+ *   • createSubscription2 / monitor for subscriptions
  *
  * @see https://support.sterfive.com
  */

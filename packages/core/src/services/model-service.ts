@@ -78,6 +78,30 @@ export class ModelService {
       list.push(node.sourceNodeId);
     }
 
+    // ── Build stable browse paths via BFS from roots ────────
+    // Each path is a `/`-separated chain of `nsu=URI:BrowseName`
+    // segments, e.g.  "nsu=http://di/:DeviceSet/nsu=http://x/:Pump"
+    const browsePathBySourceId = new Map<string, string>();
+    const roots = sourceNodes.filter((n) => n.parentSourceNodeId == null);
+    const queue = roots.map((n) => ({
+      sourceId: n.sourceNodeId,
+      path: n.nsuQualifiedName,
+    }));
+    while (queue.length > 0) {
+      const { sourceId, path } = queue.shift()!;
+      browsePathBySourceId.set(sourceId, path);
+      for (const childId of childSourcesByParent.get(sourceId) ?? []) {
+        const child = bySourceId.get(childId);
+        if (child) {
+          queue.push({
+            sourceId: childId,
+            path: `${path}/${child.nsuQualifiedName}`,
+          });
+        }
+      }
+    }
+
+    // ── Map source nodes to domain ModelNodes ────────────────
     const nodesById = new Map<string, ModelNode>();
     const childrenById = new Map<string, string[]>();
     const rootIds: string[] = [];
@@ -88,10 +112,13 @@ export class ModelService {
       const childSources = childSourcesByParent.get(sourceId) ?? [];
       const childIds = childSources.map((cId) => {
         const cNode = bySourceId.get(cId)!;
-        return stableI3xId(cNode.sourceNodeId, inferKind(cNode));
+        const cPath = browsePathBySourceId.get(cId) ?? cNode.nsuQualifiedName;
+        return stableI3xId(cPath, inferKind(cNode));
       });
 
-      const mapped = mapNode(srcNode, childIds);
+      const browsePath = browsePathBySourceId.get(sourceId)
+        ?? srcNode.nsuQualifiedName;
+      const mapped = mapNode(srcNode, childIds, browsePath);
       nodesById.set(mapped.id, mapped);
       childrenById.set(mapped.id, childIds);
 

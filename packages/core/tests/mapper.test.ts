@@ -8,12 +8,14 @@ describe('mapper', () => {
       sourceNodeId: 'ns=2;s=Temperature',
       parentSourceNodeId: 'ns=2;s=Machine',
       browseName: 'Temperature',
+      nsuQualifiedName: 'nsu=http://example.com/:Temperature',
       displayName: 'Temperature',
       nodeClass: 'Variable',
       dataType: 'Double',
       eventNotifier: false,
     };
-    const mapped = mapNode(node, []);
+    const browsePath = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temperature';
+    const mapped = mapNode(node, [], browsePath);
     expect(mapped.kind).toBe('property');
     expect(mapped.type).toBe('Double');
     expect(mapped.sourceNodeId).toBe('ns=2;s=Temperature');
@@ -25,6 +27,7 @@ describe('mapper', () => {
       sourceNodeId: 'ns=2;s=Machine',
       parentSourceNodeId: null,
       browseName: 'Machine',
+      nsuQualifiedName: 'nsu=http://example.com/:Machine',
       displayName: 'Machine',
       nodeClass: 'Object',
       dataType: null,
@@ -38,6 +41,7 @@ describe('mapper', () => {
       sourceNodeId: 'ns=2;s=Reset',
       parentSourceNodeId: 'ns=2;s=Machine',
       browseName: 'Reset',
+      nsuQualifiedName: 'nsu=http://example.com/:Reset',
       displayName: 'Reset',
       nodeClass: 'Method',
       dataType: null,
@@ -51,6 +55,7 @@ describe('mapper', () => {
       sourceNodeId: 'ns=2;s=Alarm',
       parentSourceNodeId: null,
       browseName: 'Alarm',
+      nsuQualifiedName: 'nsu=http://example.com/:Alarm',
       displayName: 'Alarm',
       nodeClass: 'Object',
       dataType: null,
@@ -59,16 +64,26 @@ describe('mapper', () => {
     expect(inferKind(node)).toBe('eventSource');
   });
 
-  it('generates stable deterministic IDs', () => {
-    const id1 = stableI3xId('ns=2;s=Temp', 'property');
-    const id2 = stableI3xId('ns=2;s=Temp', 'property');
+  it('generates stable deterministic IDs from browse paths', () => {
+    const path = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temp';
+    const id1 = stableI3xId(path, 'property');
+    const id2 = stableI3xId(path, 'property');
     expect(id1).toBe(id2);
     expect(id1).toMatch(/^property-[a-f0-9]{16}$/);
   });
 
-  it('generates different IDs for different sources', () => {
-    const id1 = stableI3xId('ns=2;s=Temp1', 'property');
-    const id2 = stableI3xId('ns=2;s=Temp2', 'property');
+  it('generates different IDs for different browse paths', () => {
+    const id1 = stableI3xId('nsu=http://x/:A/nsu=http://x/:Temp1', 'property');
+    const id2 = stableI3xId('nsu=http://x/:A/nsu=http://x/:Temp2', 'property');
     expect(id1).not.toBe(id2);
+  });
+
+  it('generates the SAME ID regardless of namespace index', () => {
+    // This is the key property: different ns indices, same URI → same ID
+    const path = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temp';
+    const id = stableI3xId(path, 'property');
+    // The path is the same regardless of whether the server assigned
+    // ns=2 or ns=5 to http://example.com/ — the URI is what matters
+    expect(id).toMatch(/^property-[a-f0-9]{16}$/);
   });
 });

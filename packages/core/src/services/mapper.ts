@@ -14,11 +14,18 @@ const CLASS_TO_KIND: Record<string, NodeKind> = {
 
 /**
  * Derive a stable, deterministic i3X element ID.
+ *
+ * The input should be a namespace-URI-qualified browse path
+ * (e.g. `"nsu=http://…:DeviceSet/nsu=http://…:Pump/nsu=http://…:Temp"`).
+ * Hashing this instead of the raw OPC UA NodeId ensures the
+ * element ID survives server restarts even when namespace
+ * indices shift.
+ *
  * Format: `{kind}-{sha1_prefix_16}`
  */
-export function stableI3xId(sourceNodeId: string, kind: NodeKind): string {
+export function stableI3xId(browsePath: string, kind: NodeKind): string {
   const digest = createHash('sha1')
-    .update(sourceNodeId, 'utf8')
+    .update(browsePath, 'utf8')
     .digest('hex')
     .slice(0, 16);
   return `${kind}-${digest}`;
@@ -38,10 +45,11 @@ export function mapType(node: SourceNodeInfo, kind: NodeKind): string | null {
 export function mapNode(
   node: SourceNodeInfo,
   childIds: readonly string[],
+  browsePath: string,
 ): ModelNode {
   const kind = inferKind(node);
   return {
-    id: stableI3xId(node.sourceNodeId, kind),
+    id: stableI3xId(browsePath, kind),
     name: node.displayName || node.browseName,
     kind,
     type: mapType(node, kind),

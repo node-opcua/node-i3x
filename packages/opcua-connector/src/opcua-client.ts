@@ -6,8 +6,6 @@ import {
   OPCUAClient,
   MessageSecurityMode,
   type ClientSession,
-  ClientSubscription,
-  ClientMonitoredItem,
   TimestampsToReturn,
   BrowseDirection,
   AttributeIds,
@@ -52,6 +50,7 @@ const SECURITY_MODES: Record<string, MessageSecurityMode> = {
 export class OpcUaClient {
   private _client: OPCUAClient | null = null;
   private _session: ClientSession | null = null;
+  private _namespaceArray: string[] = [];
   private readonly _opts: Required<OpcUaClientOptions>;
 
   constructor(opts: OpcUaClientOptions, private readonly logger: ILogger) {
@@ -96,13 +95,20 @@ export class OpcUaClient {
 
     // ━━━ @sterfive/opcua-optimized-client ━━━━━━━━━━━━━━━━━━━
     // Wrap session with ClientSessionOptimized if available.
-    // This is a transparent drop-in that adds auto-batching,
-    // limit-splitting, operation coalescing, and hold-resume.
+    // Both the optimized and standard sessions support
+    // createSubscription2 + monitor — no raw session needed.
     if (this._opts.optimizedClient !== 'disabled') {
       session = await wrapSessionIfOptimized(session, this.logger);
     }
 
     this._session = session;
+
+    // Cache namespace array for nsu-qualified browse names
+    const nsArrayDv = await session.read({
+      nodeId: coerceNodeId('i=2255'),
+      attributeId: AttributeIds.Value,
+    });
+    this._namespaceArray = nsArrayDv.value?.value ?? [];
     this.logger.info('OPC UA session created');
   }
 
@@ -251,7 +257,7 @@ export class OpcUaClient {
         // Children of ObjectsFolder are roots (parentId = null)
         const effectiveParent =
           parentNodeId === objectsFolderId ? null : parentNodeId;
-        return refToSourceNode(ref, effectiveParent);
+        return refToSourceNode(ref, effectiveParent, this._namespaceArray);
       },
       (ref) =>
         ref.nodeClass === NodeClass.Object ||
@@ -291,13 +297,7 @@ export class OpcUaClient {
   // ── Namespace ──────────────────────────────────────────────
 
   async getNamespaces(): Promise<NamespaceInfo[]> {
-    const nsArrayNodeId = coerceNodeId('i=2255'); // Server_NamespaceArray
-    const dv = await this.session.read({
-      nodeId: nsArrayNodeId,
-      attributeId: AttributeIds.Value,
-    });
-    const uris: string[] = dv.value?.value ?? [];
-    return uris.map((uri, idx) => ({
+    return this._namespaceArray.map((uri, idx) => ({
       uri,
       displayName: uri.split('/').pop() ?? `ns${idx}`,
     }));
@@ -381,7 +381,9 @@ export class OpcUaClient {
   async createMonitoredSubscription(
     options: MonitoredSubscriptionOptions,
   ): Promise<IMonitoredSubscription> {
-    const sub = ClientSubscription.create(this.session, {
+    // createSubscription2 works on both the standard session
+    // and ClientSessionOptimized (which returns ClientSubscription2).
+    const sub = await this.session.createSubscription2({
       requestedPublishingInterval: options.publishingIntervalMs,
       requestedLifetimeCount: 100,
       requestedMaxKeepAliveCount: 10,
@@ -407,11 +409,11 @@ export class OpcUaClient {
         const newIds = sourceNodeIds.filter((id) => !monitored.has(id));
         if (newIds.length === 0) return;
 
-        // Create all monitored items in parallel
+        // sub.monitor() works with both ClientSubscription
+        // and ClientSubscription2 (optimized client).
         const items = await Promise.all(
           newIds.map((nodeId) =>
-            ClientMonitoredItem.create(
-              sub,
+            sub.monitor(
               {
                 nodeId: coerceNodeId(nodeId),
                 attributeId: AttributeIds.Value,

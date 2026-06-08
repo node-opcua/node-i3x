@@ -4,6 +4,7 @@
 
 import {
   type DataValue,
+  type QualifiedName,
   type ReferenceDescription,
   NodeClass,
   StatusCodes,
@@ -21,16 +22,38 @@ const NODE_CLASS_NAMES: Record<number, string> = {
   [NodeClass.View]: 'View',
 };
 
+/**
+ * Convert a QualifiedName to its namespace-URI-qualified form.
+ *
+ * Resolves the volatile namespace *index* to the stable namespace
+ * *URI* using the server's namespace array, producing a string of
+ * the form `"nsu=http://example.com/:BrowseName"`.
+ *
+ * This is the key building-block for stable element IDs that
+ * survive OPC UA server restarts (even when namespace indices shift).
+ */
+export function qualifiedNameToNsu(
+  browseName: QualifiedName | null | undefined,
+  namespaceArray: readonly string[],
+): string {
+  if (!browseName || !browseName.name) return '';
+  const nsIdx = browseName.namespaceIndex ?? 0;
+  const nsUri = namespaceArray[nsIdx] ?? `ns=${nsIdx}`;
+  return `nsu=${nsUri}:${browseName.name}`;
+}
+
 /** Convert a node-opcua ReferenceDescription to a SourceNodeInfo. */
 export function refToSourceNode(
   ref: ReferenceDescription,
   parentSourceNodeId: string | null,
+  namespaceArray: readonly string[],
 ): SourceNodeInfo {
   const nodeClass = ref.nodeClass ?? NodeClass.Unspecified;
   return {
     sourceNodeId: ref.nodeId.toString(),
     parentSourceNodeId,
     browseName: ref.browseName?.toString() ?? '',
+    nsuQualifiedName: qualifiedNameToNsu(ref.browseName, namespaceArray),
     displayName: ref.displayName?.text ?? ref.browseName?.toString() ?? '',
     nodeClass: NODE_CLASS_NAMES[nodeClass] ?? 'Unknown',
     dataType: (ref as Record<string, unknown>).dataType
