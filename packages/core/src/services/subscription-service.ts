@@ -252,11 +252,14 @@ export class SubscriptionService {
     model: BuildResult, nodeId: string,
     maxDepth: number, depth: number,
   ): string[] {
-    if (maxDepth > 0 && depth >= maxDepth) return [];
     const node = model.nodesById.get(nodeId);
     if (!node) return [];
 
+    // Properties are always collected regardless of depth
     if (node.kind === 'property') return [node.id];
+
+    // Depth limit only applies to further recursion into assets
+    if (maxDepth > 0 && depth >= maxDepth) return [];
 
     const result: string[] = [];
     const childIds = model.childrenById.get(nodeId) ?? [];
