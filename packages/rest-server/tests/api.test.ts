@@ -159,21 +159,25 @@ describe('REST API', () => {
     expect(createRes.statusCode).toBe(200);
     const subId = createRes.json().result.subscriptionId;
 
-    // Register
+    // Register — now returns BulkResponse
     const regRes = await app.inject({
       method: 'POST', url: '/v1/subscriptions/register',
       payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
     });
     expect(regRes.statusCode).toBe(200);
     expect(regRes.json().success).toBe(true);
+    expect(regRes.json().results[0].success).toBe(true);
+    expect(regRes.json().results[0].elementId).toBe(propId);
 
-    // List
+    // List — now returns BulkResponse with result wrapper
     const listRes = await app.inject({
       method: 'POST', url: '/v1/subscriptions/list',
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
+    expect(listRes.json().results[0].success).toBe(true);
     expect(listRes.json().results[0].subscriptionId).toBe(subId);
+    expect(listRes.json().results[0].result.subscriptionId).toBe(subId);
 
     // Delete
     const delRes = await app.inject({

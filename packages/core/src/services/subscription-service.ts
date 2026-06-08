@@ -174,16 +174,18 @@ export class SubscriptionService {
     if (pending.length > 0) return Promise.resolve(pending);
 
     return new Promise<SubscriptionUpdate[]>((resolve) => {
-      const timer = setTimeout(() => {
-        sub.waiters = sub.waiters.filter((w) => w !== resolve);
-        resolve([]);
-      }, timeoutMs);
+      let settled = false;
 
-      const wrappedResolve = (updates: SubscriptionUpdate[]) => {
+      const settle = (updates: SubscriptionUpdate[]) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
+        sub.waiters = sub.waiters.filter((w) => w !== settle);
         resolve(updates);
       };
-      sub.waiters.push(wrappedResolve);
+
+      const timer = setTimeout(() => settle([]), timeoutMs);
+      sub.waiters.push(settle);
     });
   }
 
@@ -279,8 +281,12 @@ export class SubscriptionService {
           },
         );
         sub.mode = 'native';
-      } catch {
+      } catch (err) {
         // Fallback to polling — the adapter doesn't support subscriptions
+        this.logger.warn(
+          `Native subscription failed for ${sub.subscriptionId}, ` +
+          `falling back to polling: ${err}`,
+        );
         sub.mode = 'polling';
         this._startPolling(sub);
         return;

@@ -18,8 +18,17 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   app.post('/v1/subscriptions/register', async (req: FastifyRequest<{ Body: { subscriptionId: string; elementIds: string[]; maxDepth?: number } }>) => {
     const { subscriptionId, elementIds, maxDepth } = req.body;
     try {
-      const result = await deps.subscriptionService.register(subscriptionId, elementIds, maxDepth ?? 1);
-      return { success: true, results: result };
+      const { registered, errors } = await deps.subscriptionService.register(
+        subscriptionId, elementIds, maxDepth ?? 1,
+      );
+      const results = [
+        ...registered.map((eid) => ({ success: true, elementId: eid, result: null })),
+        ...errors.map((e) => ({
+          success: false, elementId: e.elementId,
+          error: { code: 404, message: e.error },
+        })),
+      ];
+      return { success: true, results };
     } catch (err: unknown) {
       const e = err as Error & { statusCode?: number };
       throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
@@ -85,7 +94,10 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
 
   // ── POST /v1/subscriptions/list ────────────────────────────
   app.post('/v1/subscriptions/list', async (req: FastifyRequest<{ Body: { subscriptionIds: string[] } }>) => {
-    const results = deps.subscriptionService.list(req.body.subscriptionIds);
+    const details = deps.subscriptionService.list(req.body.subscriptionIds);
+    const results = details.map((d) => ({
+      success: true, subscriptionId: d.subscriptionId, result: d,
+    }));
     return { success: true, results };
   });
 }
