@@ -80,3 +80,23 @@ export function bulkError<T>(
 ): BulkResultItem<T> {
   return { success: false, elementId, error: { code, message } };
 }
+
+/**
+ * Project a ModelNode into an ObjectInstanceResponse.
+ *
+ * Centralises the mapping so routes never build this shape
+ * by hand (DRY).
+ */
+export function toObjectInstance(
+  node: { id: string; name: string; type?: string | null; children: readonly string[] },
+  parentId: string | null,
+): ObjectInstanceResponse {
+  return {
+    elementId: node.id,
+    displayName: node.name,
+    typeElementId: node.type ?? '',
+    parentId,
+    isComposition: node.children.length > 0,
+    isExtended: false,
+  };
+}

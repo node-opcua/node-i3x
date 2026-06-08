@@ -1,6 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { RestServerDeps } from '../app.js';
 import { i3xError } from '../errors.js';
+import {
+  successResponse, bulkSuccess, bulkError,
+  toObjectInstance,
+} from '../helpers/response.js';
 
 export default async function objectRoutes(app: FastifyInstance): Promise<void> {
   const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
@@ -13,12 +17,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     let nodes: Array<{ id: string; name: string; type?: string; children: string[] }>;
 
     if (root) {
-      // Return only root objects
       nodes = model.rootIds
         .map((id) => model.nodesById.get(id))
         .filter(Boolean) as Array<{ id: string; name: string; type?: string; children: string[] }>;
     } else {
-      // Return ALL objects
       nodes = Array.from(model.nodesById.values());
     }
 
@@ -26,15 +28,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       nodes = nodes.filter((n) => n.type === typeElementId);
     }
 
-    const result = nodes.map((node) => ({
-      elementId: node.id,
-      displayName: node.name,
-      typeElementId: node.type ?? '',
-      parentId: deps.modelService.parentIdOf(model, node.id),
-      isComposition: node.children.length > 0,
-      isExtended: false,
-    }));
-    return { success: true, result };
+    const result = nodes.map((node) =>
+      toObjectInstance(node, deps.modelService.parentIdOf(model, node.id)),
+    );
+    return successResponse(result);
   });
 
   // ── POST /v1/objects/list ──────────────────────────────────
@@ -43,16 +40,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     const model = await deps.modelService.getOrBuildModel();
     const results = elementIds.map((id) => {
       const node = deps.modelService.findNode(model, id);
-      if (!node) return { success: false, elementId: id, error: { code: 404, message: 'Not found' } };
-      return {
-        success: true, elementId: id,
-        result: {
-          elementId: node.id, displayName: node.name,
-          typeElementId: node.type ?? '', parentId: deps.modelService.parentIdOf(model, node.id),
-          isComposition: node.children.length > 0,
-          isExtended: false,
-        },
-      };
+      if (!node) return bulkError(id, 404, 'Not found');
+      return bulkSuccess(id,
+        toObjectInstance(node, deps.modelService.parentIdOf(model, node.id)),
+      );
     });
     return { success: true, results };
   });
@@ -68,7 +59,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     const results = elementIds.map((eid) => {
       const node = deps.modelService.findNode(model, eid);
       if (!node) {
-        return { success: false, elementId: eid, error: { code: 404, message: 'Not found' } };
+        return bulkError(eid, 404, 'Not found');
       }
 
       // Collect children as "HasComponent" relationships
@@ -78,14 +69,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         .filter(Boolean)
         .map((child) => ({
           sourceRelationship: 'HasComponent',
-          object: {
-            elementId: child!.id,
-            displayName: child!.name,
-            typeElementId: child!.type ?? '',
-            parentId: node.id,
-            isComposition: child!.children.length > 0,
-            isExtended: false,
-          },
+          object: toObjectInstance(child!, node.id),
         }));
 
       // Also include parent as reverse relationship
@@ -95,19 +79,14 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         if (parent) {
           relatedObjects.push({
             sourceRelationship: 'IsComponentOf',
-            object: {
-              elementId: parent.id,
-              displayName: parent.name,
-              typeElementId: parent.type ?? '',
-              parentId: deps.modelService.parentIdOf(model, parent.id),
-              isComposition: parent.children.length > 0,
-              isExtended: false,
-            },
+            object: toObjectInstance(
+              parent, deps.modelService.parentIdOf(model, parent.id),
+            ),
           });
         }
       }
 
-      return { success: true, elementId: eid, result: relatedObjects };
+      return bulkSuccess(eid, relatedObjects);
     });
 
     return { success: true, results };
@@ -149,7 +128,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     const { value } = req.body;
     try {
       await deps.valueService.writeValue(elementId, value);
-      return { success: true, result: null };
+      return successResponse(null);
     } catch (err) {
       throw i3xError(404, 404, (err as Error).message);
     }
