@@ -159,7 +159,7 @@ export class OpcUaClient {
     const refs: ReferenceDescription[] = [
       ...(result.references ?? []),
     ];
-    let txCount = 1; // the initial browse
+    let txCount = 1;
 
     let cp = result.continuationPoint;
     while (cp) {
@@ -171,93 +171,26 @@ export class OpcUaClient {
     return { refs, txCount };
   }
 
-  async browseTree(): Promise<SourceNodeInfo[]> {
+  /**
+   * Generic BFS browse over the address space.
+   *
+   * @param seedNodeId   Starting folder node id
+   * @param onRef        Called for each discovered reference.
+   *                     Return a value to collect it; null to skip.
+   * @param shouldRecurse  Return true to recurse into this child.
+   */
+  private async _bfsBrowse<T>(
+    seedNodeId: string,
+    onRef: (ref: ReferenceDescription, parentNodeId: string | null) => T | null,
+    shouldRecurse?: (ref: ReferenceDescription) => boolean,
+  ): Promise<{ items: T[]; txCount: number; ms: number }> {
     const started = performance.now();
-    const output: SourceNodeInfo[] = [];
-    const visited = new Set<string>();
-    const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
-    let totalTx = 0;
-
-    // Seed with ObjectsFolder
-    let frontier: Array<{ nodeId: string; parentId: string | null }> = [
-      { nodeId: objectsFolderId, parentId: null },
-    ];
-
-    const useParallel = this._opts.browseStrategy !== 'browseAll';
-
-    while (frontier.length > 0) {
-      // Dedup frontier against visited
-      const wave = frontier.filter((f) => !visited.has(f.nodeId));
-      for (const item of wave) visited.add(item.nodeId);
-      if (wave.length === 0) break;
-
-      let waveResults: Array<{ refs: ReferenceDescription[]; txCount: number }>;
-
-      if (useParallel) {
-        // ── Parallel: browse each node concurrently ──
-        waveResults = await Promise.all(
-          wave.map((w) => this._browseSingleNode(w.nodeId)),
-        );
-      } else {
-        // ── browseAll: single batched call ──
-        const descriptions = this._makeBrowseDescriptions(
-          wave.map((w) => w.nodeId),
-        );
-        const browseResults = await browseAll(this.session, descriptions);
-        totalTx += 1; // browseAll is 1+ transaction internally
-        waveResults = browseResults.map((r) => ({
-          refs: r.references ?? [],
-          txCount: 0,
-        }));
-      }
-
-      const nextFrontier: typeof frontier = [];
-      for (let i = 0; i < wave.length; i++) {
-        const item = wave[i]!;
-        const { refs, txCount } = waveResults[i]!;
-        totalTx += txCount;
-
-        // Children of ObjectsFolder are roots (parentId = null)
-        const parentForChildren =
-          item.nodeId === objectsFolderId ? null : item.nodeId;
-
-        for (const ref of refs) {
-          const childId = ref.nodeId.toString();
-
-          // Skip already-seen children (handles cyclic graphs)
-          if (visited.has(childId)) continue;
-
-          output.push(refToSourceNode(ref, parentForChildren));
-
-          // Recurse into Objects and Variables (not Methods)
-          if (
-            ref.nodeClass === NodeClass.Object ||
-            ref.nodeClass === NodeClass.Variable
-          ) {
-            nextFrontier.push({ nodeId: childId, parentId: item.nodeId });
-          }
-        }
-      }
-      frontier = nextFrontier;
-    }
-
-    const elapsed = (performance.now() - started).toFixed(0);
-    const strategy = useParallel ? 'parallel' : 'browseAll';
-    this.logger.info(
-      `Browse tree: ${output.length} nodes in ${elapsed}ms ` +
-      `(strategy=${strategy}, transactions=${totalTx})`,
-    );
-    return output;
-  }
-
-  async getObjectTypes(): Promise<ObjectTypeInfo[]> {
-    const started = performance.now();
-    const output: ObjectTypeInfo[] = [];
+    const output: T[] = [];
     const visited = new Set<string>();
     let totalTx = 0;
 
     let frontier: Array<{ nodeId: string; parentId: string | null }> = [
-      { nodeId: resolveNodeId('ObjectTypesFolder').toString(), parentId: null },
+      { nodeId: seedNodeId, parentId: null },
     ];
 
     const useParallel = this._opts.browseStrategy !== 'browseAll';
@@ -294,25 +227,65 @@ export class OpcUaClient {
         for (const ref of refs) {
           const childId = ref.nodeId.toString();
           if (visited.has(childId)) continue;
-          output.push({
-            sourceNodeId: childId,
-            parentSourceNodeId: item.nodeId,
-            browseName: ref.browseName?.toString() ?? '',
-            displayName: ref.displayName?.text ?? '',
-          });
-          nextFrontier.push({ nodeId: childId, parentId: item.nodeId });
+
+          const mapped = onRef(ref, item.nodeId);
+          if (mapped !== null) output.push(mapped);
+
+          if (!shouldRecurse || shouldRecurse(ref)) {
+            nextFrontier.push({ nodeId: childId, parentId: item.nodeId });
+          }
         }
       }
       frontier = nextFrontier;
     }
 
-    const elapsed = (performance.now() - started).toFixed(0);
-    const strategy = useParallel ? 'parallel' : 'browseAll';
-    this.logger.info(
-      `Browse object types: ${output.length} types in ${elapsed}ms ` +
-      `(strategy=${strategy}, transactions=${totalTx})`,
+    return { items: output, txCount: totalTx, ms: performance.now() - started };
+  }
+
+  async browseTree(): Promise<SourceNodeInfo[]> {
+    const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
+
+    const { items, txCount, ms } = await this._bfsBrowse<SourceNodeInfo>(
+      objectsFolderId,
+      (ref, parentNodeId) => {
+        // Children of ObjectsFolder are roots (parentId = null)
+        const effectiveParent =
+          parentNodeId === objectsFolderId ? null : parentNodeId;
+        return refToSourceNode(ref, effectiveParent);
+      },
+      (ref) =>
+        ref.nodeClass === NodeClass.Object ||
+        ref.nodeClass === NodeClass.Variable,
     );
-    return output;
+
+    const strategy = this._opts.browseStrategy !== 'browseAll'
+      ? 'parallel' : 'browseAll';
+    this.logger.info(
+      `Browse tree: ${items.length} nodes in ${ms.toFixed(0)}ms ` +
+      `(strategy=${strategy}, transactions=${txCount})`,
+    );
+    return items;
+  }
+
+  async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+    const { items, txCount, ms } = await this._bfsBrowse<ObjectTypeInfo>(
+      resolveNodeId('ObjectTypesFolder').toString(),
+      (ref, parentNodeId) => ({
+        sourceNodeId: ref.nodeId.toString(),
+        parentSourceNodeId: parentNodeId,
+        browseName: ref.browseName?.toString() ?? '',
+        displayName: ref.displayName?.text ?? '',
+      }),
+      () => true,
+    );
+
+    const strategy = this._opts.browseStrategy !== 'browseAll'
+      ? 'parallel' : 'browseAll';
+    this.logger.info(
+      `Browse object types: ${items.length} types in ${ms.toFixed(0)}ms ` +
+      `(strategy=${strategy}, transactions=${txCount})`,
+    );
+    return items;
   }
 
   // ── Namespace ──────────────────────────────────────────────
