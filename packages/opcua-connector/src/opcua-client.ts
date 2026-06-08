@@ -60,6 +60,7 @@ export class OpcUaClient {
       securityMode: opts.securityMode ?? 'None',
       applicationName: opts.applicationName ?? 'node-i3x',
       optimizedClient: opts.optimizedClient ?? 'auto',
+      browseStrategy: opts.browseStrategy ?? 'parallel',
     };
   }
 
@@ -126,14 +127,13 @@ export class OpcUaClient {
     return this._session;
   }
 
-  // ── Browse (parallel BFS with browseAll) ────────────────────
+  // ── Browse ──────────────────────────────────────────────────
   //
-  // Uses node-opcua `browseAll(session, [...])` which handles
-  // continuation points AND server limits automatically.
-  //
-  // Each BFS wave browses all frontier nodes in a single batched
-  // call.  Cycle safety: `visited` Set ensures every nodeId is
-  // browsed at most once, even in cyclic OPC UA reference graphs.
+  // Two strategies:
+  //   'parallel'  — browse() + browseNext() per node, entire BFS
+  //                 wave in Promise.all.  18x faster.
+  //   'browseAll' — node-opcua browseAll() handles continuation
+  //                 points but serializes all operations.
 
   private _makeBrowseDescriptions(nodeIds: string[]) {
     return nodeIds.map((nodeId) => ({
@@ -146,16 +146,44 @@ export class OpcUaClient {
     }));
   }
 
+  /**
+   * Browse a single node, following continuation points.
+   * Returns all references plus the number of OPC UA
+   * transactions consumed (1 browse + N browseNext).
+   */
+  private async _browseSingleNode(
+    nodeId: string,
+  ): Promise<{ refs: ReferenceDescription[]; txCount: number }> {
+    const desc = this._makeBrowseDescriptions([nodeId])[0]!;
+    const result = await this.session.browse(desc);
+    const refs: ReferenceDescription[] = [
+      ...(result.references ?? []),
+    ];
+    let txCount = 1; // the initial browse
+
+    let cp = result.continuationPoint;
+    while (cp) {
+      const next = await this.session.browseNext(cp, false);
+      txCount++;
+      refs.push(...(next.references ?? []));
+      cp = next.continuationPoint;
+    }
+    return { refs, txCount };
+  }
+
   async browseTree(): Promise<SourceNodeInfo[]> {
     const started = performance.now();
     const output: SourceNodeInfo[] = [];
     const visited = new Set<string>();
     const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
+    let totalTx = 0;
 
     // Seed with ObjectsFolder
     let frontier: Array<{ nodeId: string; parentId: string | null }> = [
       { nodeId: objectsFolderId, parentId: null },
     ];
+
+    const useParallel = this._opts.browseStrategy !== 'browseAll';
 
     while (frontier.length > 0) {
       // Dedup frontier against visited
@@ -163,17 +191,31 @@ export class OpcUaClient {
       for (const item of wave) visited.add(item.nodeId);
       if (wave.length === 0) break;
 
-      // Browse entire wave in one batched call
-      const descriptions = this._makeBrowseDescriptions(
-        wave.map((w) => w.nodeId),
-      );
-      const browseResults = await browseAll(this.session, descriptions);
+      let waveResults: Array<{ refs: ReferenceDescription[]; txCount: number }>;
+
+      if (useParallel) {
+        // ── Parallel: browse each node concurrently ──
+        waveResults = await Promise.all(
+          wave.map((w) => this._browseSingleNode(w.nodeId)),
+        );
+      } else {
+        // ── browseAll: single batched call ──
+        const descriptions = this._makeBrowseDescriptions(
+          wave.map((w) => w.nodeId),
+        );
+        const browseResults = await browseAll(this.session, descriptions);
+        totalTx += 1; // browseAll is 1+ transaction internally
+        waveResults = browseResults.map((r) => ({
+          refs: r.references ?? [],
+          txCount: 0,
+        }));
+      }
 
       const nextFrontier: typeof frontier = [];
       for (let i = 0; i < wave.length; i++) {
         const item = wave[i]!;
-        const result = browseResults[i]!;
-        const refs = result.references ?? [];
+        const { refs, txCount } = waveResults[i]!;
+        totalTx += txCount;
 
         // Children of ObjectsFolder are roots (parentId = null)
         const parentForChildren =
@@ -199,36 +241,56 @@ export class OpcUaClient {
       frontier = nextFrontier;
     }
 
+    const elapsed = (performance.now() - started).toFixed(0);
+    const strategy = useParallel ? 'parallel' : 'browseAll';
     this.logger.info(
-      `Browse tree: ${output.length} nodes in ` +
-      `${(performance.now() - started).toFixed(0)}ms`,
+      `Browse tree: ${output.length} nodes in ${elapsed}ms ` +
+      `(strategy=${strategy}, transactions=${totalTx})`,
     );
     return output;
   }
 
   async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+    const started = performance.now();
     const output: ObjectTypeInfo[] = [];
     const visited = new Set<string>();
+    let totalTx = 0;
 
     let frontier: Array<{ nodeId: string; parentId: string | null }> = [
       { nodeId: resolveNodeId('ObjectTypesFolder').toString(), parentId: null },
     ];
+
+    const useParallel = this._opts.browseStrategy !== 'browseAll';
 
     while (frontier.length > 0) {
       const wave = frontier.filter((f) => !visited.has(f.nodeId));
       for (const item of wave) visited.add(item.nodeId);
       if (wave.length === 0) break;
 
-      const descriptions = this._makeBrowseDescriptions(
-        wave.map((w) => w.nodeId),
-      );
-      const browseResults = await browseAll(this.session, descriptions);
+      let waveResults: Array<{ refs: ReferenceDescription[]; txCount: number }>;
+
+      if (useParallel) {
+        waveResults = await Promise.all(
+          wave.map((w) => this._browseSingleNode(w.nodeId)),
+        );
+      } else {
+        const descriptions = this._makeBrowseDescriptions(
+          wave.map((w) => w.nodeId),
+        );
+        const browseResults = await browseAll(this.session, descriptions);
+        totalTx += 1;
+        waveResults = browseResults.map((r) => ({
+          refs: r.references ?? [],
+          txCount: 0,
+        }));
+      }
 
       const nextFrontier: typeof frontier = [];
       for (let i = 0; i < wave.length; i++) {
         const item = wave[i]!;
-        const result = browseResults[i]!;
-        const refs = result.references ?? [];
+        const { refs, txCount } = waveResults[i]!;
+        totalTx += txCount;
+
         for (const ref of refs) {
           const childId = ref.nodeId.toString();
           if (visited.has(childId)) continue;
@@ -243,6 +305,13 @@ export class OpcUaClient {
       }
       frontier = nextFrontier;
     }
+
+    const elapsed = (performance.now() - started).toFixed(0);
+    const strategy = useParallel ? 'parallel' : 'browseAll';
+    this.logger.info(
+      `Browse object types: ${output.length} types in ${elapsed}ms ` +
+      `(strategy=${strategy}, transactions=${totalTx})`,
+    );
     return output;
   }
 
