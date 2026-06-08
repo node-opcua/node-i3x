@@ -443,6 +443,29 @@ export class OpcUaClient {
           `OPC UA CreateMonitoredItems: ${newIds.length} items added ` +
           `(total=${monitored.size})`,
         );
+
+        // Read initial values immediately — for stable variables
+        // the OPC UA 'changed' event only fires once at creation,
+        // so we must push the first values explicitly.
+        if (dataChangeCb) {
+          try {
+            const nodesToRead = newIds.map((id) => ({
+              nodeId: coerceNodeId(id),
+              attributeId: AttributeIds.Value,
+            }));
+            const dvs: DataValue[] = await session.read(nodesToRead);
+            for (let i = 0; i < newIds.length; i++) {
+              const dv = dvs[i];
+              if (dv) {
+                const mapped = dataValueToSource(dv);
+                dataChangeCb(newIds[i]!, mapped.value, mapped.quality, mapped.timestamp);
+              }
+            }
+            logger.info(`Initial values pushed for ${newIds.length} items`);
+          } catch (err) {
+            logger.warn(`Failed to read initial values: ${err}`);
+          }
+        }
       },
 
       async removeItems(sourceNodeIds: string[]): Promise<void> {

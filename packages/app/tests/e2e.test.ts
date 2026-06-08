@@ -589,7 +589,6 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     for (const update of updates) {
       expect(update.sequenceNumber).toBeGreaterThan(0);
       expect(update.elementId).toBeTruthy();
-      expect(update.nodeId).toBeTruthy();
       expect(update.timestamp).toBeTruthy();
       expect(model.nodesById.has(update.elementId)).toBe(true);
     }

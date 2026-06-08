@@ -6,6 +6,7 @@
 export interface SubscriptionUpdate {
   readonly sequenceNumber: number;
   readonly elementId: string;
+  /** The OPC UA source node id. */
   readonly nodeId: string;
   readonly value: unknown;
   readonly quality: string;

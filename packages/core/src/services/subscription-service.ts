@@ -156,7 +156,23 @@ export class SubscriptionService {
     acknowledgeSequence: number = 0,
   ): SubscriptionUpdate[] {
     const sub = this._requireSub(subscriptionId);
-    return sub.updates.filter((u) => u.sequenceNumber > acknowledgeSequence);
+    // Trim acknowledged updates (matches Python behaviour)
+    sub.updates = sub.updates.filter(
+      (u) => u.sequenceNumber > acknowledgeSequence,
+    );
+    return [...sub.updates];
+  }
+
+  /**
+   * Trim updates that have been delivered to the client.
+   * Call after stream/sync to prevent re-delivery.
+   */
+  acknowledge(subscriptionId: string, upToSequence: number): void {
+    const sub = this._subs.get(subscriptionId);
+    if (!sub) return;
+    sub.updates = sub.updates.filter(
+      (u) => u.sequenceNumber > upToSequence,
+    );
   }
 
   // ── Stream / long-poll ─────────────────────────────────────
@@ -335,6 +351,12 @@ export class SubscriptionService {
     timestamp: string,
   ): void {
     const elementId = sub.sourceToElement.get(sourceNodeId);
+    this.logger.info(
+      `_onDataChange: sourceNodeId=${sourceNodeId} ` +
+      `elementId=${elementId ?? 'NOT_FOUND'} ` +
+      `mappings=${sub.sourceToElement.size} ` +
+      `value=${JSON.stringify(value)?.slice(0, 80)}`,
+    );
     if (!elementId) return;
 
     const update: SubscriptionUpdate = {

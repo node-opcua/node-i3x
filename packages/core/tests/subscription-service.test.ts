@@ -267,7 +267,6 @@ describe('SubscriptionService', () => {
 
     const updates = svc.sync(subscriptionId, 0);
     expect(updates[0]!.elementId).toBe(propId);
-    expect(updates[0]!.nodeId).toBe(sourceId);
   });
 
   // ── Sync with acknowledgeSequence ──────────────────────

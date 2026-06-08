@@ -82,7 +82,6 @@ export interface RelatedObjectResult {
 export interface SyncUpdateResponse {
   sequenceNumber: number;
   elementId: string;
-  nodeId: string;
   value: unknown;
   quality: string;
   timestamp: string;

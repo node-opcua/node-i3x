@@ -57,27 +57,66 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   });
 
   // ── POST /v1/subscriptions/stream ──────────────────────────
+  // True Server-Sent Events (SSE) stream, matching the Python
+  // reference: the connection stays open and we loop, yielding
+  // batches of updates as they arrive.  Keepalive comments are
+  // sent on timeout so the connection doesn't drop.
   app.post('/v1/subscriptions/stream', async (req: FastifyRequest<{ Body: { subscriptionId: string; acknowledgeSequence?: number; lastSequenceNumber?: number } }>, reply) => {
     const { subscriptionId, acknowledgeSequence, lastSequenceNumber } = req.body;
     const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
 
     try {
-      const updates = await deps.subscriptionService.waitForUpdates(
-        subscriptionId, ackSeq, 30_000,
-      );
+      // Acknowledge (trim) previously delivered updates,
+      // matching the Python sync() call at the top of stream.
+      deps.subscriptionService.acknowledge(subscriptionId, ackSeq);
 
-      reply.header('content-type', 'text/event-stream');
-      reply.header('cache-control', 'no-cache');
-      reply.header('connection', 'keep-alive');
+      // Tell Fastify we're taking over the raw response —
+      // without this, Fastify finalizes the response immediately.
+      await reply.hijack();
 
-      const lines: string[] = [];
-      for (const update of updates) {
-        lines.push(`data: ${JSON.stringify(update)}\n\n`);
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+
+      let lastSequence = ackSeq;
+      let closed = false;
+
+      req.raw.on('close', () => { closed = true; });
+
+      while (!closed) {
+        const updates = await deps.subscriptionService.waitForUpdates(
+          subscriptionId, lastSequence, 15_000,
+        );
+
+        if (closed) break;
+
+        if (!updates || updates.length === 0) {
+          // Keepalive — prevent connection timeout
+          reply.raw.write(': keepalive\n\n');
+          continue;
+        }
+
+        lastSequence = updates[updates.length - 1]!.sequenceNumber;
+        deps.subscriptionService.acknowledge(subscriptionId, lastSequence);
+
+        const payload = updates.map((u) => ({
+          sequenceNumber: u.sequenceNumber,
+          elementId: u.elementId,
+          nodeId: u.nodeId,
+          value: u.value,
+          quality: u.quality,
+          timestamp: u.timestamp,
+        }));
+        reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
       }
-      lines.push('event: done\ndata: {}\n\n');
-      return reply.send(lines.join(''));
+
+      reply.raw.end();
     } catch (err) {
-      rethrowAsI3x(err);
+      if (!reply.raw.headersSent) {
+        rethrowAsI3x(err);
+      }
     }
   });
 
