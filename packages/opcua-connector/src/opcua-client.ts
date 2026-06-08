@@ -393,6 +393,12 @@ export class OpcUaClient {
     let dataChangeCb: DataChangeCallback | null = null;
     const monitored = new Map<string, ClientMonitoredItem>();
     const subId = `opcua-sub-${Date.now()}`;
+    const logger = this.logger;
+
+    logger.info(
+      `OPC UA CreateSubscription id=${subId} ` +
+      `publishingInterval=${options.publishingIntervalMs}ms`,
+    );
 
     const wrapper: IMonitoredSubscription = {
       id: subId,
@@ -431,6 +437,10 @@ export class OpcUaClient {
           });
           monitored.set(nodeId, item);
         }
+        logger.info(
+          `OPC UA CreateMonitoredItems: ${newIds.length} items added ` +
+          `(total=${monitored.size})`,
+        );
       },
 
       async removeItems(sourceNodeIds: string[]): Promise<void> {

@@ -154,10 +154,99 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     },
   });
 
-  // Simulate temperature changes for subscription testing
+  // ── CoffeeMachine (deeply nested for subscription test) ──
+  const coffeeMachine = namespace.addObject({
+    componentOf: productionLine,
+    browseName: 'CoffeeMachine',
+    displayName: 'Coffee Machine Pro 3000',
+  });
+
+  // ParameterSet (sub-object containing UAVariables)
+  const parameterSet = namespace.addObject({
+    componentOf: coffeeMachine,
+    browseName: 'ParameterSet',
+    displayName: 'ParameterSet',
+  });
+
+  // All CoffeeMachine variables MONOTONICALLY INCREASE
+  // so every OPC UA sample is a guaranteed DataChange
+  let brewTemperature = 93.0;
+  let brewTick = 0;
+  namespace.addVariable({
+    componentOf: parameterSet,
+    browseName: 'BrewTemperature',
+    displayName: 'Brew Temperature',
+    dataType: DataType.Double,
+    value: {
+      get: () => new Variant({ dataType: DataType.Double, value: brewTemperature }),
+    },
+  });
+
+  let pumpPressure = 9.0;
+  namespace.addVariable({
+    componentOf: parameterSet,
+    browseName: 'PumpPressure',
+    displayName: 'Pump Pressure',
+    dataType: DataType.Double,
+    value: {
+      get: () => new Variant({ dataType: DataType.Double, value: pumpPressure }),
+    },
+  });
+
+  let waterLevel = 100.0;
+  namespace.addVariable({
+    componentOf: parameterSet,
+    browseName: 'WaterLevel',
+    displayName: 'Water Level',
+    dataType: DataType.Float,
+    value: {
+      get: () => new Variant({ dataType: DataType.Float, value: waterLevel }),
+    },
+  });
+
+  // GrinderUnit — nested 2 levels deep inside CoffeeMachine
+  const grinderUnit = namespace.addObject({
+    componentOf: coffeeMachine,
+    browseName: 'GrinderUnit',
+    displayName: 'Grinder Unit',
+  });
+
+  let grinderRPM = 1200;
+  namespace.addVariable({
+    componentOf: grinderUnit,
+    browseName: 'RPM',
+    displayName: 'Grinder RPM',
+    dataType: DataType.Int32,
+    value: {
+      get: () => new Variant({ dataType: DataType.Int32, value: grinderRPM }),
+    },
+  });
+
+  let grindSizeTick = 0;
+  const grindSizes = ['Coarse', 'Medium', 'Fine', 'Extra-Fine'];
+  namespace.addVariable({
+    componentOf: grinderUnit,
+    browseName: 'GrindSize',
+    displayName: 'Grind Size',
+    dataType: DataType.String,
+    value: {
+      get: () => new Variant({
+        dataType: DataType.String,
+        value: grindSizes[grindSizeTick % grindSizes.length],
+      }),
+    },
+  });
+
+  // Monotonically increase every 200ms for clear evidence
   const interval = setInterval(() => {
-    temperatureA += (Math.random() - 0.4) * 2;
-  }, 500);
+    brewTick++;
+    temperatureA += 0.5;
+    brewTemperature += 0.1;      // 93.0 → 93.1 → 93.2 → ...
+    pumpPressure += 0.05;        //  9.0 →  9.05 →  9.10 → ...
+    waterLevel -= 0.3;           // 100 → 99.7 → 99.4 → ...
+    grinderRPM += 10;            // 1200 → 1210 → 1220 → ...
+    grindSizeTick++;             // cycles through sizes
+  }, 200);
   (server as Record<string, unknown>)._e2eInterval = interval;
 
   await server.start();
@@ -382,6 +471,179 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     expect(delRes.statusCode).toBe(200);
     expect(delRes.json().results[0].success).toBe(true);
   }, 15_000);
+
+  // ── Deep subscription: CoffeeMachine nested monitoring ───
+
+  it('deep subscribe: monitoring CoffeeMachine auto-discovers nested ParameterSet + GrinderUnit variables', async () => {
+    const model = await modelService.getOrBuildModel();
+
+    // 1. Find the CoffeeMachine asset (top-level object)
+    const coffeeNode = [...model.nodesById.values()].find(
+      (n) => n.name === 'Coffee Machine Pro 3000',
+    );
+    expect(coffeeNode).toBeTruthy();
+    const coffeeId = coffeeNode!.id;
+
+    // Verify nested structure exists in the model
+    const childIds = model.childrenById.get(coffeeId) ?? [];
+    expect(childIds.length).toBeGreaterThanOrEqual(2); // ParameterSet + GrinderUnit
+
+    // Find ParameterSet children
+    const paramSetNode = [...model.nodesById.values()].find(
+      (n) => n.name === 'ParameterSet'
+        && childIds.includes(n.id),
+    );
+    expect(paramSetNode).toBeTruthy();
+
+    const paramChildren = model.childrenById.get(paramSetNode!.id) ?? [];
+    const paramPropertyNames = paramChildren
+      .map((id) => model.nodesById.get(id))
+      .filter(Boolean)
+      .filter((n) => n!.kind === 'property')
+      .map((n) => n!.name);
+    expect(paramPropertyNames).toContain('Brew Temperature');
+    expect(paramPropertyNames).toContain('Pump Pressure');
+    expect(paramPropertyNames).toContain('Water Level');
+
+    // Find GrinderUnit children
+    const grinderNode = [...model.nodesById.values()].find(
+      (n) => n.name === 'Grinder Unit'
+        && childIds.includes(n.id),
+    );
+    expect(grinderNode).toBeTruthy();
+
+    const grinderChildren = model.childrenById.get(grinderNode!.id) ?? [];
+    const grinderPropertyNames = grinderChildren
+      .map((id) => model.nodesById.get(id))
+      .filter(Boolean)
+      .filter((n) => n!.kind === 'property')
+      .map((n) => n!.name);
+    expect(grinderPropertyNames).toContain('Grinder RPM');
+    expect(grinderPropertyNames).toContain('Grind Size');
+
+    // 2. Create subscription
+    const createRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions',
+      payload: { clientId: 'deep-test', displayName: 'Deep CoffeeMachine Sub' },
+    });
+    expect(createRes.statusCode).toBe(200);
+    const subId = createRes.json().result.subscriptionId;
+
+    // 3. Register the TOP-LEVEL CoffeeMachine with maxDepth=3
+    //    This should auto-discover ALL nested variables:
+    //    CoffeeMachine (depth 0)
+    //      → ParameterSet (depth 1)
+    //          → BrewTemperature, PumpPressure, WaterLevel (depth 2, property)
+    //      → GrinderUnit (depth 1)
+    //          → RPM, GrindSize (depth 2, property)
+    const regRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/register',
+      payload: {
+        subscriptionId: subId,
+        elementIds: [coffeeId],
+        maxDepth: 3,
+      },
+    });
+    expect(regRes.statusCode).toBe(200);
+    expect(regRes.json().success).toBe(true);
+    expect(regRes.json().results[0].success).toBe(true);
+    expect(regRes.json().results[0].elementId).toBe(coffeeId);
+
+    // 4. Verify list shows the CoffeeMachine as monitored
+    const listRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/list',
+      payload: { subscriptionIds: [subId] },
+    });
+    expect(listRes.statusCode).toBe(200);
+    const detail = listRes.json().results[0].result;
+    expect(detail.monitoredObjects).toHaveLength(1);
+    expect(detail.monitoredObjects[0].elementId).toBe(coffeeId);
+    expect(detail.monitoredObjects[0].maxDepth).toBe(3);
+    // Should be running in native mode (real OPC UA subscription)
+    expect(detail.mode).toBe('native');
+
+    // 5. Wait for data change notifications
+    //    Values change every 200ms, subscription publishes at 1s
+    //    → after 3s we should have multiple notifications
+    await new Promise((r) => setTimeout(r, 3000));
+
+    // 6. Sync — should have updates from multiple nested variables
+    const syncRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, acknowledgeSequence: 0 },
+    });
+    expect(syncRes.statusCode).toBe(200);
+    const updates = syncRes.json().result;
+    expect(Array.isArray(updates)).toBe(true);
+    expect(updates.length).toBeGreaterThan(0);
+
+    // Verify updates come from DIFFERENT nested variables
+    const uniqueElementIds = new Set(
+      updates.map((u: { elementId: string }) => u.elementId),
+    );
+    // We should see updates from at least 3 different property
+    // nodes (BrewTemperature, PumpPressure, GrinderRPM, etc.)
+    expect(uniqueElementIds.size).toBeGreaterThanOrEqual(3);
+
+    // Verify each update has the expected shape
+    for (const update of updates) {
+      expect(update.sequenceNumber).toBeGreaterThan(0);
+      expect(update.elementId).toBeTruthy();
+      expect(update.nodeId).toBeTruthy();
+      expect(update.timestamp).toBeTruthy();
+      expect(model.nodesById.has(update.elementId)).toBe(true);
+    }
+
+    // ── Print evidence: group by variable, show value progression ──
+    const byVar = new Map<string, Array<{ seq: number; value: unknown }>>();
+    for (const u of updates) {
+      const name = model.nodesById.get(u.elementId)?.name ?? u.elementId;
+      if (!byVar.has(name)) byVar.set(name, []);
+      byVar.get(name)!.push({ seq: u.sequenceNumber, value: u.value });
+    }
+
+    console.log(`\n╔══════════════════════════════════════════════════╗`);
+    console.log(`║  Deep Subscription: CoffeeMachine evidence        ║`);
+    console.log(`║  ${updates.length} updates from ${uniqueElementIds.size} variables                   ║`);
+    console.log(`╠══════════════════════════════════════════════════╣`);
+    for (const [name, entries] of byVar) {
+      const vals = entries
+        .sort((a, b) => a.seq - b.seq)
+        .map((e) =>
+          typeof e.value === 'number' ? e.value.toFixed(2) : String(e.value),
+        );
+      console.log(`║  ${name.padEnd(20)} │ ${vals.join(' → ')}`);
+    }
+    console.log(`╚══════════════════════════════════════════════════╝\n`);
+
+    // Verify MONOTONIC progression for numeric variables
+    for (const [name, entries] of byVar) {
+      if (entries.length < 2) continue;
+      const numericVals = entries
+        .filter((e) => typeof e.value === 'number')
+        .map((e) => e.value as number);
+      if (numericVals.length < 2) continue;
+
+      if (name === 'Water Level') {
+        // WaterLevel decreases (draining)
+        for (let i = 1; i < numericVals.length; i++) {
+          expect(numericVals[i]).toBeLessThanOrEqual(numericVals[i - 1]!);
+        }
+      } else {
+        // All others increase
+        for (let i = 1; i < numericVals.length; i++) {
+          expect(numericVals[i]).toBeGreaterThanOrEqual(numericVals[i - 1]!);
+        }
+      }
+    }
+
+    // 7. Cleanup
+    const delRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/delete',
+      payload: { subscriptionIds: [subId] },
+    });
+    expect(delRes.statusCode).toBe(200);
+  }, 20_000);
 
   // ── Error handling ───────────────────────────────────────
 
