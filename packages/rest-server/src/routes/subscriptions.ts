@@ -66,9 +66,18 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
 
     try {
-      // Acknowledge (trim) previously delivered updates,
-      // matching the Python sync() call at the top of stream.
+      // Validate subscription exists BEFORE hijacking the response
       deps.subscriptionService.acknowledge(subscriptionId, ackSeq);
+
+      // If acknowledge didn't throw but sub doesn't exist in list,
+      // return 404 via normal Fastify response (before hijack).
+      const details = deps.subscriptionService.list([subscriptionId]);
+      if (details.length === 0) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 404, message: `Subscription ${subscriptionId} not found` },
+        });
+      }
 
       // Tell Fastify we're taking over the raw response —
       // without this, Fastify finalizes the response immediately.
@@ -104,7 +113,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
         const payload = updates.map((u) => ({
           sequenceNumber: u.sequenceNumber,
           elementId: u.elementId,
-          nodeId: u.nodeId,
           value: u.value,
           quality: u.quality,
           timestamp: u.timestamp,

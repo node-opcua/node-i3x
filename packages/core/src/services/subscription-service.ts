@@ -1,9 +1,13 @@
 // ─────────────────────────────────────────────────────────────
 // @i3x/core  —  SubscriptionService
+//
+// Delivers asset-level composite values (matching the i3X
+// CurrentValueResult shape) with debounced streaming.
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
-import type { BuildResult } from '../domain/model-node.js';
+import type { BuildResult, ModelNode } from '../domain/model-node.js';
+import type { VQT, CurrentValueResult } from '../domain/vqt.js';
 import type {
   SubscriptionUpdate,
   SubscriptionDetail,
@@ -18,15 +22,41 @@ import type {
 import type { ILogger } from '../ports/logger.js';
 import type { ModelService } from './model-service.js';
 
-// ── Internal state ───────────────────────────────────────────
+// ── Asset monitor state ──────────────────────────────────────
+
+/** Per-registered-asset live state, maintained in memory. */
+interface AssetMonitorState {
+  /** The registered element ID (asset or leaf property). */
+  assetElementId: string;
+  /** maxDepth used during registration. */
+  maxDepth: number;
+  /** True if this is an asset with children (composite). */
+  isComposition: boolean;
+  /** Live VQT cache keyed by property elementId. */
+  components: Map<string, VQT>;
+  /** OPC UA sourceNodeId → property elementId. */
+  sourceToProperty: Map<string, string>;
+  /** All OPC UA source node IDs monitored for this asset. */
+  sourceNodeIds: string[];
+  /** Dirty flag — set when any property value changes. */
+  dirty: boolean;
+  /** Debounce timer handle. */
+  debounceTimer: ReturnType<typeof setTimeout> | null;
+}
+
+// ── Subscription state ───────────────────────────────────────
 
 interface SubState {
   subscriptionId: string;
   clientId: string | null;
   displayName: string | null;
   monitoredObjects: MonitoredObjectEntry[];
-  /** Resolved source node IDs → element IDs mapping */
-  sourceToElement: Map<string, string>;
+
+  /** Per-registered-asset live composite state. */
+  assets: Map<string, AssetMonitorState>;
+  /** Reverse lookup: OPC UA sourceNodeId → assetElementId. */
+  sourceToAsset: Map<string, string>;
+
   /** The update queue (ring buffer). */
   updates: SubscriptionUpdate[];
   /** Sequence counter — monotonically increasing. */
@@ -39,6 +69,9 @@ interface SubState {
 }
 
 // ── Service ──────────────────────────────────────────────────
+
+/** Debounce window in milliseconds. */
+const DEBOUNCE_MS = 200;
 
 export class SubscriptionService {
   private readonly _subs = new Map<string, SubState>();
@@ -66,7 +99,8 @@ export class SubscriptionService {
       clientId: opts.clientId ?? null,
       displayName: opts.displayName ?? null,
       monitoredObjects: [],
-      sourceToElement: new Map(),
+      assets: new Map(),
+      sourceToAsset: new Map(),
       updates: [],
       nextSequence: 1,
       runtime: null,
@@ -90,7 +124,7 @@ export class SubscriptionService {
 
     const registered: string[] = [];
     const errors: Array<{ elementId: string; error: string }> = [];
-    const sourceNodeIds: string[] = [];
+    const allSourceNodeIds: string[] = [];
 
     for (const elementId of elementIds) {
       const node = this.modelService.findNode(model, elementId);
@@ -99,22 +133,42 @@ export class SubscriptionService {
         continue;
       }
 
-      // Collect this node + property children
-      const ids = this._collectPropertyIds(model, node.id, maxDepth, 0);
-      for (const propId of ids) {
-        const source = model.propertyToSource.get(propId);
-        if (source) {
-          sub.sourceToElement.set(source, propId);
-          sourceNodeIds.push(source);
-        }
+      // Build the asset monitor state
+      const propMappings = this._collectSourceMappings(model, node.id, maxDepth, 0);
+      const isComposition = propMappings.size > 1 || (
+        propMappings.size === 1 && !propMappings.has(node.sourceNodeId)
+      );
+
+      // For a leaf node, the single mapping is its own sourceNodeId
+      if (propMappings.size === 0 && node.kind === 'property') {
+        const source = model.propertyToSource.get(node.id) ?? node.sourceNodeId;
+        propMappings.set(source, node.id);
       }
 
+      const asset: AssetMonitorState = {
+        assetElementId: elementId,
+        maxDepth,
+        isComposition,
+        components: new Map(),
+        sourceToProperty: propMappings,
+        sourceNodeIds: [...propMappings.keys()],
+        dirty: false,
+        debounceTimer: null,
+      };
+
+      // Register reverse lookups
+      for (const sourceId of asset.sourceNodeIds) {
+        sub.sourceToAsset.set(sourceId, elementId);
+        allSourceNodeIds.push(sourceId);
+      }
+
+      sub.assets.set(elementId, asset);
       sub.monitoredObjects.push({ elementId, maxDepth });
       registered.push(elementId);
     }
 
     // Start or update the data-source subscription
-    await this._ensureRuntime(sub, sourceNodeIds);
+    await this._ensureRuntime(sub, allSourceNodeIds);
     return { registered, errors };
   }
 
@@ -125,25 +179,34 @@ export class SubscriptionService {
     elementIds: string[],
   ): Promise<void> {
     const sub = this._requireSub(subscriptionId);
-    const model = await this.modelService.getOrBuildModel();
+    const sourceIdsToRemove: string[] = [];
 
     for (const elementId of elementIds) {
       sub.monitoredObjects = sub.monitoredObjects.filter(
         (m) => m.elementId !== elementId,
       );
 
-      // Remove source mappings for this element's properties
-      const node = this.modelService.findNode(model, elementId);
-      if (node) {
-        const ids = this._collectPropertyIds(model, node.id, 10, 0);
-        for (const propId of ids) {
-          const source = model.propertyToSource.get(propId);
-          if (source) sub.sourceToElement.delete(source);
+      const asset = sub.assets.get(elementId);
+      if (asset) {
+        // Clear debounce timer
+        if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+        // Remove reverse lookups
+        for (const sourceId of asset.sourceNodeIds) {
+          sub.sourceToAsset.delete(sourceId);
+          sourceIdsToRemove.push(sourceId);
         }
+        sub.assets.delete(elementId);
       }
     }
 
-    if (sub.runtime && sub.sourceToElement.size === 0) {
+    // Remove monitored items from the OPC UA subscription
+    if (sub.runtime && sourceIdsToRemove.length > 0) {
+      try {
+        await sub.runtime.removeItems(sourceIdsToRemove);
+      } catch { /* best effort */ }
+    }
+
+    if (sub.runtime && sub.sourceToAsset.size === 0) {
       await sub.runtime.close();
       sub.runtime = null;
     }
@@ -218,6 +281,10 @@ export class SubscriptionService {
           error: { code: 404, message: 'Subscription not found' } });
         continue;
       }
+      // Clear all debounce timers
+      for (const asset of sub.assets.values()) {
+        if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+      }
       if (sub.runtime) {
         try { await sub.runtime.close(); } catch { /* best effort */ }
       }
@@ -247,6 +314,9 @@ export class SubscriptionService {
 
   async close(): Promise<void> {
     for (const sub of this._subs.values()) {
+      for (const asset of sub.assets.values()) {
+        if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+      }
       if (sub.runtime) {
         try { await sub.runtime.close(); } catch { /* best effort */ }
       }
@@ -279,7 +349,8 @@ export class SubscriptionService {
         clientId: null,
         displayName: null,
         monitoredObjects: [],
-        sourceToElement: new Map(),
+        assets: new Map(),
+        sourceToAsset: new Map(),
         updates: [],
         nextSequence: 1,
         runtime: null,
@@ -291,23 +362,33 @@ export class SubscriptionService {
     return sub;
   }
 
-  private _collectPropertyIds(
+  /**
+   * Collect source-node → property-element mappings for a node
+   * tree, recursing into composition children up to maxDepth.
+   *
+   * Returns Map<sourceNodeId, propertyElementId>.
+   */
+  private _collectSourceMappings(
     model: BuildResult, nodeId: string,
     maxDepth: number, depth: number,
-    out: string[] = [],
-  ): string[] {
+    out: Map<string, string> = new Map(),
+  ): Map<string, string> {
     const node = model.nodesById.get(nodeId);
     if (!node) return out;
 
     // Properties are always collected regardless of depth
-    if (node.kind === 'property') { out.push(node.id); return out; }
+    if (node.kind === 'property') {
+      const source = model.propertyToSource.get(node.id) ?? node.sourceNodeId;
+      if (source) out.set(source, node.id);
+      return out;
+    }
 
     // Depth limit only applies to further recursion into assets
     if (maxDepth > 0 && depth >= maxDepth) return out;
 
     const childIds = model.childrenById.get(nodeId) ?? [];
     for (const childId of childIds) {
-      this._collectPropertyIds(model, childId, maxDepth, depth + 1, out);
+      this._collectSourceMappings(model, childId, maxDepth, depth + 1, out);
     }
     return out;
   }
@@ -343,6 +424,11 @@ export class SubscriptionService {
     }
   }
 
+  /**
+   * Called when a single OPC UA property value changes.
+   * Updates the asset's VQT cache and starts a debounce timer
+   * to flush the composite value once all changes settle.
+   */
   private _onDataChange(
     sub: SubState,
     sourceNodeId: string,
@@ -350,23 +436,72 @@ export class SubscriptionService {
     quality: string,
     timestamp: string,
   ): void {
-    const elementId = sub.sourceToElement.get(sourceNodeId);
-    this.logger.info(
-      `_onDataChange: sourceNodeId=${sourceNodeId} ` +
-      `elementId=${elementId ?? 'NOT_FOUND'} ` +
-      `mappings=${sub.sourceToElement.size} ` +
-      `value=${JSON.stringify(value)?.slice(0, 80)}`,
-    );
-    if (!elementId) return;
+    const assetElementId = sub.sourceToAsset.get(sourceNodeId);
+    if (!assetElementId) return;
+
+    const asset = sub.assets.get(assetElementId);
+    if (!asset) return;
+
+    const propertyElementId = asset.sourceToProperty.get(sourceNodeId);
+    if (!propertyElementId) return;
+
+    // Update the VQT cache for this property
+    asset.components.set(propertyElementId, { value, quality, timestamp });
+    asset.dirty = true;
+
+    // Start or reset the debounce timer
+    if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+    asset.debounceTimer = setTimeout(() => {
+      this._flushAsset(sub, asset);
+    }, DEBOUNCE_MS);
+  }
+
+  /**
+   * Build the composite CurrentValueResult from the asset's
+   * cached property values and push it as a SubscriptionUpdate.
+   */
+  private _flushAsset(sub: SubState, asset: AssetMonitorState): void {
+    if (!asset.dirty) return;
+    asset.dirty = false;
+    asset.debounceTimer = null;
+
+    const now = new Date().toISOString();
+
+    let compositeValue: CurrentValueResult;
+
+    if (asset.isComposition) {
+      // Build the components map from cached VQTs
+      const components: Record<string, VQT> = {};
+      for (const [propId, vqt] of asset.components) {
+        components[propId] = vqt;
+      }
+
+      compositeValue = {
+        isComposition: true,
+        value: null,
+        quality: 'Good',
+        timestamp: now,
+        components,
+      };
+    } else {
+      // Leaf node — single property value
+      const firstVqt = asset.components.values().next().value as VQT | undefined;
+      compositeValue = {
+        isComposition: false,
+        value: firstVqt?.value ?? null,
+        quality: firstVqt?.quality ?? 'Good',
+        timestamp: firstVqt?.timestamp ?? now,
+      };
+    }
 
     const update: SubscriptionUpdate = {
       sequenceNumber: sub.nextSequence++,
-      elementId,
-      nodeId: sourceNodeId,
-      value,
-      quality,
-      timestamp,
+      elementId: asset.assetElementId,
+      value: compositeValue,
+      quality: compositeValue.quality,
+      timestamp: compositeValue.timestamp,
     };
+
     sub.updates.push(update);
 
     // Cap queue at 10 000 entries
@@ -374,7 +509,7 @@ export class SubscriptionService {
       sub.updates = sub.updates.slice(-5_000);
     }
 
-    // Wake any long-poll waiters
+    // Wake any long-poll / stream waiters
     const waiters = sub.waiters;
     sub.waiters = [];
     for (const resolve of waiters) {
@@ -386,7 +521,7 @@ export class SubscriptionService {
     const poll = async () => {
       while (this._subs.has(sub.subscriptionId) && sub.mode === 'polling') {
         try {
-          const sourceIds = [...sub.sourceToElement.keys()];
+          const sourceIds = [...sub.sourceToAsset.keys()];
           if (sourceIds.length > 0) {
             const values = await this.dataSource.readValues(sourceIds);
             const now = new Date().toISOString();

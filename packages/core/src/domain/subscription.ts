@@ -2,13 +2,22 @@
 // @i3x/core  —  Subscription aggregate
 // ─────────────────────────────────────────────────────────────
 
-/** A single data-change update in the subscription update queue. */
+import type { VQT, CurrentValueResult } from './vqt.js';
+
+/**
+ * A single subscription update in the update queue.
+ *
+ * The `value` field carries the full composite structure
+ * matching the i3X CurrentValueResult shape — so the
+ * explorer sees the same format from stream as from
+ * POST /objects/value.
+ */
 export interface SubscriptionUpdate {
   readonly sequenceNumber: number;
+  /** The registered asset / object elementId. */
   readonly elementId: string;
-  /** The OPC UA source node id. */
-  readonly nodeId: string;
-  readonly value: unknown;
+  /** The composite value snapshot. */
+  readonly value: CurrentValueResult;
   readonly quality: string;
   /** RFC 3339 UTC timestamp. */
   readonly timestamp: string;
