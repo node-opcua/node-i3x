@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
-import type { BuildResult, ModelNode } from '../domain/model-node.js';
+import type { BuildResult, ModelNode, DataQuality } from '../domain/model-node.js';
 import type { VQT, CurrentValueResult } from '../domain/vqt.js';
 import type {
   SubscriptionUpdate,
@@ -54,8 +54,8 @@ interface SubState {
 
   /** Per-registered-asset live composite state. */
   assets: Map<string, AssetMonitorState>;
-  /** Reverse lookup: OPC UA sourceNodeId → assetElementId. */
-  sourceToAsset: Map<string, string>;
+  /** Reverse lookup: OPC UA sourceNodeId → set of assetElementIds. */
+  sourceToAsset: Map<string, Set<string>>;
 
   /** The update queue (ring buffer). */
   updates: SubscriptionUpdate[];
@@ -135,6 +135,13 @@ export class SubscriptionService {
 
       // Build the asset monitor state
       const propMappings = this._collectSourceMappings(model, node.id, maxDepth, 0);
+
+      this.logger.info(
+        `register: elementId=${elementId} kind=${node.kind} ` +
+        `maxDepth=${maxDepth} mappings=${propMappings.size} ` +
+        `children=${(model.childrenById.get(node.id) ?? []).length}`,
+      );
+
       const isComposition = propMappings.size > 1 || (
         propMappings.size === 1 && !propMappings.has(node.sourceNodeId)
       );
@@ -143,6 +150,17 @@ export class SubscriptionService {
       if (propMappings.size === 0 && node.kind === 'property') {
         const source = model.propertyToSource.get(node.id) ?? node.sourceNodeId;
         propMappings.set(source, node.id);
+      }
+
+      if (propMappings.size === 0) {
+        this.logger.warn(
+          `register: NO source mappings for ${elementId} — ` +
+          `children kinds: ${(model.childrenById.get(node.id) ?? [])
+            .map((cid) => model.nodesById.get(cid))
+            .filter(Boolean)
+            .map((n) => `${n!.name}(${n!.kind})`)
+            .join(', ')}`,
+        );
       }
 
       const asset: AssetMonitorState = {
@@ -156,9 +174,14 @@ export class SubscriptionService {
         debounceTimer: null,
       };
 
-      // Register reverse lookups
+      // Register reverse lookups (one source → many assets)
       for (const sourceId of asset.sourceNodeIds) {
-        sub.sourceToAsset.set(sourceId, elementId);
+        let set = sub.sourceToAsset.get(sourceId);
+        if (!set) {
+          set = new Set();
+          sub.sourceToAsset.set(sourceId, set);
+        }
+        set.add(elementId);
         allSourceNodeIds.push(sourceId);
       }
 
@@ -192,8 +215,15 @@ export class SubscriptionService {
         if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
         // Remove reverse lookups
         for (const sourceId of asset.sourceNodeIds) {
-          sub.sourceToAsset.delete(sourceId);
-          sourceIdsToRemove.push(sourceId);
+          const set = sub.sourceToAsset.get(sourceId);
+          if (set) {
+            set.delete(elementId);
+            if (set.size === 0) {
+              sub.sourceToAsset.delete(sourceId);
+              sourceIdsToRemove.push(sourceId);
+            }
+            // else: still used by another asset, don't remove from OPC UA
+          }
         }
         sub.assets.delete(elementId);
       }
@@ -436,24 +466,35 @@ export class SubscriptionService {
     quality: string,
     timestamp: string,
   ): void {
-    const assetElementId = sub.sourceToAsset.get(sourceNodeId);
-    if (!assetElementId) return;
+    const assetIds = sub.sourceToAsset.get(sourceNodeId);
+    if (!assetIds || assetIds.size === 0) {
+      this.logger.warn(`_onDataChange: sourceNodeId=${sourceNodeId} NOT in sourceToAsset (size=${sub.sourceToAsset.size})`);
+      return;
+    }
 
-    const asset = sub.assets.get(assetElementId);
-    if (!asset) return;
+    // Fan out to ALL assets that include this source node
+    for (const assetElementId of assetIds) {
+      const asset = sub.assets.get(assetElementId);
+      if (!asset) continue;
 
-    const propertyElementId = asset.sourceToProperty.get(sourceNodeId);
-    if (!propertyElementId) return;
+      const propertyElementId = asset.sourceToProperty.get(sourceNodeId);
+      if (!propertyElementId) continue;
 
-    // Update the VQT cache for this property
-    asset.components.set(propertyElementId, { value, quality, timestamp });
-    asset.dirty = true;
+      // Update the VQT cache for this property
+      asset.components.set(propertyElementId, { value, quality: quality as DataQuality, timestamp });
+      asset.dirty = true;
 
-    // Start or reset the debounce timer
-    if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
-    asset.debounceTimer = setTimeout(() => {
-      this._flushAsset(sub, asset);
-    }, DEBOUNCE_MS);
+      this.logger.info(
+        `_onDataChange: source=${sourceNodeId} → asset=${assetElementId} ` +
+        `prop=${propertyElementId} components=${asset.components.size}/${asset.sourceToProperty.size}`,
+      );
+
+      // Start or reset the debounce timer
+      if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+      asset.debounceTimer = setTimeout(() => {
+        this._flushAsset(sub, asset);
+      }, DEBOUNCE_MS);
+    }
   }
 
   /**

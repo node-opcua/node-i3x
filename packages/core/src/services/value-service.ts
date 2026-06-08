@@ -114,16 +114,23 @@ export class ValueService {
     const childIds = model.childrenById.get(parent.id) ?? [];
     const propIds: string[] = [];
     const propSources: string[] = [];
+    const subAssets: ModelNode[] = [];
 
     for (const childId of childIds) {
       const child = model.nodesById.get(childId);
-      if (child?.kind === 'property') {
+      if (!child) continue;
+      if (child.kind === 'property') {
         propIds.push(child.id);
         propSources.push(child.sourceNodeId);
+      } else if (child.children.length > 0) {
+        // Sub-object with children — recurse
+        subAssets.push(child);
       }
     }
 
     const result = new Map<string, VQT>();
+
+    // Read direct property children
     if (propSources.length > 0) {
       const values = await this.dataSource.readValues(propSources);
       const now = new Date().toISOString();
@@ -136,6 +143,17 @@ export class ValueService {
         });
       }
     }
+
+    // Recurse into sub-object children
+    for (const subAsset of subAssets) {
+      const subComponents = await this._readComponents(
+        model, subAsset, maxDepth, currentDepth + 1,
+      );
+      for (const [key, vqt] of subComponents) {
+        result.set(key, vqt);
+      }
+    }
+
     return result;
   }
 }

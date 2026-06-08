@@ -49,16 +49,31 @@ export function refToSourceNode(
   namespaceArray: readonly string[],
 ): SourceNodeInfo {
   const nodeClass = ref.nodeClass ?? NodeClass.Unspecified;
+  const nsuQName = qualifiedNameToNsu(ref.browseName, namespaceArray);
+
+  // Extract namespace URI from the nsu-qualified name
+  // Format: "nsu=<URI>:<BrowseName>"
+  let namespaceUri = '';
+  const nsuMatch = nsuQName.match(/^nsu=(.+):([^:]+)$/);
+  if (nsuMatch) {
+    namespaceUri = nsuMatch[1]!;
+  } else {
+    // Fallback: resolve from namespace array directly
+    const nsIdx = ref.browseName?.namespaceIndex ?? 0;
+    namespaceUri = namespaceArray[nsIdx] ?? '';
+  }
+
   return {
     sourceNodeId: ref.nodeId.toString(),
     parentSourceNodeId,
     browseName: ref.browseName?.toString() ?? '',
-    nsuQualifiedName: qualifiedNameToNsu(ref.browseName, namespaceArray),
+    nsuQualifiedName: nsuQName,
     displayName: ref.displayName?.text ?? ref.browseName?.toString() ?? '',
     nodeClass: NODE_CLASS_NAMES[nodeClass] ?? 'Unknown',
-    dataType: (ref as Record<string, unknown>).dataType
-      ? String((ref as Record<string, unknown>).dataType)
+    typeDefinition: ref.typeDefinition
+      ? ref.typeDefinition.toString()
       : null,
+    namespaceUri,
     eventNotifier: (ref.nodeClass === NodeClass.Object)
       ? (((ref as Record<string, unknown>).eventNotifier as number) ?? 0) !== 0
       : false,

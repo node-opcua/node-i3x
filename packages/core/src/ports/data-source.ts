@@ -20,7 +20,10 @@ export interface SourceNodeInfo {
   readonly displayName: string;
   /** Source-native class name, e.g. 'Object', 'Variable', 'Method'. */
   readonly nodeClass: string;
-  readonly dataType: string | null;
+  /** Type definition of this node (e.g. 'ns=0;i=63' for BaseObjectType). */
+  readonly typeDefinition: string | null;
+  /** Namespace URI for this node's browse name. */
+  readonly namespaceUri: string;
   readonly eventNotifier: boolean;
 }
 
@@ -36,6 +39,7 @@ export interface ObjectTypeInfo {
   readonly parentSourceNodeId: string | null;
   readonly browseName: string;
   readonly displayName: string;
+  readonly namespaceUri: string;
 }
 
 /** A single value read from the source, with quality + timestamp. */

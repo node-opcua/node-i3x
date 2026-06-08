@@ -11,7 +11,8 @@ describe('mapper', () => {
       nsuQualifiedName: 'nsu=http://example.com/:Temperature',
       displayName: 'Temperature',
       nodeClass: 'Variable',
-      dataType: 'Double',
+      typeDefinition: 'Double',
+      namespaceUri: 'http://example.com/',
       eventNotifier: false,
     };
     const browsePath = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temperature';
@@ -30,7 +31,8 @@ describe('mapper', () => {
       nsuQualifiedName: 'nsu=http://example.com/:Machine',
       displayName: 'Machine',
       nodeClass: 'Object',
-      dataType: null,
+      typeDefinition: null,
+      namespaceUri: 'http://example.com/',
       eventNotifier: false,
     };
     expect(inferKind(node)).toBe('asset');
@@ -44,7 +46,8 @@ describe('mapper', () => {
       nsuQualifiedName: 'nsu=http://example.com/:Reset',
       displayName: 'Reset',
       nodeClass: 'Method',
-      dataType: null,
+      typeDefinition: null,
+      namespaceUri: 'http://example.com/',
       eventNotifier: false,
     };
     expect(inferKind(node)).toBe('action');
@@ -58,7 +61,8 @@ describe('mapper', () => {
       nsuQualifiedName: 'nsu=http://example.com/:Alarm',
       displayName: 'Alarm',
       nodeClass: 'Object',
-      dataType: null,
+      typeDefinition: null,
+      namespaceUri: 'http://example.com/',
       eventNotifier: true,
     };
     expect(inferKind(node)).toBe('eventSource');

@@ -22,6 +22,7 @@ export interface ModelNode {
   readonly type: string | null;
   readonly children: readonly string[];
   readonly sourceNodeId: string;
+  readonly namespaceUri: string;
 }
 
 /**

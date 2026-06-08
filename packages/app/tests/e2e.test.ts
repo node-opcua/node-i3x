@@ -567,7 +567,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     //    → after 3s we should have multiple notifications
     await new Promise((r) => setTimeout(r, 3000));
 
-    // 6. Sync — should have updates from multiple nested variables
+    // 6. Sync — should have composite updates for the CoffeeMachine
     const syncRes = await app.inject({
       method: 'POST', url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, acknowledgeSequence: 0 },
@@ -577,64 +577,45 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     expect(Array.isArray(updates)).toBe(true);
     expect(updates.length).toBeGreaterThan(0);
 
-    // Verify updates come from DIFFERENT nested variables
-    const uniqueElementIds = new Set(
-      updates.map((u: { elementId: string }) => u.elementId),
-    );
-    // We should see updates from at least 3 different property
-    // nodes (BrewTemperature, PumpPressure, GrinderRPM, etc.)
-    expect(uniqueElementIds.size).toBeGreaterThanOrEqual(3);
-
-    // Verify each update has the expected shape
+    // With composite values, all updates have elementId = CoffeeMachine
     for (const update of updates) {
+      expect(update.elementId).toBe(coffeeId);
       expect(update.sequenceNumber).toBeGreaterThan(0);
-      expect(update.elementId).toBeTruthy();
       expect(update.timestamp).toBeTruthy();
-      expect(model.nodesById.has(update.elementId)).toBe(true);
     }
 
-    // ── Print evidence: group by variable, show value progression ──
-    const byVar = new Map<string, Array<{ seq: number; value: unknown }>>();
-    for (const u of updates) {
-      const name = model.nodesById.get(u.elementId)?.name ?? u.elementId;
-      if (!byVar.has(name)) byVar.set(name, []);
-      byVar.get(name)!.push({ seq: u.sequenceNumber, value: u.value });
+    // The latest update should be a composite with components
+    // from nested properties (BrewTemperature, PumpPressure, etc.)
+    const latest = updates[updates.length - 1];
+    expect(latest.value).toBeTruthy();
+    expect(latest.value.isComposition).toBe(true);
+    expect(latest.value.components).toBeTruthy();
+
+    const componentKeys = Object.keys(latest.value.components);
+    // Should have at least 3 nested property components
+    expect(componentKeys.length).toBeGreaterThanOrEqual(3);
+
+    // Each component should be a VQT
+    for (const key of componentKeys) {
+      const vqt = latest.value.components[key];
+      expect(vqt.quality).toBeTruthy();
+      expect(vqt.timestamp).toBeTruthy();
+      // Value should be defined (initial data change fired)
+      expect(vqt.value).toBeDefined();
     }
 
+    // ── Print evidence ──
     console.log(`\n╔══════════════════════════════════════════════════╗`);
-    console.log(`║  Deep Subscription: CoffeeMachine evidence        ║`);
-    console.log(`║  ${updates.length} updates from ${uniqueElementIds.size} variables                   ║`);
+    console.log(`║  Deep Subscription: CoffeeMachine composite       ║`);
+    console.log(`║  ${updates.length} updates, ${componentKeys.length} components                    ║`);
     console.log(`╠══════════════════════════════════════════════════╣`);
-    for (const [name, entries] of byVar) {
-      const vals = entries
-        .sort((a, b) => a.seq - b.seq)
-        .map((e) =>
-          typeof e.value === 'number' ? e.value.toFixed(2) : String(e.value),
-        );
-      console.log(`║  ${name.padEnd(20)} │ ${vals.join(' → ')}`);
+    for (const key of componentKeys) {
+      const vqt = latest.value.components[key];
+      const name = model.nodesById.get(key)?.name ?? key;
+      const val = typeof vqt.value === 'number' ? vqt.value.toFixed(2) : String(vqt.value);
+      console.log(`║  ${name.padEnd(20)} │ ${val}`);
     }
     console.log(`╚══════════════════════════════════════════════════╝\n`);
-
-    // Verify MONOTONIC progression for numeric variables
-    for (const [name, entries] of byVar) {
-      if (entries.length < 2) continue;
-      const numericVals = entries
-        .filter((e) => typeof e.value === 'number')
-        .map((e) => e.value as number);
-      if (numericVals.length < 2) continue;
-
-      if (name === 'Water Level') {
-        // WaterLevel decreases (draining)
-        for (let i = 1; i < numericVals.length; i++) {
-          expect(numericVals[i]).toBeLessThanOrEqual(numericVals[i - 1]!);
-        }
-      } else {
-        // All others increase
-        for (let i = 1; i < numericVals.length; i++) {
-          expect(numericVals[i]).toBeGreaterThanOrEqual(numericVals[i - 1]!);
-        }
-      }
-    }
 
     // 7. Cleanup
     const delRes = await app.inject({
@@ -642,6 +623,90 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionIds: [subId] },
     });
     expect(delRes.statusCode).toBe(200);
+  }, 20_000);
+
+  // ── Subscription value must match /objects/value shape ─────
+
+  it('subscription composite matches /objects/value format for the same asset', async () => {
+    const model = await modelService.getOrBuildModel();
+
+    // Find the CoffeeMachine asset
+    const coffeeNode = [...model.nodesById.values()].find(
+      (n) => n.name === 'Coffee Machine Pro 3000',
+    );
+    expect(coffeeNode).toBeTruthy();
+    const coffeeId = coffeeNode!.id;
+
+    // ── Step 1: Read the canonical value via /objects/value ──
+    const valueRes = await app.inject({
+      method: 'POST', url: '/v1/objects/value',
+      payload: { elementIds: [coffeeId], maxDepth: 3 },
+    });
+    expect(valueRes.statusCode).toBe(200);
+    const valueResult = valueRes.json().results[0].result;
+    expect(valueResult.isComposition).toBe(true);
+    expect(valueResult.components).toBeTruthy();
+
+    const canonicalKeys = Object.keys(valueResult.components).sort();
+    expect(canonicalKeys.length).toBeGreaterThanOrEqual(3);
+
+    // ── Step 2: Create subscription and register same asset ──
+    const createRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions',
+      payload: { clientId: 'match-test' },
+    });
+    const subId = createRes.json().result.subscriptionId;
+
+    const regRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/register',
+      payload: { subscriptionId: subId, elementIds: [coffeeId], maxDepth: 3 },
+    });
+    expect(regRes.statusCode).toBe(200);
+    expect(regRes.json().results[0].success).toBe(true);
+
+    // ── Step 3: Wait for initial data, then sync ──
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const syncRes = await app.inject({
+      method: 'POST', url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, acknowledgeSequence: 0 },
+    });
+    expect(syncRes.statusCode).toBe(200);
+    const updates = syncRes.json().result;
+    expect(updates.length).toBeGreaterThan(0);
+
+    // ── Step 4: The critical assertion ──
+    // The latest sync update must have the SAME component keys
+    // as /objects/value — if they differ, the explorer can't
+    // correlate subscription data with its object model.
+    const latest = updates[updates.length - 1];
+
+    // elementId must match what we registered
+    expect(latest.elementId).toBe(coffeeId);
+
+    // value must be a composition
+    expect(latest.value.isComposition).toBe(true);
+    expect(latest.value.components).toBeTruthy();
+    expect(latest.value.components).not.toEqual({});
+
+    const subscriptionKeys = Object.keys(latest.value.components).sort();
+
+    // THE CRITICAL CHECK: same component keys as /objects/value
+    expect(subscriptionKeys).toEqual(canonicalKeys);
+
+    // Each component must have VQT shape (value, quality, timestamp)
+    for (const key of subscriptionKeys) {
+      const vqt = latest.value.components[key];
+      expect(vqt).toHaveProperty('value');
+      expect(vqt).toHaveProperty('quality');
+      expect(vqt).toHaveProperty('timestamp');
+    }
+
+    // Cleanup
+    await app.inject({
+      method: 'POST', url: '/v1/subscriptions/delete',
+      payload: { subscriptionIds: [subId] },
+    });
   }, 20_000);
 
   // ── Error handling ───────────────────────────────────────

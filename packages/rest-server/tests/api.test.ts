@@ -27,19 +27,19 @@ class MockDataSource implements IDataSourcePort {
         sourceNodeId: 'ns=2;s=Machine', parentSourceNodeId: null,
         browseName: 'Machine', nsuQualifiedName: 'nsu=http://example.com/:Machine',
         displayName: 'Machine',
-        nodeClass: 'Object', dataType: null, eventNotifier: false,
+        nodeClass: 'Object', typeDefinition: null, namespaceUri: 'http://example.com/', eventNotifier: false,
       },
       {
         sourceNodeId: 'ns=2;s=Temperature', parentSourceNodeId: 'ns=2;s=Machine',
         browseName: 'Temperature', nsuQualifiedName: 'nsu=http://example.com/:Temperature',
         displayName: 'Temperature',
-        nodeClass: 'Variable', dataType: 'Double', eventNotifier: false,
+        nodeClass: 'Variable', typeDefinition: 'Double', namespaceUri: 'http://example.com/', eventNotifier: false,
       },
       {
         sourceNodeId: 'ns=2;s=Reset', parentSourceNodeId: 'ns=2;s=Machine',
         browseName: 'Reset', nsuQualifiedName: 'nsu=http://example.com/:Reset',
         displayName: 'Reset',
-        nodeClass: 'Method', dataType: null, eventNotifier: false,
+        nodeClass: 'Method', typeDefinition: null, namespaceUri: 'http://example.com/', eventNotifier: false,
       },
     ];
   }
@@ -53,7 +53,7 @@ class MockDataSource implements IDataSourcePort {
 
   async getObjectTypes(): Promise<ObjectTypeInfo[]> {
     return [
-      { sourceNodeId: 'ns=1;i=1001', parentSourceNodeId: null, browseName: 'MachineType', displayName: 'Machine Type' },
+      { sourceNodeId: 'ns=1;i=1001', parentSourceNodeId: null, browseName: 'MachineType', displayName: 'Machine Type', namespaceUri: 'http://example.com/' },
     ];
   }
 

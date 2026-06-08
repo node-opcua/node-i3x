@@ -38,7 +38,7 @@ export function inferKind(node: SourceNodeInfo): NodeKind {
 }
 
 export function mapType(node: SourceNodeInfo, kind: NodeKind): string | null {
-  return kind === 'property' ? (node.dataType ?? null) : null;
+  return kind === 'property' ? (node.typeDefinition ?? null) : null;
 }
 
 /** Project a source node into an i3X ModelNode. Pure function. */
@@ -55,5 +55,6 @@ export function mapNode(
     type: mapType(node, kind),
     children: childIds,
     sourceNodeId: node.sourceNodeId,
+    namespaceUri: node.namespaceUri,
   };
 }

@@ -88,7 +88,14 @@ export function bulkError<T>(
  * by hand (DRY).
  */
 export function toObjectInstance(
-  node: { id: string; name: string; type?: string | null; children: readonly string[] },
+  node: {
+    id: string;
+    name: string;
+    type?: string | null;
+    children: readonly string[];
+    namespaceUri?: string;
+    sourceNodeId?: string;
+  },
   parentId: string | null,
 ): ObjectInstanceResponse {
   return {
@@ -98,5 +105,9 @@ export function toObjectInstance(
     parentId,
     isComposition: node.children.length > 0,
     isExtended: false,
+    metadata: {
+      typeNamespaceUri: node.namespaceUri ?? null,
+      sourceTypeId: node.sourceNodeId ?? null,
+    },
   };
 }

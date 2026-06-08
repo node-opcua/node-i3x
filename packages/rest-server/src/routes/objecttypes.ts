@@ -12,7 +12,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       result: types.map((t) => ({
         elementId: stableI3xId(t.sourceNodeId, 'asset'),
         displayName: t.displayName,
-        namespaceUri: '',
+        namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
         version: null,
         schema: {},
