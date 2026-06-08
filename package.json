@@ -1,0 +1,27 @@
+{
+  "name": "node-i3x",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/opcua-connector",
+    "packages/rest-server",
+    "packages/app"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/app",
+    "start": "npm run start -w packages/app",
+    "build": "tsc -b packages/core packages/opcua-connector packages/rest-server packages/app",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b packages/core packages/opcua-connector packages/rest-server packages/app --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}
