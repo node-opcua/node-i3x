@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import type { RestServerDeps } from '../app.js';
+import { getDeps } from '../errors.js';
 
 export default async function namespaceRoutes(app: FastifyInstance): Promise<void> {
-  const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
+  const deps = getDeps(app);
 
   app.get('/v1/namespaces', async () => {
     const ns = await deps.dataSource.getNamespaces();

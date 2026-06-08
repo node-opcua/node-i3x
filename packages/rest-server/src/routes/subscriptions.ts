@@ -1,9 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { RestServerDeps } from '../app.js';
-import { i3xError } from '../errors.js';
+import { getDeps, rethrowAsI3x } from '../errors.js';
 
 export default async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
-  const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
+  const deps = getDeps(app);
 
   // ── POST /v1/subscriptions ─────────────────────────────────
   app.post('/v1/subscriptions', async (req: FastifyRequest<{ Body: { clientId?: string; displayName?: string } }>) => {
@@ -29,9 +28,8 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
         })),
       ];
       return { success: true, results };
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
+    } catch (err) {
+      rethrowAsI3x(err);
     }
   });
 
@@ -41,9 +39,8 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     try {
       await deps.subscriptionService.unregister(subscriptionId, elementIds);
       return { success: true, result: null };
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
+    } catch (err) {
+      rethrowAsI3x(err);
     }
   });
 
@@ -54,9 +51,8 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     try {
       const updates = deps.subscriptionService.sync(subscriptionId, ackSeq);
       return { success: true, result: updates };
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
+    } catch (err) {
+      rethrowAsI3x(err);
     }
   });
 
@@ -80,9 +76,8 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       }
       lines.push('event: done\ndata: {}\n\n');
       return reply.send(lines.join(''));
-    } catch (err: unknown) {
-      const e = err as Error & { statusCode?: number };
-      throw i3xError(e.statusCode ?? 404, e.statusCode ?? 404, e.message);
+    } catch (err) {
+      rethrowAsI3x(err);
     }
   });
 

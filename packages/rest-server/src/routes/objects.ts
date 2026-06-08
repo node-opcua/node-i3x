@@ -1,13 +1,12 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { RestServerDeps } from '../app.js';
-import { i3xError } from '../errors.js';
+import { getDeps, i3xError } from '../errors.js';
 import {
   successResponse, bulkSuccess, bulkError,
   toObjectInstance,
 } from '../helpers/response.js';
 
 export default async function objectRoutes(app: FastifyInstance): Promise<void> {
-  const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
+  const deps = getDeps(app);
 
   // ── GET /v1/objects ────────────────────────────────────────
   app.get('/v1/objects', async (req: FastifyRequest<{ Querystring: { typeElementId?: string; includeMetadata?: boolean; root?: boolean } }>) => {

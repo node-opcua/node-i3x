@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import type { RestServerDeps } from '../app.js';
+import { getDeps } from '../errors.js';
 import { stableI3xId } from '@i3x/core';
 
 export default async function objecttypeRoutes(app: FastifyInstance): Promise<void> {
-  const deps: RestServerDeps = (app as Record<string, unknown>).deps as RestServerDeps;
+  const deps = getDeps(app);
 
   app.get('/v1/objecttypes', async () => {
     const types = await deps.dataSource.getObjectTypes();
