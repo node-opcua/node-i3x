@@ -13,6 +13,7 @@ import type {
   SubscriptionService,
 } from '@i3x/core';
 import { registerErrorHandler } from './errors.js';
+import requestIdPlugin from './middleware/request-id.js';
 import infoRoutes from './routes/info.js';
 import healthRoutes from './routes/health.js';
 import namespaceRoutes from './routes/namespaces.js';
@@ -36,6 +37,7 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
   // Make deps available to all routes
   (app as Record<string, unknown>).deps = deps;
 
+  await app.register(requestIdPlugin);
   await app.register(cors, { origin: true });
 
   // Register error handler

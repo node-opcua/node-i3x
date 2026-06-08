@@ -74,7 +74,7 @@ export class ValueService {
           result: {
             isComposition: false,
             value: dv ? dv.value : null,
-            quality: dv ? 'Good' : 'GoodNoData',
+            quality: dv ? dv.quality : 'GoodNoData',
             timestamp: dv ? dv.timestamp : new Date().toISOString(),
           },
         };
@@ -138,7 +138,7 @@ export class ValueService {
         const dv = values[i];
         result.set(propIds[i]!, {
           value: dv ? dv.value : null,
-          quality: dv ? 'Good' : 'GoodNoData',
+          quality: dv ? dv.quality : 'GoodNoData',
           timestamp: dv ? dv.timestamp : now,
         });
       }
