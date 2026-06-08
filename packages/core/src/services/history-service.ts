@@ -21,41 +21,43 @@ export class HistoryService {
     endTime: Date | null,
   ): Promise<BulkResultItem<HistoricalValueResult>[]> {
     const model = await this.modelService.getOrBuildModel();
-    const results: BulkResultItem<HistoricalValueResult>[] = [];
     const start = startTime ?? new Date(Date.now() - 3_600_000);
     const end = endTime ?? new Date();
 
-    for (const elementId of elementIds) {
-      const node = this.modelService.findNode(model, elementId);
-      if (!node) {
-        results.push({
-          success: false, elementId,
-          error: { code: 404, message: 'Element not found' },
-        });
-        continue;
-      }
+    // Run all history reads in parallel — the optimized
+    // OPC UA client coalesces them into batched transactions.
+    const results = await Promise.all(
+      elementIds.map(async (elementId): Promise<BulkResultItem<HistoricalValueResult>> => {
+        const node = this.modelService.findNode(model, elementId);
+        if (!node) {
+          return {
+            success: false, elementId,
+            error: { code: 404, message: 'Element not found' },
+          };
+        }
 
-      try {
-        const history = await this.dataSource.readHistory(
-          node.sourceNodeId, start, end,
-        );
-        results.push({
-          success: true, elementId,
-          result: {
-            isComposition: false,
-            values: history.map((h) => ({
-              value: h.value, quality: 'Good' as const,
-              timestamp: h.timestamp,
-            })),
-          },
-        });
-      } catch (err) {
-        results.push({
-          success: false, elementId,
-          error: { code: 501, message: 'History read not supported' },
-        });
-      }
-    }
+        try {
+          const history = await this.dataSource.readHistory(
+            node.sourceNodeId, start, end,
+          );
+          return {
+            success: true, elementId,
+            result: {
+              isComposition: false,
+              values: history.map((h) => ({
+                value: h.value, quality: 'Good' as const,
+                timestamp: h.timestamp,
+              })),
+            },
+          };
+        } catch {
+          return {
+            success: false, elementId,
+            error: { code: 501, message: 'History read not supported' },
+          };
+        }
+      }),
+    );
 
     return results;
   }

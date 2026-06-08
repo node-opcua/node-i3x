@@ -251,22 +251,22 @@ export class SubscriptionService {
   private _collectPropertyIds(
     model: BuildResult, nodeId: string,
     maxDepth: number, depth: number,
+    out: string[] = [],
   ): string[] {
     const node = model.nodesById.get(nodeId);
-    if (!node) return [];
+    if (!node) return out;
 
     // Properties are always collected regardless of depth
-    if (node.kind === 'property') return [node.id];
+    if (node.kind === 'property') { out.push(node.id); return out; }
 
     // Depth limit only applies to further recursion into assets
-    if (maxDepth > 0 && depth >= maxDepth) return [];
+    if (maxDepth > 0 && depth >= maxDepth) return out;
 
-    const result: string[] = [];
     const childIds = model.childrenById.get(nodeId) ?? [];
     for (const childId of childIds) {
-      result.push(...this._collectPropertyIds(model, childId, maxDepth, depth + 1));
+      this._collectPropertyIds(model, childId, maxDepth, depth + 1, out);
     }
-    return result;
+    return out;
   }
 
   private async _ensureRuntime(

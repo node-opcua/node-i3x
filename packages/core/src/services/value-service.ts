@@ -21,52 +21,79 @@ export class ValueService {
     maxDepth: number = 1,
   ): Promise<BulkResultItem<CurrentValueResult>[]> {
     const model = await this.modelService.getOrBuildModel();
-    const results: BulkResultItem<CurrentValueResult>[] = [];
 
-    for (const elementId of elementIds) {
+    // ── Phase 1: classify nodes ──────────────────────────────
+    // Separate leaf (property / childless) nodes from
+    // composition nodes so we can batch-read all leaves in
+    // one OPC UA call instead of N sequential readValue() calls.
+
+    type LeafEntry = { idx: number; elementId: string; node: ModelNode };
+    type CompEntry = { idx: number; elementId: string; node: ModelNode };
+
+    const results: BulkResultItem<CurrentValueResult>[] = new Array(elementIds.length);
+    const leaves: LeafEntry[] = [];
+    const composites: CompEntry[] = [];
+
+    for (let i = 0; i < elementIds.length; i++) {
+      const elementId = elementIds[i]!;
       const node = this.modelService.findNode(model, elementId);
       if (!node) {
-        results.push({
+        results[i] = {
           success: false, elementId,
           error: { code: 404, message: 'Object value not found' },
-        });
+        };
         continue;
       }
 
       if (node.kind === 'property' || !node.children.length) {
-        try {
-          const dv = await this.dataSource.readValue(node.sourceNodeId);
-          results.push({
-            success: true, elementId,
-            result: {
-              isComposition: false,
-              value: dv.value, quality: 'Good',
-              timestamp: dv.timestamp,
-            },
-          });
-        } catch {
-          results.push({
-            success: true, elementId,
-            result: {
-              isComposition: false, value: null,
-              quality: 'GoodNoData',
-              timestamp: new Date().toISOString(),
-            },
-          });
-        }
+        leaves.push({ idx: i, elementId, node });
       } else {
-        const components = await this._readComponents(model, node, maxDepth, 0);
-        results.push({
-          success: true, elementId,
-          result: {
-            isComposition: true, value: null, quality: 'Good',
-            timestamp: new Date().toISOString(),
-            components: components.size > 0
-              ? Object.fromEntries(components) : null,
-          },
-        });
+        composites.push({ idx: i, elementId, node });
       }
     }
+
+    // ── Phase 2: batch-read all leaf values ──────────────────
+    if (leaves.length > 0) {
+      const sourceIds = leaves.map((l) => l.node.sourceNodeId);
+      let values: Awaited<ReturnType<IDataSourcePort['readValues']>>;
+      try {
+        values = await this.dataSource.readValues(sourceIds);
+      } catch {
+        // Fallback: mark all as GoodNoData
+        values = sourceIds.map(() => ({
+          value: null, quality: 'GoodNoData',
+          timestamp: new Date().toISOString(),
+        }));
+      }
+
+      for (let j = 0; j < leaves.length; j++) {
+        const { idx, elementId } = leaves[j]!;
+        const dv = values[j];
+        results[idx] = {
+          success: true, elementId,
+          result: {
+            isComposition: false,
+            value: dv ? dv.value : null,
+            quality: dv ? 'Good' : 'GoodNoData',
+            timestamp: dv ? dv.timestamp : new Date().toISOString(),
+          },
+        };
+      }
+    }
+
+    // ── Phase 3: read composites in parallel ───────────────
+    await Promise.all(composites.map(async ({ idx, elementId, node }) => {
+      const components = await this._readComponents(model, node, maxDepth, 0);
+      results[idx] = {
+        success: true, elementId,
+        result: {
+          isComposition: true, value: null, quality: 'Good',
+          timestamp: new Date().toISOString(),
+          components: components.size > 0
+            ? Object.fromEntries(components) : null,
+        },
+      };
+    }));
 
     return results;
   }
