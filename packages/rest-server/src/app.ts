@@ -4,6 +4,13 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+
+// Augment Fastify so `app.deps` is typed without casts.
+declare module 'fastify' {
+  interface FastifyInstance {
+    deps: RestServerDeps;
+  }
+}
 import type {
   IDataSourcePort,
   ILogger,
@@ -34,8 +41,8 @@ export interface RestServerDeps {
 export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
 
-  // Make deps available to all routes
-  (app as Record<string, unknown>).deps = deps;
+  // Make deps available to all routes via Fastify's decorate API.
+  app.decorate('deps', deps);
 
   await app.register(requestIdPlugin);
   await app.register(cors, { origin: true });

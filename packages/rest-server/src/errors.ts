@@ -28,15 +28,15 @@ export function i3xError(
 export function rethrowAsI3x(err: unknown): never {
   const e = err as Error & { statusCode?: number };
   throw i3xError(
-    e.statusCode ?? 404,
-    e.statusCode ?? 404,
+    e.statusCode ?? 500,
+    e.statusCode ?? 500,
     e.message,
   );
 }
 
 /** Extract typed deps from the Fastify app instance. */
 export function getDeps(app: FastifyInstance): RestServerDeps {
-  return (app as Record<string, unknown>).deps as RestServerDeps;
+  return app.deps;
 }
 
 export function registerErrorHandler(app: FastifyInstance): void {

@@ -45,7 +45,7 @@ export class HistoryService {
             result: {
               isComposition: false,
               values: history.map((h) => ({
-                value: h.value, quality: 'Good' as const,
+                value: h.value, quality: (h.quality ?? 'Good') as const,
                 timestamp: h.timestamp,
               })),
             },

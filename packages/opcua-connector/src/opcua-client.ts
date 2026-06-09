@@ -6,6 +6,7 @@ import {
   OPCUAClient,
   MessageSecurityMode,
   type ClientSession,
+  type ClientMonitoredItem,
   TimestampsToReturn,
   BrowseDirection,
   AttributeIds,
