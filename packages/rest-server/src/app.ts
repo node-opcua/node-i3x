@@ -51,6 +51,14 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
   // Register error handler
   registerErrorHandler(app);
 
+  // Brand every response with X-Powered-By header
+  app.addHook('onRequest', async (_req, reply) => {
+    reply.header(
+      'X-Powered-By',
+      'node-i3x (Sterfive - https://sterfive.com)',
+    );
+  });
+
   // Register routes
   await app.register(infoRoutes);
   await app.register(healthRoutes);

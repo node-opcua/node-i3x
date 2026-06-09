@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import {
   consoleLogger,
   HistoryService,
@@ -9,9 +10,27 @@ import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { config } from './config.js';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
+
 async function main(): Promise<void> {
   const logger = consoleLogger;
-  logger.info('node-i3x starting...');
+
+  // ── Startup banner ──────────────────────────────────────────
+  const v = `v${version}`;
+  console.log(`
+  ╔══════════════════════════════════════════════════╗
+  ║                                                  ║
+  ║   node-i3x  ${v.padEnd(34)}║
+  ║   OPC UA → i3X REST API bridge                   ║
+  ║                                                  ║
+  ║   Built by Sterfive — https://sterfive.com       ║
+  ║   License: AGPL-3.0 | Commercial                 ║
+  ║   Contact: contact@sterfive.com                  ║
+  ║                                                  ║
+  ╚══════════════════════════════════════════════════╝
+`);
+
   logger.info(`OPC UA endpoint: ${config.opcuaEndpoint}`);
 
   // 1. Outbound adapter (OPC UA)
