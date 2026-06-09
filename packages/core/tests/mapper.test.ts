@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { stableI3xId, inferKind, mapNode } from '@i3x/core';
-import type { SourceNodeInfo } from '@i3x/core';
+import type { SourceNodeInfo } from '@node-i3x/core';
+import { inferKind, mapNode, stableI3xId } from '@node-i3x/core';
+import { describe, expect, it } from 'vitest';
 
 describe('mapper', () => {
   it('maps a Variable node to a property', () => {

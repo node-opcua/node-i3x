@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/rest-server — Request ID middleware
+// @node-i3x/rest-server — Request ID middleware
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';

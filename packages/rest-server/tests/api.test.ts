@@ -4,12 +4,12 @@ import type {
   SourceHistoricalValue, NamespaceInfo, ObjectTypeInfo,
   IMonitoredSubscription, MonitoredSubscriptionOptions,
   DataChangeCallback, ILogger,
-} from '@i3x/core';
+} from '@node-i3x/core';
 import {
   ModelService, ValueService, HistoryService,
   SubscriptionService, nullLogger, emptyBuildResult,
-} from '@i3x/core';
-import { createApp } from '@i3x/rest-server';
+} from '@node-i3x/core';
+import { createApp } from '@node-i3x/rest-server';
 
 // ── Mock data source ─────────────────────────────────────────
 

@@ -1,0 +1,21 @@
+{
+  "name": "@node-i3x/demo-embedded",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end demo: OPC UA server + i3X REST API wired via PseudoSession — zero network, direct AddressSpace access",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "demo": "npx tsx src/index.ts",
+    "demo:remote": "npx tsx src/demo-remote.ts",
+    "client": "npx tsx src/client.ts"
+  },
+  "dependencies": {
+    "@node-i3x/core": "*",
+    "@node-i3x/opcua-connector": "*",
+    "@node-i3x/pseudo-session-connector": "*",
+    "@node-i3x/rest-server": "*",
+    "node-opcua": "^2.128.0"
+  }
+}

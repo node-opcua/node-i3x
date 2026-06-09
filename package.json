@@ -9,8 +9,10 @@
   "workspaces": [
     "packages/core",
     "packages/opcua-connector",
+    "packages/pseudo-session-connector",
     "packages/rest-server",
-    "packages/app"
+    "packages/app",
+    "packages/demo-embedded"
   ],
   "scripts": {
     "dev": "npm run dev -w packages/app",

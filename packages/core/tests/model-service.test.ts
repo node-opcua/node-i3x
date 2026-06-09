@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { ModelService, nullLogger, stableI3xId } from '@i3x/core';
-import type { IDataSourcePort, SourceNodeInfo } from '@i3x/core';
+import type { IDataSourcePort, SourceNodeInfo } from '@node-i3x/core';
+import { ModelService, nullLogger, stableI3xId } from '@node-i3x/core';
+import { describe, expect, it } from 'vitest';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ describe('ModelService – browse path construction', () => {
     const propId = stableI3xId(expectedPath, 'property');
 
     expect(model.nodesById.has(propId)).toBe(true);
-    expect(model.nodesById.get(propId)!.kind).toBe('property');
+    expect(model.nodesById.get(propId)?.kind).toBe('property');
   });
 
   it('multiple roots each appear in rootIds independently', async () => {
@@ -215,7 +215,7 @@ describe('ModelService – namespace index stability', () => {
     expect(idsA).toEqual(idsB);
 
     // Verify root IDs also match
-    expect(modelA.rootIds.sort()).toEqual(modelB.rootIds.sort());
+    expect(modelA.rootIds?.toSorted()).toEqual(modelB.rootIds?.toSorted());
   });
 });
 
@@ -306,7 +306,7 @@ describe('ModelService – property and action mapping', () => {
     expect(model.actionToMethod.has(methodId)).toBe(true);
 
     const [parentSourceId, methodSourceId] =
-      model.actionToMethod.get(methodId)!;
+      model.actionToMethod.get(methodId) ?? [];
     expect(parentSourceId).toBe('ns=2;i=10');
     expect(methodSourceId).toBe('ns=2;i=11');
   });

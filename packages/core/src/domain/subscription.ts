@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  Subscription aggregate
+// @node-i3x/core  —  Subscription aggregate
 // ─────────────────────────────────────────────────────────────
 
-import type { VQT, CurrentValueResult } from './vqt.js';
+import type { CurrentValueResult, VQT } from './vqt.js';
 
 /**
  * A single subscription update in the update queue.

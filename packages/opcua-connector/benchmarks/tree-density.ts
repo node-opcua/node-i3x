@@ -18,7 +18,7 @@ import {
   resolveNodeId,
 } from 'node-opcua';
 import { wrapSessionIfOptimized } from '../src/optimized.js';
-import { consoleLogger } from '@i3x/core';
+import { consoleLogger } from '@node-i3x/core';
 
 const ENDPOINT = process.env.NODE_I3X_OPCUA_ENDPOINT
   ?? 'opc.tcp://opcuademo.sterfive.com:26541';

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps } from '../errors.js';
-import { stableI3xId } from '@i3x/core';
+import { stableI3xId } from '@node-i3x/core';
 
 export default async function objecttypeRoutes(app: FastifyInstance): Promise<void> {
   const deps = getDeps(app);

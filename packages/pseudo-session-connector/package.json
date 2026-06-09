@@ -1,0 +1,32 @@
+{
+  "name": "@node-i3x/pseudo-session-connector",
+  "version": "0.1.0",
+  "description": "i3X data-source adapter using node-opcua PseudoSession — connects directly to an AddressSpace without binary OPC UA transport",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@node-i3x/core": "*",
+    "node-opcua-address-space": "^2.128.0",
+    "node-opcua-address-space-base": "^2.128.0",
+    "node-opcua-data-model": "^2.128.0",
+    "node-opcua-data-value": "^2.128.0",
+    "node-opcua-nodeid": "^2.128.0",
+    "node-opcua-pseudo-session": "^2.128.0",
+    "node-opcua-service-browse": "^2.128.0",
+    "node-opcua-status-code": "^2.128.0",
+    "node-opcua-variant": "^2.128.0",
+    "node-opcua-types": "^2.128.0",
+    "node-opcua-constants": "^2.128.0"
+  },
+  "devDependencies": {
+    "node-opcua": "^2.128.0"
+  }
+}

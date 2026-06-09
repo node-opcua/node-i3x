@@ -12,23 +12,22 @@
 // and validates end-to-end flows against the HTTP API.
 // ─────────────────────────────────────────────────────────────
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import {consoleLogger,HistoryService,
+  ModelService, 
+  SubscriptionService, ValueService, 
+} from '@node-i3x/core';
+import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
+import { createApp } from '@node-i3x/rest-server';
 import {
-  OPCUAServer,
-  Variant,
-  DataType,
-  StatusCodes,
-  type UAObject,
-  type Namespace,
   type AddressSpace,
+  DataType,
+  type Namespace,
   nodesets,
+  OPCUAServer,
+  StatusCodes,
+  Variant,
 } from 'node-opcua';
-import {
-  ModelService, ValueService, HistoryService,
-  SubscriptionService, consoleLogger,
-} from '@i3x/core';
-import { OpcUaClient, OpcUaDataSourceAdapter } from '@i3x/opcua-connector';
-import { createApp } from '@i3x/rest-server';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // ── Server factory ───────────────────────────────────────────
 
@@ -55,7 +54,8 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
 
   await server.initialize();
 
-  const addressSpace: AddressSpace = server.engine.addressSpace!;
+  const addressSpace = server.engine.addressSpace;
+  if (!addressSpace) throw new Error('Address space not initialized');
   const namespace: Namespace = addressSpace.getOwnNamespace();
 
   // ── ProductionLine (folder) ──────────────────────────────
@@ -105,17 +105,19 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
   });
 
   // Method: Reset
-  namespace.addMethod(machineA, {
+  const uaResetMethod = namespace.addMethod(machineA, {
     browseName: 'Reset',
     displayName: 'Reset Machine',
     inputArguments: [],
-    outputArguments: [],
-    methodFunction: (_inputArguments, _context, callback) => {
-      temperatureA = 25.0;
-      speedA = 0;
-      callback(null, { statusCode: StatusCodes.Good });
-    },
-  } as Record<string, unknown>);
+    outputArguments: []
+  });
+  uaResetMethod.bindMethod(async (_inputArguments, _context) => { 
+    temperatureA = 25.0;
+    speedA = 0;
+    return { statusCode: StatusCodes.Good };
+  });
+
+
 
   // ── Machine B ────────────────────────────────────────────
   const machineB = namespace.addObject({

@@ -1,0 +1,9 @@
+{
+    "editor.defaultFormatter": "biomejs.biome",
+    "biome.lsp.watcher.kind": "recommended",
+    "biome.requireConfiguration": false,
+    "editor.formatOnSaveMode": "file",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit"
+  }
+}

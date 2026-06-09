@@ -1,20 +1,20 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  SubscriptionService
+// @node-i3x/core  —  SubscriptionService
 //
 // Delivers asset-level composite values (matching the i3X
 // CurrentValueResult shape) with debounced streaming.
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
-import type { BuildResult, ModelNode, DataQuality } from '../domain/model-node.js';
-import type { VQT, CurrentValueResult } from '../domain/vqt.js';
+import type { BuildResult, DataQuality } from '../domain/model-node.js';
 import type {
-  SubscriptionUpdate,
-  SubscriptionDetail,
-  SubscriptionDeleteResult,
-  MonitoredObjectEntry,
   CreateSubscriptionOptions,
+  MonitoredObjectEntry,
+  SubscriptionDeleteResult,
+  SubscriptionDetail,
+  SubscriptionUpdate,
 } from '../domain/subscription.js';
+import type { CurrentValueResult, VQT } from '../domain/vqt.js';
 import type {
   IDataSourcePort,
   IMonitoredSubscription,

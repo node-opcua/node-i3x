@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/opcua-connector — OpcUaDataSourceAdapter
+// @node-i3x/opcua-connector — OpcUaDataSourceAdapter
 // Implements IDataSourcePort using OpcUaClient
 // ─────────────────────────────────────────────────────────────
 
@@ -13,14 +13,14 @@ import type {
   ObjectTypeInfo,
   IMonitoredSubscription,
   MonitoredSubscriptionOptions,
-} from '@i3x/core';
+} from '@node-i3x/core';
 import type { OpcUaClient } from './opcua-client.js';
 
 /**
- * Adapter that bridges @i3x/core's IDataSourcePort to the
+ * Adapter that bridges @node-i3x/core's IDataSourcePort to the
  * OPC UA world via OpcUaClient.
  *
- * This is the ONLY class that both imports from @i3x/core
+ * This is the ONLY class that both imports from @node-i3x/core
  * AND from node-opcua land (via OpcUaClient).
  */
 export class OpcUaDataSourceAdapter implements IDataSourcePort {

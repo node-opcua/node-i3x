@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  ModelService
+// @node-i3x/core  —  ModelService
 // ─────────────────────────────────────────────────────────────
 
 import type { BuildResult, ModelNode, NodeKind } from '../domain/model-node.js';

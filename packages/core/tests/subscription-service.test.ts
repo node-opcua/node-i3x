@@ -1,22 +1,22 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core — SubscriptionService unit tests
+// @node-i3x/core — SubscriptionService unit tests
 // ─────────────────────────────────────────────────────────────
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { SubscriptionService } from '../src/services/subscription-service.js';
-import { ModelService, emptyBuildResult } from '../src/services/model-service.js';
-import { nullLogger } from '../src/ports/logger.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
+  DataChangeCallback,
   IDataSourcePort,
   IMonitoredSubscription,
-  SourceNodeInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
+  MonitoredSubscriptionOptions,
   NamespaceInfo,
   ObjectTypeInfo,
-  MonitoredSubscriptionOptions,
-  DataChangeCallback,
+  SourceDataValue,
+  SourceHistoricalValue,
+  SourceNodeInfo,
 } from '../src/ports/data-source.js';
+import { nullLogger } from '../src/ports/logger.js';
+import {  ModelService } from '../src/services/model-service.js';
+import { SubscriptionService } from '../src/services/subscription-service.js';
 
 // ── Helpers ──────────────────────────────────────────────────
 

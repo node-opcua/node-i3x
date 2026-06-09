@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/opcua-connector — @sterfive/opcua-optimized-client
+// @node-i3x/opcua-connector — @sterfive/opcua-optimized-client
 // ─────────────────────────────────────────────────────────────
 
 import type { ClientSession } from 'node-opcua';
-import type { ILogger } from '@i3x/core';
+import type { ILogger } from '@node-i3x/core';
 
 /**
  * Wrap a ClientSession with @sterfive/opcua-optimized-client

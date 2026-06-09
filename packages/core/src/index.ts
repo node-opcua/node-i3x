@@ -1,44 +1,42 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  Public API barrel export
+// @node-i3x/core  —  Public API barrel export
 // ─────────────────────────────────────────────────────────────
 
 // Domain models
-export type { NodeKind, ModelNode, BuildResult } from './domain/model-node.js';
-export type { DataQuality } from './domain/model-node.js';
-export type { VQT, CurrentValueResult, HistoricalValueResult } from './domain/vqt.js';
+export type { BuildResult, DataQuality, ModelNode, NodeKind } from './domain/model-node.js';
 export type { Namespace } from './domain/namespace.js';
 export type { ObjectType, RelationshipType } from './domain/object-type.js';
 export type {
-  SubscriptionUpdate,
-  SubscriptionSyncResult,
+  CreateSubscriptionOptions,
+  MonitoredObjectEntry,
   SubscriptionDeleteResult,
   SubscriptionDetail,
-  MonitoredObjectEntry,
-  CreateSubscriptionOptions,
+  SubscriptionSyncResult,
+  SubscriptionUpdate,
 } from './domain/subscription.js';
+export type { CurrentValueResult, HistoricalValueResult, VQT } from './domain/vqt.js';
 
 // Ports
 export type {
+  DataChangeCallback,
+  DataSourceFactory,
   IDataSourcePort,
-  SourceNodeInfo,
+  IMonitoredSubscription,
+  MonitoredSubscriptionOptions,
   NamespaceInfo,
   ObjectTypeInfo,
   SourceDataValue,
   SourceHistoricalValue,
-  DataChangeCallback,
-  MonitoredSubscriptionOptions,
-  IMonitoredSubscription,
-  DataSourceFactory,
+  SourceNodeInfo,
 } from './ports/data-source.js';
 export type { ILogger } from './ports/logger.js';
-export { nullLogger, consoleLogger } from './ports/logger.js';
-
-// Services
-export { ModelService, emptyBuildResult } from './services/model-service.js';
-export { ValueService } from './services/value-service.js';
+export { consoleLogger, nullLogger } from './ports/logger.js';
 export { HistoryService } from './services/history-service.js';
+export { inferKind, mapNode, mapType, stableI3xId } from './services/mapper.js';
+// Services
+export { emptyBuildResult, ModelService } from './services/model-service.js';
 export { SubscriptionService } from './services/subscription-service.js';
-export { stableI3xId, inferKind, mapNode, mapType } from './services/mapper.js';
+export { ValueService } from './services/value-service.js';
 
 // API types
 export type * from './types/api.js';

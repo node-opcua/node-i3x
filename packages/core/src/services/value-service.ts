@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  ValueService
+// @node-i3x/core  —  ValueService
 // ─────────────────────────────────────────────────────────────
 
 import type { BuildResult, ModelNode } from '../domain/model-node.js';
-import type { VQT, CurrentValueResult } from '../domain/vqt.js';
+import type { CurrentValueResult, VQT } from '../domain/vqt.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import type { BulkResultItem } from '../types/api.js';
@@ -61,9 +61,9 @@ export class ValueService {
       } catch {
         // Fallback: mark all as GoodNoData
         values = sourceIds.map(() => ({
-          value: null, quality: 'GoodNoData',
+          value: null, quality: 'GoodNoData' as const,
           timestamp: new Date().toISOString(),
-        }));
+        }));  
       }
 
       for (let j = 0; j < leaves.length; j++) {
@@ -74,7 +74,7 @@ export class ValueService {
           result: {
             isComposition: false,
             value: dv ? dv.value : null,
-            quality: dv ? dv.quality : 'GoodNoData',
+            quality: dv ? dv.quality : ('GoodNoData' as const),
             timestamp: dv ? dv.timestamp : new Date().toISOString(),
           },
         };
@@ -136,9 +136,10 @@ export class ValueService {
       const now = new Date().toISOString();
       for (let i = 0; i < propIds.length; i++) {
         const dv = values[i];
-        result.set(propIds[i]!, {
+        if (!propIds[i]) continue;
+        result.set(propIds[i], {
           value: dv ? dv.value : null,
-          quality: dv ? dv.quality : 'GoodNoData',
+          quality: dv ? dv.quality : ('GoodNoData' as const),
           timestamp: dv ? dv.timestamp : now,
         });
       }

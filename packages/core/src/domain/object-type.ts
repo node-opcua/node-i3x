@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  ObjectType value object
+// @node-i3x/core  —  ObjectType value object
 // ─────────────────────────────────────────────────────────────
 
 /** An i3X object-type projection. */

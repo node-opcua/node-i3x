@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/rest-server — HTTP error helpers
+// @node-i3x/rest-server — HTTP error helpers
 // ─────────────────────────────────────────────────────────────
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

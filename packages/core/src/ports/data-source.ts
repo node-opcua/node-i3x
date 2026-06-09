@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  IDataSourcePort (outbound port)
+// @node-i3x/core  —  IDataSourcePort (outbound port)
 // ─────────────────────────────────────────────────────────────
 //
 // This is the hexagonal boundary.  The domain services call this

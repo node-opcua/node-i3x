@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------
-// @i3x/rest-server -- Response envelope helpers
+// @node-i3x/rest-server -- Response envelope helpers
 //
 // Use these instead of hand-building { success, result/results }
 // to ensure compliance with the i3X OpenAPI spec.

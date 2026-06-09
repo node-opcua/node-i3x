@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/opcua-connector — OPC UA-specific internal types
+// @node-i3x/opcua-connector — OPC UA-specific internal types
 // ─────────────────────────────────────────────────────────────
 
 /** Configuration for the OPC UA client connection. */

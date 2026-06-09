@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/opcua-connector — OPC UA → domain mapping helpers
+// @node-i3x/opcua-connector — OPC UA → domain mapping helpers
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -9,7 +9,7 @@ import {
   NodeClass,
   StatusCodes,
 } from 'node-opcua';
-import type { SourceNodeInfo, SourceDataValue, SourceHistoricalValue } from '@i3x/core';
+import type { SourceNodeInfo, SourceDataValue, SourceHistoricalValue } from '@node-i3x/core';
 
 const NODE_CLASS_NAMES: Record<number, string> = {
   [NodeClass.Object]: 'Object',

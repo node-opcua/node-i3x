@@ -2,15 +2,15 @@
 // Demo: Start a representative OPC UA server + i3X REST API
 // ─────────────────────────────────────────────────────────────
 
-import {
-  OPCUAServer, Variant, DataType, StatusCodes, nodesets,
+import {consoleLogger,HistoryService,
+  ModelService, 
+  SubscriptionService, ValueService, 
+} from '@node-i3x/core';
+import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
+import { createApp } from '@node-i3x/rest-server';
+import {DataType, nodesets,
+  OPCUAServer, Variant, 
 } from 'node-opcua';
-import {
-  ModelService, ValueService, HistoryService,
-  SubscriptionService, consoleLogger,
-} from '@i3x/core';
-import { OpcUaClient, OpcUaDataSourceAdapter } from '@i3x/opcua-connector';
-import { createApp } from '@i3x/rest-server';
 
 const PORT = 8000;
 const OPCUA_PORT = 48400;

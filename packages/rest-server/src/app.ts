@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/rest-server — Fastify app factory
+// @node-i3x/rest-server — Fastify app factory
 // ─────────────────────────────────────────────────────────────
 
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -18,7 +18,7 @@ import type {
   ValueService,
   HistoryService,
   SubscriptionService,
-} from '@i3x/core';
+} from '@node-i3x/core';
 import { registerErrorHandler } from './errors.js';
 import requestIdPlugin from './middleware/request-id.js';
 import infoRoutes from './routes/info.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@i3x/core",
+  "name": "@node-i3x/core",
   "version": "0.1.0",
   "description": "i3X domain core — models, ports, and services (zero dependencies)",
   "type": "module",
@@ -10,5 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.42"
   }
 }

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  VQT value object
+// @node-i3x/core  —  VQT value object
 // ─────────────────────────────────────────────────────────────
 
 import type { DataQuality } from './model-node.js';

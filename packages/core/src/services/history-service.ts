@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  HistoryService
+// @node-i3x/core  —  HistoryService
 // ─────────────────────────────────────────────────────────────
 
 import type { HistoricalValueResult } from '../domain/vqt.js';
@@ -45,7 +45,7 @@ export class HistoryService {
             result: {
               isComposition: false,
               values: history.map((h) => ({
-                value: h.value, quality: (h.quality ?? 'Good') as const,
+                value: h.value, quality: (h.quality ?? 'Good') as DataQuality,
                 timestamp: h.timestamp,
               })),
             },

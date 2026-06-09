@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/opcua-connector — node-opcua client wrapper
+// @node-i3x/opcua-connector — node-opcua client wrapper
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -33,7 +33,7 @@ import type {
   IMonitoredSubscription,
   DataChangeCallback,
   MonitoredSubscriptionOptions,
-} from '@i3x/core';
+} from '@node-i3x/core';
 import type { OpcUaClientOptions } from './opcua-types.js';
 import { wrapSessionIfOptimized } from './optimized.js';
 import {

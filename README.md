@@ -8,18 +8,18 @@ An implementation of the [i3X (Industrial Information Interoperability eXchange)
 
 ```
 +-----------------------------------------------------------+
-|                       @i3x/app                            |
+|                       @node-i3x/app                            |
 |               (Composition Root / Wiring)                 |
 |                                                           |
 |   +--------------------+     +-------------------------+  |
-|   | @i3x/rest-server   |     | @i3x/opcua-connector   |  |
+|   | @node-i3x/rest-server   |     | @node-i3x/opcua-connector   |  |
 |   |   Fastify routes   |     |   node-opcua client     |  |
 |   |   INBOUND          |     |   OUTBOUND ADAPTER      |  |
 |   +---------+----------+     +------------+------------+  |
 |             |  uses ports       implements|  ports        |
 |             v                             v               |
 |   +---------------------------------------------------+  |
-|   |                   @i3x/core                        |  |
+|   |                   @node-i3x/core                        |  |
 |   |   Domain Models - Services - Port Interfaces       |  |
 |   |                ZERO DEPENDENCIES                   |  |
 |   +---------------------------------------------------+  |
@@ -46,10 +46,10 @@ npm run typecheck
 
 | Package | Description |
 |---------|-------------|
-| `@i3x/core` | Pure domain — models, ports, services. **Zero dependencies.** |
-| `@i3x/opcua-connector` | OPC UA adapter — implements `IDataSourcePort` using `node-opcua` |
-| `@i3x/rest-server` | Fastify REST routes — the i3X Beta API surface |
-| `@i3x/app` | Composition root — wires all packages together |
+| `@node-i3x/core` | Pure domain — models, ports, services. **Zero dependencies.** |
+| `@node-i3x/opcua-connector` | OPC UA adapter — implements `IDataSourcePort` using `node-opcua` |
+| `@node-i3x/rest-server` | Fastify REST routes — the i3X Beta API surface |
+| `@node-i3x/app` | Composition root — wires all packages together |
 
 ## Environment Variables
 
@@ -73,7 +73,7 @@ For production deployments, install the optional **[@sterfive/opcua-optimized-cl
 - Automatic server-limit handling
 - Advanced auto-healing connection logic
 
-The module is detected automatically at startup — no code changes needed. It is listed as an `optionalDependency` in `@i3x/opcua-connector`.
+The module is detected automatically at startup — no code changes needed. It is listed as an `optionalDependency` in `@node-i3x/opcua-connector`.
 
 > Contact [Sterfive Support](https://support.sterfive.com) for access.
 

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  Domain models
+// @node-i3x/core  —  Domain models
 // ─────────────────────────────────────────────────────────────
 
 /** The four i3X node kinds mapped from OPC UA node classes. */

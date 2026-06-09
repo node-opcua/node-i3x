@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// @i3x/core  —  Mapper (pure functions)
+// @node-i3x/core  —  Mapper (pure functions)
 // ─────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
-import type { NodeKind, ModelNode } from '../domain/model-node.js';
+import type { ModelNode, NodeKind } from '../domain/model-node.js';
 import type { SourceNodeInfo } from '../ports/data-source.js';
 
 const CLASS_TO_KIND: Record<string, NodeKind> = {

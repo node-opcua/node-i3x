@@ -1,5 +1,5 @@
 {
-  "name": "@i3x/rest-server",
+  "name": "@node-i3x/rest-server",
   "version": "0.1.0",
   "description": "i3X REST inbound adapter — Fastify routes for the i3X Beta API",
   "type": "module",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@i3x/core": "*",
+    "@node-i3x/core": "*",
     "fastify": "^5.0.0",
     "@fastify/cors": "^11.0.0",
     "fastify-plugin": "^5.0.0"

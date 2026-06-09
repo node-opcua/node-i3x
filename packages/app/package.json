@@ -1,5 +1,5 @@
 {
-  "name": "@i3x/app",
+  "name": "@node-i3x/app",
   "version": "0.1.0",
   "description": "i3X application — composition root that wires all packages together",
   "type": "module",
@@ -14,9 +14,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@i3x/core": "*",
-    "@i3x/opcua-connector": "*",
-    "@i3x/rest-server": "*",
+    "@node-i3x/core": "*",
+    "@node-i3x/opcua-connector": "*",
+    "@node-i3x/rest-server": "*",
     "dotenv": "^16.4.0"
   },
   "devDependencies": {

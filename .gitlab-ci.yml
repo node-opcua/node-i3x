@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────────
+# node-i3x — GitLab CI/CD pipeline
+# ─────────────────────────────────────────────────────────────
+
+stages:
+  - install
+  - check
+  - test
+  - build
+
+variables:
+  NODE_ENV: development
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+default:
+  image: node:22-slim
+  before_script:
+    # Configure the private @sterfive registry.
+    # Set NPM_STERFIVE_TOKEN in GitLab CI/CD variables (masked).
+    - |
+      echo "@sterfive:registry=https://npm-registry.sterfive.fr" > .npmrc
+      if [ -n "$NPM_STERFIVE_TOKEN" ]; then
+        echo "//npm-registry.sterfive.fr/:_authToken=${NPM_STERFIVE_TOKEN}" >> .npmrc
+      fi
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+      - node_modules/
+      - packages/*/node_modules/
+
+# ── Install ───────────────────────────────────────────────────
+
+install:
+  stage: install
+  script:
+    - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+      - packages/*/node_modules/
+    expire_in: 1 hour
+
+# ── Check ─────────────────────────────────────────────────────
+
+typecheck:
+  stage: check
+  needs: [install]
+  script:
+    - npm run typecheck
+
+lint:
+  stage: check
+  needs: [install]
+  allow_failure: true
+  script:
+    - npx eslint . --max-warnings=0 || echo "ESLint not configured — skipping"
+
+# ── Test ──────────────────────────────────────────────────────
+
+test:
+  stage: test
+  needs: [install]
+  script:
+    - npm test
+  coverage: '/All files\s+\|\s+[\d.]+/'
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+    paths:
+      - coverage/
+    expire_in: 7 days
+
+# ── Build ─────────────────────────────────────────────────────
+
+build:
+  stage: build
+  needs: [typecheck, test]
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - packages/*/dist/
+    expire_in: 7 days

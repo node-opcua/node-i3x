@@ -1,5 +1,5 @@
 {
-  "name": "@i3x/opcua-connector",
+  "name": "@node-i3x/opcua-connector",
   "version": "0.1.0",
   "description": "i3X OPC UA adapter — implements IDataSourcePort using node-opcua",
   "type": "module",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@i3x/core": "*",
+    "@node-i3x/core": "*",
     "node-opcua": "^2.128.0",
     "node-opcua-client": "^2.128.0"
   },

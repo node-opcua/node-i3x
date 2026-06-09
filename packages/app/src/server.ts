@@ -1,9 +1,9 @@
-import {
-  ModelService, ValueService, HistoryService,
-  SubscriptionService, consoleLogger,
-} from '@i3x/core';
-import { OpcUaDataSourceAdapter, OpcUaClient } from '@i3x/opcua-connector';
-import { createApp } from '@i3x/rest-server';
+import {consoleLogger,HistoryService,
+  ModelService, 
+  SubscriptionService, ValueService, 
+} from '@node-i3x/core';
+import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
+import { createApp } from '@node-i3x/rest-server';
 import { config } from './config.js';
 
 async function main(): Promise<void> {
