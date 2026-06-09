@@ -19,7 +19,7 @@
       }
     }
   },
-  "files": ["dist", "LICENSE", "LICENSING.md"],
+  "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
