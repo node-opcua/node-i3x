@@ -127,23 +127,35 @@ git push gitlab main --tags
 
 ---
 
-## Required GitHub Secrets
+## npm Trusted Publishing (OIDC) Setup
 
-| Secret | Purpose | How to Get |
-|--------|---------|------------|
-| `NPM_TOKEN` | npm publish token | [npmjs.com → Access Tokens → Automation](https://www.npmjs.com/settings/tokens) |
-| `NPM_STERFIVE_TOKEN` | Private @sterfive registry | Internal — for `@sterfive/opcua-optimized-client` |
-| `GITHUB_TOKEN` | PR creation + git push | Built-in, no setup needed |
+This project uses **npm Trusted Publishing** — no `NPM_TOKEN` secret needed.
+GitHub Actions authenticates directly with npm via OIDC.
 
-### Setting up NPM_TOKEN
+### One-time setup on npmjs.com
 
-1. Go to [npmjs.com](https://www.npmjs.com) → Sign in
-2. Create/join the `@node-i3x` organization
-3. Avatar → **Access Tokens** → **Generate New Token** → **Automation**
-4. Copy the token
-5. In GitHub: **Settings → Secrets → Actions → New repository secret**
-   - Name: `NPM_TOKEN`
-   - Value: `npm_xxxx...`
+For each package (`@node-i3x/core`, `@node-i3x/opcua-connector`,
+`@node-i3x/pseudo-session-connector`, `@node-i3x/rest-server`):
+
+1. Go to [npmjs.com](https://www.npmjs.com) → sign in
+2. Navigate to the package → **Settings** → **Publishing access**
+3. Under **Trusted Publishers**, click **Add**:
+   - **Provider**: GitHub Actions
+   - **Repository owner**: `node-opcua`
+   - **Repository name**: `i3x2ua-node`
+   - **Workflow filename**: `release.yml`
+   - **Environment**: *(leave empty)*
+4. Save
+
+### GitHub Secrets
+
+| Secret | Purpose | Required? |
+|--------|---------|:---------:|
+| `GITHUB_TOKEN` | PR creation + git push | Built-in, automatic |
+| `NPM_STERFIVE_TOKEN` | Private @sterfive registry | Optional — for `@sterfive/opcua-optimized-client` |
+
+> **Note**: No `NPM_TOKEN` is needed — the `id-token: write` permission
+> in the workflow enables OIDC-based authentication with npm.
 
 ---
 
