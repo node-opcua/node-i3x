@@ -6,13 +6,13 @@
 import type {
   IDataSourcePort,
   ILogger,
-  SourceNodeInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
-  NamespaceInfo,
-  ObjectTypeInfo,
   IMonitoredSubscription,
   MonitoredSubscriptionOptions,
+  NamespaceInfo,
+  ObjectTypeInfo,
+  SourceDataValue,
+  SourceHistoricalValue,
+  SourceNodeInfo,
 } from '@node-i3x/core';
 import type { OpcUaClient } from './opcua-client.js';
 
@@ -26,7 +26,7 @@ import type { OpcUaClient } from './opcua-client.js';
 export class OpcUaDataSourceAdapter implements IDataSourcePort {
   constructor(
     private readonly client: OpcUaClient,
-    private readonly logger: ILogger,
+    readonly _logger: ILogger,
   ) {}
 
   async connect(): Promise<void> {

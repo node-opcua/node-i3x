@@ -3,7 +3,6 @@
 // Implements IDataSourcePort using PseudoSession + AddressSpace
 // ─────────────────────────────────────────────────────────────
 
-
 import type {
   IDataSourcePort,
   ILogger,
@@ -15,20 +14,10 @@ import type {
   SourceHistoricalValue,
   SourceNodeInfo,
 } from '@node-i3x/core';
-import type {
-  IAddressSpace,
-  UAVariable,
-} from 'node-opcua-address-space-base';
-import {
-  AttributeIds,
-  BrowseDirection,
-  NodeClass,
-} from 'node-opcua-data-model';
+import type { IAddressSpace, UAVariable } from 'node-opcua-address-space-base';
+import { AttributeIds, BrowseDirection, NodeClass } from 'node-opcua-data-model';
 import type { DataValue } from 'node-opcua-data-value';
-import {
-  coerceNodeId,
-  resolveNodeId,
-} from 'node-opcua-nodeid';
+import { coerceNodeId, resolveNodeId } from 'node-opcua-nodeid';
 
 import type { IBasicSession } from 'node-opcua-pseudo-session';
 import type { BrowseResult } from 'node-opcua-service-browse';
@@ -41,9 +30,7 @@ import type {
 } from 'node-opcua-types';
 import { DataType, Variant } from 'node-opcua-variant';
 
-import {
-  AddressSpaceMonitoredSubscription,
-} from './address-space-subscription.js';
+import { AddressSpaceMonitoredSubscription } from './address-space-subscription.js';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -59,8 +46,7 @@ const NODE_CLASS_NAMES: Record<number, string> = {
 };
 
 function qualifiedNameToNsu(
-  browseName: { namespaceIndex?: number; name?: string | null }
-    | null | undefined,
+  browseName: { namespaceIndex?: number; name?: string | null } | null | undefined,
   namespaceArray: readonly string[],
 ): string {
   if (!browseName?.name) return '';
@@ -70,8 +56,7 @@ function qualifiedNameToNsu(
 }
 
 function dataValueToSource(dv: DataValue): SourceDataValue {
-  const isGood =
-    dv.statusCode?.equals(StatusCodes.Good) ?? false;
+  const isGood = dv.statusCode?.equals(StatusCodes.Good) ?? false;
   return {
     value: dv.value?.value ?? null,
     quality: isGood ? 'Good' : 'Bad',
@@ -90,9 +75,7 @@ function dataValueToSource(dv: DataValue): SourceDataValue {
  * node-opcua AddressSpace via PseudoSession — no binary
  * OPC UA transport required.
  */
-export class PseudoSessionDataSourceAdapter
-  implements IDataSourcePort {
-
+export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
   private _connected = false;
   private _session: IBasicSession | null = null;
   private _namespaceArray: string[] = [];
@@ -107,9 +90,7 @@ export class PseudoSessionDataSourceAdapter
   async connect(): Promise<void> {
     // Dynamically import PseudoSession to keep the static
     // dependency graph on the address-space *interfaces* only.
-    const { PseudoSession } = await import(
-      'node-opcua-address-space'
-    );
+    const { PseudoSession } = await import('node-opcua-address-space');
     this._session = new PseudoSession(this._addressSpace);
     // Cache namespace array
     const nsArrayDv = await this._session.read({
@@ -120,7 +101,7 @@ export class PseudoSessionDataSourceAdapter
     this._connected = true;
     this._logger.info(
       'PseudoSession connected to AddressSpace ' +
-      `(${this._namespaceArray.length} namespaces)`,
+        `(${this._namespaceArray.length} namespaces)`,
     );
   }
 
@@ -146,33 +127,24 @@ export class PseudoSessionDataSourceAdapter
   async getNamespaces(): Promise<NamespaceInfo[]> {
     return this._namespaceArray.map((uri, idx) => ({
       uri,
-      displayName:
-        uri.split('/').filter(Boolean).pop() ?? `ns${idx}`,
+      displayName: uri.split('/').filter(Boolean).pop() ?? `ns${idx}`,
     }));
   }
 
   // ── Browse ───────────────────────────────────────────────
 
   async browseTree(): Promise<SourceNodeInfo[]> {
-    const objectsFolderId =
-      resolveNodeId('ObjectsFolder').toString();
+    const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
 
     const { items } = await this._bfsBrowse<SourceNodeInfo>(
       objectsFolderId,
       (ref, parentNodeId) => {
-        const effectiveParent =
-          parentNodeId === objectsFolderId
-            ? null
-            : parentNodeId;
+        const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
         return this._refToSourceNode(ref, effectiveParent);
       },
-      (ref) =>
-        ref.nodeClass === NodeClass.Object ||
-        ref.nodeClass === NodeClass.Variable,
+      (ref) => ref.nodeClass === NodeClass.Object || ref.nodeClass === NodeClass.Variable,
     );
-    this._logger.info(
-      `PseudoSession browseTree: ${items.length} nodes`,
-    );
+    this._logger.info(`PseudoSession browseTree: ${items.length} nodes`);
     return items;
   }
 
@@ -192,9 +164,7 @@ export class PseudoSessionDataSourceAdapter
       },
       () => true,
     );
-    this._logger.info(
-      `PseudoSession getObjectTypes: ${items.length} types`,
-    );
+    this._logger.info(`PseudoSession getObjectTypes: ${items.length} types`);
     return items;
   }
 
@@ -208,9 +178,7 @@ export class PseudoSessionDataSourceAdapter
     return dataValueToSource(dv);
   }
 
-  async readValues(
-    nodeIds: string[],
-  ): Promise<SourceDataValue[]> {
+  async readValues(nodeIds: string[]): Promise<SourceDataValue[]> {
     if (nodeIds.length === 0) return [];
     const items: ReadValueIdOptions[] = nodeIds.map((id) => ({
       nodeId: coerceNodeId(id),
@@ -221,28 +189,18 @@ export class PseudoSessionDataSourceAdapter
     return arr.map(dataValueToSource);
   }
 
-  async writeValue(
-    nodeId: string,
-    value: unknown,
-  ): Promise<void> {
+  async writeValue(nodeId: string, value: unknown): Promise<void> {
     // Read the current data type so we can build a proper
     // Variant for the PseudoSession (which, unlike a
     // network session, does not auto-coerce DataType.Null).
-    const node = this._addressSpace.findNode(
-      coerceNodeId(nodeId),
-    );
+    const node = this._addressSpace.findNode(coerceNodeId(nodeId));
     if (!node || node.nodeClass !== NodeClass.Variable) {
-      throw new Error(
-        `Cannot write: ${nodeId} is not a Variable`,
-      );
+      throw new Error(`Cannot write: ${nodeId} is not a Variable`);
     }
     const variable = node as UAVariable;
     const dataType = variable.dataType;
     const dtNode = this._addressSpace.findDataType(dataType);
-    const basicType =
-      dtNode
-        ? variable.getBasicDataType()
-        : DataType.Null;
+    const basicType = dtNode ? variable.getBasicDataType() : DataType.Null;
 
     const writeValue: WriteValueOptions = {
       nodeId: coerceNodeId(nodeId),
@@ -265,9 +223,7 @@ export class PseudoSessionDataSourceAdapter
     _startTime: Date,
     _endTime: Date,
   ): Promise<SourceHistoricalValue[]> {
-    this._logger.warn(
-      'readHistory not yet implemented for PseudoSession',
-    );
+    this._logger.warn('readHistory not yet implemented for PseudoSession');
     return [];
   }
 
@@ -276,10 +232,7 @@ export class PseudoSessionDataSourceAdapter
   async createMonitoredSubscription(
     _options: MonitoredSubscriptionOptions,
   ): Promise<IMonitoredSubscription> {
-    return new AddressSpaceMonitoredSubscription(
-      this._addressSpace,
-      this._logger,
-    );
+    return new AddressSpaceMonitoredSubscription(this._addressSpace, this._logger);
   }
 
   // ── Private browse helpers ───────────────────────────────
@@ -288,17 +241,13 @@ export class PseudoSessionDataSourceAdapter
     ref: ReferenceDescription,
     parentSourceNodeId: string | null,
   ): SourceNodeInfo {
-    const nodeClass =
-      ref.nodeClass ?? NodeClass.Unspecified;
-    const nsuQName = qualifiedNameToNsu(
-      ref.browseName,
-      this._namespaceArray,
-    );
+    const nodeClass = ref.nodeClass ?? NodeClass.Unspecified;
+    const nsuQName = qualifiedNameToNsu(ref.browseName, this._namespaceArray);
 
     let namespaceUri = '';
     const nsuMatch = nsuQName.match(/^nsu=(.+):([^:]+)$/);
     if (nsuMatch) {
-      namespaceUri = nsuMatch[1] || "";
+      namespaceUri = nsuMatch[1] || '';
     } else {
       const nsIdx = ref.browseName?.namespaceIndex ?? 0;
       namespaceUri = this._namespaceArray[nsIdx] ?? '';
@@ -309,30 +258,21 @@ export class PseudoSessionDataSourceAdapter
       parentSourceNodeId,
       browseName: ref.browseName?.toString() ?? '',
       nsuQualifiedName: nsuQName,
-      displayName:
-        ref.displayName?.text ??
-        ref.browseName?.toString() ??
-        '',
-      nodeClass:
-        NODE_CLASS_NAMES[nodeClass] ?? 'Unknown',
-      typeDefinition: ref.typeDefinition
-        ? ref.typeDefinition.toString()
-        : null,
+      displayName: ref.displayName?.text ?? ref.browseName?.toString() ?? '',
+      nodeClass: NODE_CLASS_NAMES[nodeClass] ?? 'Unknown',
+      typeDefinition: ref.typeDefinition ? ref.typeDefinition.toString() : null,
       namespaceUri,
       eventNotifier:
         ref.nodeClass === NodeClass.Object
-          ? (((ref as unknown as Record<string, unknown>)
-              .eventNotifier as number) ?? 0) !== 0
+          ? (((ref as unknown as Record<string, unknown>).eventNotifier as number) ??
+              0) !== 0
           : false,
     };
   }
 
   private async _bfsBrowse<T>(
     seedNodeId: string,
-    onRef: (
-      ref: ReferenceDescription,
-      parentNodeId: string | null,
-    ) => T | null,
+    onRef: (ref: ReferenceDescription, parentNodeId: string | null) => T | null,
     shouldRecurse?: (ref: ReferenceDescription) => boolean,
   ): Promise<{ items: T[] }> {
     const output: T[] = [];
@@ -344,26 +284,20 @@ export class PseudoSessionDataSourceAdapter
     }> = [{ nodeId: seedNodeId, parentId: null }];
 
     while (frontier.length > 0) {
-      const wave = frontier.filter(
-        (f) => !visited.has(f.nodeId),
-      );
+      const wave = frontier.filter((f) => !visited.has(f.nodeId));
       for (const item of wave) visited.add(item.nodeId);
       if (wave.length === 0) break;
 
-      const descriptions: BrowseDescriptionOptions[] =
-        wave.map((w) => ({
-          nodeId: coerceNodeId(w.nodeId),
-          browseDirection: BrowseDirection.Forward,
-          includeSubtypes: true,
-          referenceTypeId: resolveNodeId(
-            'HierarchicalReferences',
-          ),
-          resultMask: 63,
-          requestedMaxReferencesPerNode: 0,
-        }));
+      const descriptions: BrowseDescriptionOptions[] = wave.map((w) => ({
+        nodeId: coerceNodeId(w.nodeId),
+        browseDirection: BrowseDirection.Forward,
+        includeSubtypes: true,
+        referenceTypeId: resolveNodeId('HierarchicalReferences'),
+        resultMask: 63,
+        requestedMaxReferencesPerNode: 0,
+      }));
 
-      const browseResults: BrowseResult[] =
-        await this.session.browse(descriptions);
+      const browseResults: BrowseResult[] = await this.session.browse(descriptions);
 
       const nextFrontier: typeof frontier = [];
       for (let i = 0; i < wave.length; i++) {

@@ -54,9 +54,8 @@ typecheck:
 lint:
   stage: check
   needs: [install]
-  allow_failure: true
   script:
-    - npx eslint . --max-warnings=0 || echo "ESLint not configured — skipping"
+    - npx biome check .
 
 # ── Test ──────────────────────────────────────────────────────
 

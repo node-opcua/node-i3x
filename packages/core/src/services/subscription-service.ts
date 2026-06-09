@@ -15,10 +15,7 @@ import type {
   SubscriptionUpdate,
 } from '../domain/subscription.js';
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
-import type {
-  IDataSourcePort,
-  IMonitoredSubscription,
-} from '../ports/data-source.js';
+import type { IDataSourcePort, IMonitoredSubscription } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import type { ModelService } from './model-service.js';
 
@@ -118,7 +115,10 @@ export class SubscriptionService {
     subscriptionId: string,
     elementIds: string[],
     maxDepth: number = 1,
-  ): Promise<{ registered: string[]; errors: Array<{ elementId: string; error: string }> }> {
+  ): Promise<{
+    registered: string[];
+    errors: Array<{ elementId: string; error: string }>;
+  }> {
     const sub = this._getOrCreateSub(subscriptionId);
     const model = await this.modelService.getOrBuildModel();
 
@@ -138,13 +138,13 @@ export class SubscriptionService {
 
       this.logger.info(
         `register: elementId=${elementId} kind=${node.kind} ` +
-        `maxDepth=${maxDepth} mappings=${propMappings.size} ` +
-        `children=${(model.childrenById.get(node.id) ?? []).length}`,
+          `maxDepth=${maxDepth} mappings=${propMappings.size} ` +
+          `children=${(model.childrenById.get(node.id) ?? []).length}`,
       );
 
-      const isComposition = propMappings.size > 1 || (
-        propMappings.size === 1 && !propMappings.has(node.sourceNodeId)
-      );
+      const isComposition =
+        propMappings.size > 1 ||
+        (propMappings.size === 1 && !propMappings.has(node.sourceNodeId));
 
       // For a leaf node, the single mapping is its own sourceNodeId
       if (propMappings.size === 0 && node.kind === 'property') {
@@ -155,11 +155,11 @@ export class SubscriptionService {
       if (propMappings.size === 0) {
         this.logger.warn(
           `register: NO source mappings for ${elementId} — ` +
-          `children kinds: ${(model.childrenById.get(node.id) ?? [])
-            .map((cid) => model.nodesById.get(cid))
-            .filter(Boolean)
-            .map((n) => `${n!.name}(${n!.kind})`)
-            .join(', ')}`,
+            `children kinds: ${(model.childrenById.get(node.id) ?? [])
+              .map((cid) => model.nodesById.get(cid))
+              .filter(Boolean)
+              .map((n) => `${n!.name}(${n!.kind})`)
+              .join(', ')}`,
         );
       }
 
@@ -197,10 +197,7 @@ export class SubscriptionService {
 
   // ── Unregister items ───────────────────────────────────────
 
-  async unregister(
-    subscriptionId: string,
-    elementIds: string[],
-  ): Promise<void> {
+  async unregister(subscriptionId: string, elementIds: string[]): Promise<void> {
     const sub = this._requireSub(subscriptionId);
     const sourceIdsToRemove: string[] = [];
 
@@ -233,7 +230,9 @@ export class SubscriptionService {
     if (sub.runtime && sourceIdsToRemove.length > 0) {
       try {
         await sub.runtime.removeItems(sourceIdsToRemove);
-      } catch { /* best effort */ }
+      } catch {
+        /* best effort */
+      }
     }
 
     if (sub.runtime && sub.sourceToAsset.size === 0) {
@@ -244,15 +243,10 @@ export class SubscriptionService {
 
   // ── Sync ───────────────────────────────────────────────────
 
-  sync(
-    subscriptionId: string,
-    acknowledgeSequence: number = 0,
-  ): SubscriptionUpdate[] {
+  sync(subscriptionId: string, acknowledgeSequence: number = 0): SubscriptionUpdate[] {
     const sub = this._requireSub(subscriptionId);
     // Trim acknowledged updates (matches Python behaviour)
-    sub.updates = sub.updates.filter(
-      (u) => u.sequenceNumber > acknowledgeSequence,
-    );
+    sub.updates = sub.updates.filter((u) => u.sequenceNumber > acknowledgeSequence);
     return [...sub.updates];
   }
 
@@ -263,9 +257,7 @@ export class SubscriptionService {
   acknowledge(subscriptionId: string, upToSequence: number): void {
     const sub = this._subs.get(subscriptionId);
     if (!sub) return;
-    sub.updates = sub.updates.filter(
-      (u) => u.sequenceNumber > upToSequence,
-    );
+    sub.updates = sub.updates.filter((u) => u.sequenceNumber > upToSequence);
   }
 
   // ── Stream / long-poll ─────────────────────────────────────
@@ -277,9 +269,7 @@ export class SubscriptionService {
   ): Promise<SubscriptionUpdate[]> {
     const sub = this._requireSub(subscriptionId);
 
-    const pending = sub.updates.filter(
-      (u) => u.sequenceNumber > afterSequence,
-    );
+    const pending = sub.updates.filter((u) => u.sequenceNumber > afterSequence);
     if (pending.length > 0) return Promise.resolve(pending);
 
     return new Promise<SubscriptionUpdate[]>((resolve) => {
@@ -307,8 +297,11 @@ export class SubscriptionService {
     for (const id of subscriptionIds) {
       const sub = this._subs.get(id);
       if (!sub) {
-        results.push({ success: false, subscriptionId: id,
-          error: { code: 404, message: 'Subscription not found' } });
+        results.push({
+          success: false,
+          subscriptionId: id,
+          error: { code: 404, message: 'Subscription not found' },
+        });
         continue;
       }
       // Clear all debounce timers
@@ -316,7 +309,11 @@ export class SubscriptionService {
         if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
       }
       if (sub.runtime) {
-        try { await sub.runtime.close(); } catch { /* best effort */ }
+        try {
+          await sub.runtime.close();
+        } catch {
+          /* best effort */
+        }
       }
       this._subs.delete(id);
       results.push({ success: true, subscriptionId: id });
@@ -328,7 +325,7 @@ export class SubscriptionService {
 
   list(filterIds?: string[]): SubscriptionDetail[] {
     const entries = filterIds
-      ? filterIds.map((id) => this._subs.get(id)).filter(Boolean) as SubState[]
+      ? (filterIds.map((id) => this._subs.get(id)).filter(Boolean) as SubState[])
       : [...this._subs.values()];
 
     return entries.map((s) => ({
@@ -348,7 +345,11 @@ export class SubscriptionService {
         if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
       }
       if (sub.runtime) {
-        try { await sub.runtime.close(); } catch { /* best effort */ }
+        try {
+          await sub.runtime.close();
+        } catch {
+          /* best effort */
+        }
       }
     }
     this._subs.clear();
@@ -358,9 +359,10 @@ export class SubscriptionService {
 
   private _requireSub(id: string): SubState {
     const sub = this._subs.get(id);
-    if (!sub) throw Object.assign(
-      new Error(`Subscription '${id}' not found`), { statusCode: 404 },
-    );
+    if (!sub)
+      throw Object.assign(new Error(`Subscription '${id}' not found`), {
+        statusCode: 404,
+      });
     return sub;
   }
 
@@ -399,8 +401,10 @@ export class SubscriptionService {
    * Returns Map<sourceNodeId, propertyElementId>.
    */
   private _collectSourceMappings(
-    model: BuildResult, nodeId: string,
-    maxDepth: number, depth: number,
+    model: BuildResult,
+    nodeId: string,
+    maxDepth: number,
+    depth: number,
     out: Map<string, string> = new Map(),
   ): Map<string, string> {
     const node = model.nodesById.get(nodeId);
@@ -423,26 +427,21 @@ export class SubscriptionService {
     return out;
   }
 
-  private async _ensureRuntime(
-    sub: SubState,
-    newSourceNodeIds: string[],
-  ): Promise<void> {
+  private async _ensureRuntime(sub: SubState, newSourceNodeIds: string[]): Promise<void> {
     if (!sub.runtime) {
       try {
         sub.runtime = await this.dataSource.createMonitoredSubscription({
           publishingIntervalMs: this._intervalMs,
         });
-        sub.runtime.onDataChange(
-          (sourceNodeId, value, quality, timestamp) => {
-            this._onDataChange(sub, sourceNodeId, value, quality, timestamp);
-          },
-        );
+        sub.runtime.onDataChange((sourceNodeId, value, quality, timestamp) => {
+          this._onDataChange(sub, sourceNodeId, value, quality, timestamp);
+        });
         sub.mode = 'native';
       } catch (err) {
         // Fallback to polling — the adapter doesn't support subscriptions
         this.logger.warn(
           `Native subscription failed for ${sub.subscriptionId}, ` +
-          `falling back to polling: ${err}`,
+            `falling back to polling: ${err}`,
         );
         sub.mode = 'polling';
         this._startPolling(sub);
@@ -468,7 +467,9 @@ export class SubscriptionService {
   ): void {
     const assetIds = sub.sourceToAsset.get(sourceNodeId);
     if (!assetIds || assetIds.size === 0) {
-      this.logger.warn(`_onDataChange: sourceNodeId=${sourceNodeId} NOT in sourceToAsset (size=${sub.sourceToAsset.size})`);
+      this.logger.warn(
+        `_onDataChange: sourceNodeId=${sourceNodeId} NOT in sourceToAsset (size=${sub.sourceToAsset.size})`,
+      );
       return;
     }
 
@@ -481,12 +482,16 @@ export class SubscriptionService {
       if (!propertyElementId) continue;
 
       // Update the VQT cache for this property
-      asset.components.set(propertyElementId, { value, quality: quality as DataQuality, timestamp });
+      asset.components.set(propertyElementId, {
+        value,
+        quality: quality as DataQuality,
+        timestamp,
+      });
       asset.dirty = true;
 
-      this.logger.info(
+      this.logger.debug(
         `_onDataChange: source=${sourceNodeId} → asset=${assetElementId} ` +
-        `prop=${propertyElementId} components=${asset.components.size}/${asset.sourceToProperty.size}`,
+          `prop=${propertyElementId} components=${asset.components.size}/${asset.sourceToProperty.size}`,
       );
 
       // Start or reset the debounce timer
@@ -570,7 +575,11 @@ export class SubscriptionService {
               const dv = values[i];
               if (dv) {
                 this._onDataChange(
-                  sub, sourceIds[i]!, dv.value, dv.quality ?? 'Good', dv.timestamp ?? now,
+                  sub,
+                  sourceIds[i]!,
+                  dv.value,
+                  dv.quality ?? 'Good',
+                  dv.timestamp ?? now,
                 );
               }
             }

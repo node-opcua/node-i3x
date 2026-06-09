@@ -2,6 +2,7 @@
 // @node-i3x/core  —  HistoryService
 // ─────────────────────────────────────────────────────────────
 
+import type { DataQuality } from '../domain/model-node.js';
 import type { HistoricalValueResult } from '../domain/vqt.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
@@ -12,7 +13,7 @@ export class HistoryService {
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly modelService: ModelService,
-    private readonly logger: ILogger,
+    readonly _logger: ILogger,
   ) {}
 
   async readHistory(
@@ -27,36 +28,44 @@ export class HistoryService {
     // Run all history reads in parallel — the optimized
     // OPC UA client coalesces them into batched transactions.
     const results = await Promise.all(
-      elementIds.map(async (elementId): Promise<BulkResultItem<HistoricalValueResult>> => {
-        const node = this.modelService.findNode(model, elementId);
-        if (!node) {
-          return {
-            success: false, elementId,
-            error: { code: 404, message: 'Element not found' },
-          };
-        }
+      elementIds.map(
+        async (elementId): Promise<BulkResultItem<HistoricalValueResult>> => {
+          const node = this.modelService.findNode(model, elementId);
+          if (!node) {
+            return {
+              success: false,
+              elementId,
+              error: { code: 404, message: 'Element not found' },
+            };
+          }
 
-        try {
-          const history = await this.dataSource.readHistory(
-            node.sourceNodeId, start, end,
-          );
-          return {
-            success: true, elementId,
-            result: {
-              isComposition: false,
-              values: history.map((h) => ({
-                value: h.value, quality: (h.quality ?? 'Good') as DataQuality,
-                timestamp: h.timestamp,
-              })),
-            },
-          };
-        } catch {
-          return {
-            success: false, elementId,
-            error: { code: 501, message: 'History read not supported' },
-          };
-        }
-      }),
+          try {
+            const history = await this.dataSource.readHistory(
+              node.sourceNodeId,
+              start,
+              end,
+            );
+            return {
+              success: true,
+              elementId,
+              result: {
+                isComposition: false,
+                values: history.map((h) => ({
+                  value: h.value,
+                  quality: (h.quality ?? 'Good') as DataQuality,
+                  timestamp: h.timestamp,
+                })),
+              },
+            };
+          } catch {
+            return {
+              success: false,
+              elementId,
+              error: { code: 501, message: 'History read not supported' },
+            };
+          }
+        },
+      ),
     );
 
     return results;

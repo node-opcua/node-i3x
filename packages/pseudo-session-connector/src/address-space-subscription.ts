@@ -3,15 +3,8 @@
 // Event-based: UAVariable.on("value_changed")
 // ─────────────────────────────────────────────────────────────
 
-import type {
-  DataChangeCallback,
-  ILogger,
-  IMonitoredSubscription,
-} from '@node-i3x/core';
-import type {
-  IAddressSpace,
-  UAVariable,
-} from 'node-opcua-address-space-base';
+import type { DataChangeCallback, ILogger, IMonitoredSubscription } from '@node-i3x/core';
+import type { IAddressSpace, UAVariable } from 'node-opcua-address-space-base';
 import { NodeClass } from 'node-opcua-data-model';
 import type { DataValue } from 'node-opcua-data-value';
 import { coerceNodeId } from 'node-opcua-nodeid';
@@ -23,14 +16,10 @@ import { coerceNodeId } from 'node-opcua-nodeid';
  * variable changes in the AddressSpace — no polling, no
  * network round-trip.
  */
-export class AddressSpaceMonitoredSubscription
-  implements IMonitoredSubscription {
-
+export class AddressSpaceMonitoredSubscription implements IMonitoredSubscription {
   readonly id: string;
   private _cb: DataChangeCallback | null = null;
-  private readonly _listeners = new Map<
-    string, () => void
-  >();
+  private readonly _listeners = new Map<string, () => void>();
 
   constructor(
     private readonly _addressSpace: IAddressSpace,
@@ -43,13 +32,9 @@ export class AddressSpaceMonitoredSubscription
     for (const nodeId of sourceNodeIds) {
       if (this._listeners.has(nodeId)) continue;
 
-      const node = this._addressSpace.findNode(
-        coerceNodeId(nodeId),
-      );
+      const node = this._addressSpace.findNode(coerceNodeId(nodeId));
       if (!node || node.nodeClass !== NodeClass.Variable) {
-        this._logger.warn(
-          `Cannot monitor ${nodeId}: not a Variable`,
-        );
+        this._logger.warn(`Cannot monitor ${nodeId}: not a Variable`);
         continue;
       }
 
@@ -60,8 +45,7 @@ export class AddressSpaceMonitoredSubscription
           nodeId,
           dataValue.value?.value,
           dataValue.statusCode?.name ?? 'Good',
-          dataValue.sourceTimestamp?.toISOString() ??
-            new Date().toISOString(),
+          dataValue.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
         );
       };
 
@@ -71,8 +55,7 @@ export class AddressSpaceMonitoredSubscription
       );
     }
     this._logger.info(
-      `AddressSpace subscription: monitoring ` +
-      `${this._listeners.size} items`,
+      `AddressSpace subscription: monitoring ${this._listeners.size} items`,
     );
   }
 

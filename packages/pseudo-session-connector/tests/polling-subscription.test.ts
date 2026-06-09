@@ -4,15 +4,9 @@
 // ─────────────────────────────────────────────────────────────
 
 import { consoleLogger } from '@node-i3x/core';
-import {
-  DataType, PseudoSession, type UAVariable,Variant, 
-} from 'node-opcua';
-import {afterAll, beforeAll, 
-  describe, expect, it, vi,
-} from 'vitest';
-import {
-  PollingMonitoredSubscription,
-} from '../src/polling-subscription.js';
+import { DataType, PseudoSession, type UAVariable, Variant } from 'node-opcua';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { PollingMonitoredSubscription } from '../src/polling-subscription.js';
 import {
   createTestContext,
   type TestContext,
@@ -35,13 +29,12 @@ describe('PollingMonitoredSubscription', () => {
   it('detects a value change after a poll cycle', async () => {
     vi.useFakeTimers();
     try {
-      const sub = new PollingMonitoredSubscription(
-        session, 100, consoleLogger,
-      );
+      const sub = new PollingMonitoredSubscription(session, 100, consoleLogger);
       await sub.addItems([ctx.nodeIds.temperature]);
 
       const received: Array<{
-        nodeId: string; value: unknown;
+        nodeId: string;
+        value: unknown;
       }> = [];
       sub.onDataChange((nodeId, value) => {
         received.push({ nodeId, value });
@@ -56,9 +49,7 @@ describe('PollingMonitoredSubscription', () => {
       received.length = 0; // reset
 
       // Change the value
-      const variable = ctx.addressSpace.findNode(
-        ctx.nodeIds.temperature,
-      )! as UAVariable;
+      const variable = ctx.addressSpace.findNode(ctx.nodeIds.temperature)! as UAVariable;
       variable.setValueFromSource(
         new Variant({ dataType: DataType.Double, value: 66.6 }),
       );
@@ -79,44 +70,41 @@ describe('PollingMonitoredSubscription', () => {
     }
   });
 
-  it('does not fire when the value has not changed',
-    async () => {
-      vi.useFakeTimers();
-      try {
-        const sub = new PollingMonitoredSubscription(
-          session, 100, consoleLogger,
-        );
-        await sub.addItems([ctx.nodeIds.temperature]);
+  it('does not fire when the value has not changed', async () => {
+    vi.useFakeTimers();
+    try {
+      const sub = new PollingMonitoredSubscription(session, 100, consoleLogger);
+      await sub.addItems([ctx.nodeIds.temperature]);
 
-        const received: unknown[] = [];
-        sub.onDataChange((_nodeId, value) => {
-          received.push(value);
-        });
+      const received: unknown[] = [];
+      sub.onDataChange((_nodeId, value) => {
+        received.push(value);
+      });
 
-        // Initial poll
-        await vi.advanceTimersByTimeAsync(100);
-        received.length = 0; // reset initial
+      // Initial poll
+      await vi.advanceTimersByTimeAsync(100);
+      received.length = 0; // reset initial
 
-        // Another poll without changing the value
-        await vi.advanceTimersByTimeAsync(100);
-        expect(received).toHaveLength(0);
+      // Another poll without changing the value
+      await vi.advanceTimersByTimeAsync(100);
+      expect(received).toHaveLength(0);
 
-        await sub.close();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
+      await sub.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it('stops polling after close()', async () => {
     vi.useFakeTimers();
     try {
-      const sub = new PollingMonitoredSubscription(
-        session, 100, consoleLogger,
-      );
+      const sub = new PollingMonitoredSubscription(session, 100, consoleLogger);
       await sub.addItems([ctx.nodeIds.temperature]);
 
       let callCount = 0;
-      sub.onDataChange(() => { callCount++; });
+      sub.onDataChange(() => {
+        callCount++;
+      });
 
       // Let initial poll happen
       await vi.advanceTimersByTimeAsync(100);
@@ -125,12 +113,8 @@ describe('PollingMonitoredSubscription', () => {
       await sub.close();
 
       // Change + poll — should not fire
-      const variable = ctx.addressSpace.findNode(
-        ctx.nodeIds.temperature,
-      )! as UAVariable;
-      variable.setValueFromSource(
-        new Variant({ dataType: DataType.Double, value: 55 }),
-      );
+      const variable = ctx.addressSpace.findNode(ctx.nodeIds.temperature)! as UAVariable;
+      variable.setValueFromSource(new Variant({ dataType: DataType.Double, value: 55 }));
       await vi.advanceTimersByTimeAsync(100);
 
       expect(callCount).toBe(0);

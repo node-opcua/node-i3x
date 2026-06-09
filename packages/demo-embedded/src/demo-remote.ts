@@ -8,17 +8,16 @@
 // the architectural difference.
 // ─────────────────────────────────────────────────────────────
 
-import {consoleLogger,HistoryService,
-  ModelService, 
-  SubscriptionService, ValueService, 
+import {
+  consoleLogger,
+  HistoryService,
+  ModelService,
+  SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
-import {
-  OpcUaClient, OpcUaDataSourceAdapter,
-} from '@node-i3x/opcua-connector';
+import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
-import {
-  DataType, nodesets, OPCUAServer, Variant
-} from 'node-opcua';
+import { DataType, nodesets, OPCUAServer, Variant } from 'node-opcua';
 
 const REST_PORT = 8080;
 const OPCUA_PORT = 48411;
@@ -51,7 +50,8 @@ async function createSameServer() {
     browseName: 'Temperature',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 35.0,
+      dataType: DataType.Double,
+      value: 35.0,
     }),
   });
   ns.addVariable({
@@ -59,7 +59,8 @@ async function createSameServer() {
     browseName: 'FlowRate',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 120.5,
+      dataType: DataType.Double,
+      value: 120.5,
     }),
   });
   ns.addVariable({
@@ -67,7 +68,8 @@ async function createSameServer() {
     browseName: 'Status',
     dataType: DataType.String,
     value: new Variant({
-      dataType: DataType.String, value: 'Running',
+      dataType: DataType.String,
+      value: 'Running',
     }),
   });
 
@@ -83,50 +85,50 @@ async function main() {
   console.log('═'.repeat(60));
 
   const server = await createSameServer();
-  const endpointUrl =
-    `opc.tcp://localhost:${OPCUA_PORT}/UA/RemoteDemo`;
+  const endpointUrl = `opc.tcp://localhost:${OPCUA_PORT}/UA/RemoteDemo`;
   console.log(`\n  OPC UA server at ${endpointUrl}`);
 
   // ┌──────────────────────────────────────────────────────┐
   // │ REMOTE path: connect via OPC UA binary protocol      │
   // │ Requires TCP connection, serialization, etc.         │
   // └──────────────────────────────────────────────────────┘
-  const client = new OpcUaClient({
-    endpointUrl,
-    securityMode: 'None',
-    optimizedClient: 'disabled',
-  }, logger);
-  const dataSource = new OpcUaDataSourceAdapter(
-    client, logger,
+  const client = new OpcUaClient(
+    {
+      endpointUrl,
+      securityMode: 'None',
+      optimizedClient: 'disabled',
+    },
+    logger,
   );
+  const dataSource = new OpcUaDataSourceAdapter(client, logger);
   await dataSource.connect();
 
   const modelService = new ModelService(dataSource, logger);
-  const valueService = new ValueService(
-    dataSource, modelService, logger,
-  );
-  const historyService = new HistoryService(
-    dataSource, modelService, logger,
-  );
+  const valueService = new ValueService(dataSource, modelService, logger);
+  const historyService = new HistoryService(dataSource, modelService, logger);
   const subscriptionService = new SubscriptionService(
-    dataSource, modelService, logger, 1,
+    dataSource,
+    modelService,
+    logger,
+    1,
   );
 
   const model = await modelService.preloadModel();
   console.log(
-    `  Model: ${model.nodesById.size} nodes, ` +
-    `${model.rootIds.length} roots`,
+    `  Model: ${model.nodesById.size} nodes, ` + `${model.rootIds.length} roots`,
   );
 
   const app = await createApp({
-    dataSource, modelService, valueService,
-    historyService, subscriptionService, logger,
+    dataSource,
+    modelService,
+    valueService,
+    historyService,
+    subscriptionService,
+    logger,
   });
   await app.listen({ port: REST_PORT, host: '127.0.0.1' });
 
-  console.log(
-    `\n  🚀 REST API at http://127.0.0.1:${REST_PORT}`,
-  );
+  console.log(`\n  🚀 REST API at http://127.0.0.1:${REST_PORT}`);
   console.log('  Press Ctrl+C to stop.\n');
 
   const shutdown = async () => {

@@ -38,9 +38,7 @@ export async function createTestContext(): Promise<TestContext> {
   if (!addressSpace) {
     throw new Error('Address space not initialized');
   }
-  const namespace = addressSpace.registerNamespace(
-    'http://test.i3x.example.com/',
-  );
+  const namespace = addressSpace.registerNamespace('http://test.i3x.example.com/');
 
   // ── Test object under ObjectsFolder ──
   const testObject = namespace.addObject({
@@ -85,8 +83,6 @@ export async function createTestContext(): Promise<TestContext> {
   };
 }
 
-export async function teardownTestContext(
-  ctx: TestContext,
-): Promise<void> {
+export async function teardownTestContext(ctx: TestContext): Promise<void> {
   ctx.addressSpace.dispose();
 }

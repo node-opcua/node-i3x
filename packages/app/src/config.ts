@@ -29,9 +29,15 @@ function envInt(key: string, def: number): number {
 export const config: Config = {
   opcuaEndpoint: env('I3X_OPCUA_ENDPOINT', 'opc.tcp://localhost:4840'),
   opcuaSecurityMode: env('I3X_OPCUA_SECURITY_MODE', 'None'),
-  opcuaOptimizedClient: env('I3X_OPCUA_OPTIMIZED_CLIENT', 'auto') as Config['opcuaOptimizedClient'],
+  opcuaOptimizedClient: env(
+    'I3X_OPCUA_OPTIMIZED_CLIENT',
+    'auto',
+  ) as Config['opcuaOptimizedClient'],
   modelPreloadOnStartup: envBool('I3X_MODEL_PRELOAD_ON_STARTUP', true),
-  failStartupOnModelPreloadError: envBool('I3X_FAIL_STARTUP_ON_MODEL_PRELOAD_ERROR', false),
+  failStartupOnModelPreloadError: envBool(
+    'I3X_FAIL_STARTUP_ON_MODEL_PRELOAD_ERROR',
+    false,
+  ),
   subscriptionIntervalSeconds: envInt('I3X_SUBSCRIPTION_INTERVAL_SECONDS', 5),
   logLevel: env('I3X_LOG_LEVEL', 'info'),
   skipOpcuaConnect: envBool('I3X_SKIP_OPCUA_CONNECT', false),

@@ -4,9 +4,7 @@
 
 import { consoleLogger } from '@node-i3x/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  PseudoSessionDataSourceAdapter,
-} from '../src/pseudo-session-adapter.js';
+import { PseudoSessionDataSourceAdapter } from '../src/pseudo-session-adapter.js';
 import {
   createTestContext,
   type TestContext,
@@ -19,10 +17,7 @@ describe('PseudoSessionDataSourceAdapter', () => {
 
   beforeAll(async () => {
     ctx = await createTestContext();
-    adapter = new PseudoSessionDataSourceAdapter(
-      ctx.addressSpace,
-      consoleLogger,
-    );
+    adapter = new PseudoSessionDataSourceAdapter(ctx.addressSpace, consoleLogger);
     await adapter.connect();
   });
 
@@ -43,51 +38,41 @@ describe('PseudoSessionDataSourceAdapter', () => {
 
   // ── getNamespaces ──────────────────────────────────────────
 
-  it('returns namespaces including the test namespace',
-    async () => {
-      const ns = await adapter.getNamespaces();
-      expect(ns.length).toBeGreaterThan(0);
-      const testNs = ns.find(
-        (n) => n.uri === 'http://test.i3x.example.com/',
-      );
-      expect(testNs).toBeDefined();
-      expect(testNs!.displayName).toBeTruthy();
-    });
+  it('returns namespaces including the test namespace', async () => {
+    const ns = await adapter.getNamespaces();
+    expect(ns.length).toBeGreaterThan(0);
+    const testNs = ns.find((n) => n.uri === 'http://test.i3x.example.com/');
+    expect(testNs).toBeDefined();
+    expect(testNs!.displayName).toBeTruthy();
+  });
 
   // ── browseTree ─────────────────────────────────────────────
 
-  it('browses the address space tree with parent–child links',
-    async () => {
-      const nodes = await adapter.browseTree();
-      expect(nodes.length).toBeGreaterThan(0);
+  it('browses the address space tree with parent–child links', async () => {
+    const nodes = await adapter.browseTree();
+    expect(nodes.length).toBeGreaterThan(0);
 
-      // TestObject exists as an Object
-      const obj = nodes.find(
-        (n) => n.browseName.includes('TestObject'),
-      );
-      expect(obj).toBeDefined();
-      expect(obj!.nodeClass).toBe('Object');
+    // TestObject exists as an Object
+    const obj = nodes.find((n) => n.browseName.includes('TestObject'));
+    expect(obj).toBeDefined();
+    expect(obj!.nodeClass).toBe('Object');
 
-      // Temperature is a Variable child of TestObject
-      const temp = nodes.find(
-        (n) =>
-          n.browseName.includes('Temperature') &&
-          n.parentSourceNodeId === obj?.sourceNodeId,
-      );
-      expect(temp).toBeDefined();
-      expect(temp!.nodeClass).toBe('Variable');
-      expect(temp!.nsuQualifiedName).toContain(
-        'http://test.i3x.example.com/',
-      );
-    });
+    // Temperature is a Variable child of TestObject
+    const temp = nodes.find(
+      (n) =>
+        n.browseName.includes('Temperature') &&
+        n.parentSourceNodeId === obj?.sourceNodeId,
+    );
+    expect(temp).toBeDefined();
+    expect(temp!.nodeClass).toBe('Variable');
+    expect(temp!.nsuQualifiedName).toContain('http://test.i3x.example.com/');
+  });
 
   // ── readValue / readValues ─────────────────────────────────
 
   it('reads single and multiple values', async () => {
     // Single
-    const single = await adapter.readValue(
-      ctx.nodeIds.temperature,
-    );
+    const single = await adapter.readValue(ctx.nodeIds.temperature);
     expect(single.value).toBe(42.5);
     expect(single.quality).toBe('Good');
     expect(single.timestamp).toBeTruthy();
@@ -109,9 +94,7 @@ describe('PseudoSessionDataSourceAdapter', () => {
 
   it('writes a value and reads it back', async () => {
     await adapter.writeValue(ctx.nodeIds.temperature, 99.9);
-    const result = await adapter.readValue(
-      ctx.nodeIds.temperature,
-    );
+    const result = await adapter.readValue(ctx.nodeIds.temperature);
     expect(result.value).toBe(99.9);
     // restore for other tests
     await adapter.writeValue(ctx.nodeIds.temperature, 42.5);
@@ -119,15 +102,12 @@ describe('PseudoSessionDataSourceAdapter', () => {
 
   // ── getObjectTypes ─────────────────────────────────────────
 
-  it('returns object types including BaseObjectType',
-    async () => {
-      const types = await adapter.getObjectTypes();
-      expect(types.length).toBeGreaterThan(0);
-      const base = types.find(
-        (t) => t.browseName.includes('BaseObjectType'),
-      );
-      expect(base).toBeDefined();
-    });
+  it('returns object types including BaseObjectType', async () => {
+    const types = await adapter.getObjectTypes();
+    expect(types.length).toBeGreaterThan(0);
+    const base = types.find((t) => t.browseName.includes('BaseObjectType'));
+    expect(base).toBeDefined();
+  });
 
   // ── readHistory (stub) ─────────────────────────────────────
 

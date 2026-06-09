@@ -3,11 +3,7 @@
 // Polling-based: setInterval + IBasicSession.read()
 // ─────────────────────────────────────────────────────────────
 
-import type {
-  DataChangeCallback,
-  ILogger,
-  IMonitoredSubscription,
-} from '@node-i3x/core';
+import type { DataChangeCallback, ILogger, IMonitoredSubscription } from '@node-i3x/core';
 import { AttributeIds } from 'node-opcua-data-model';
 import { coerceNodeId } from 'node-opcua-nodeid';
 import type { IBasicSessionAsync } from 'node-opcua-pseudo-session';
@@ -22,15 +18,12 @@ import type { ReadValueIdOptions } from 'node-opcua-types';
  * Fires the callback only when a value differs from the
  * previous poll.
  */
-export class PollingMonitoredSubscription
-  implements IMonitoredSubscription {
-
+export class PollingMonitoredSubscription implements IMonitoredSubscription {
   readonly id: string;
   private _cb: DataChangeCallback | null = null;
   private readonly _nodeIds = new Set<string>();
   private readonly _lastValues = new Map<string, unknown>();
-  private _timer: ReturnType<typeof setInterval> | null =
-    null;
+  private _timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly _session: IBasicSessionAsync,
@@ -68,10 +61,9 @@ export class PollingMonitoredSubscription
 
   private _ensurePolling(): void {
     if (this._timer) return;
-    this._timer = setInterval(
-      () => { void this._poll(); },
-      this._intervalMs,
-    );
+    this._timer = setInterval(() => {
+      void this._poll();
+    }, this._intervalMs);
   }
 
   private _stopPolling(): void {
@@ -105,15 +97,12 @@ export class PollingMonitoredSubscription
             nodeId,
             val,
             dv.statusCode?.name ?? 'Good',
-            dv.sourceTimestamp?.toISOString() ??
-              new Date().toISOString(),
+            dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
           );
         }
       }
     } catch (err) {
-      this._logger.error(
-        `Polling subscription error: ${err}`,
-      );
+      this._logger.error(`Polling subscription error: ${err}`);
     }
   }
 }
