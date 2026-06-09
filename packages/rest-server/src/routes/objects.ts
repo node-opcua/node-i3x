@@ -25,7 +25,12 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       const model = await deps.modelService.getOrBuildModel();
       const { typeElementId, root } = req.query;
 
-      let nodes: Array<{ id: string; name: string; type?: string; children: string[] }>;
+      let nodes: Array<{
+        id: string;
+        name: string;
+        type?: string | null;
+        children: readonly string[];
+      }>;
 
       if (root) {
         nodes = model.rootIds
@@ -33,8 +38,8 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           .filter(Boolean) as Array<{
           id: string;
           name: string;
-          type?: string;
-          children: string[];
+          type?: string | null;
+          children: readonly string[];
         }>;
       } else {
         nodes = Array.from(model.nodesById.values());

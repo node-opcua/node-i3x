@@ -64,14 +64,20 @@
     "format:fix": "biome format --write .",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@changesets/cli": "^2.31.0",
     "@types/node": "^20.17.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "tsup": "^8.5.1",
     "typescript": "^5.7.0",
     "vitest": "^3.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,json,md}": "biome check --write --no-errors-on-unmatched"
   }
 }
