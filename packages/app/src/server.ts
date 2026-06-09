@@ -1,6 +1,9 @@
-import {consoleLogger,HistoryService,
-  ModelService, 
-  SubscriptionService, ValueService, 
+import {
+  consoleLogger,
+  HistoryService,
+  ModelService,
+  SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
@@ -12,11 +15,14 @@ async function main(): Promise<void> {
   logger.info(`OPC UA endpoint: ${config.opcuaEndpoint}`);
 
   // 1. Outbound adapter (OPC UA)
-  const opcuaClient = new OpcUaClient({
-    endpointUrl: config.opcuaEndpoint,
-    securityMode: config.opcuaSecurityMode,
-    optimizedClient: config.opcuaOptimizedClient,
-  }, logger);
+  const opcuaClient = new OpcUaClient(
+    {
+      endpointUrl: config.opcuaEndpoint,
+      securityMode: config.opcuaSecurityMode,
+      optimizedClient: config.opcuaOptimizedClient,
+    },
+    logger,
+  );
   const dataSource = new OpcUaDataSourceAdapter(opcuaClient, logger);
 
   // 2. Domain services (inject the port)
@@ -24,13 +30,20 @@ async function main(): Promise<void> {
   const valueService = new ValueService(dataSource, modelService, logger);
   const historyService = new HistoryService(dataSource, modelService, logger);
   const subscriptionService = new SubscriptionService(
-    dataSource, modelService, logger, config.subscriptionIntervalSeconds,
+    dataSource,
+    modelService,
+    logger,
+    config.subscriptionIntervalSeconds,
   );
 
   // 3. Inbound adapter (REST)
   const app = await createApp({
-    dataSource, modelService, valueService,
-    historyService, subscriptionService, logger,
+    dataSource,
+    modelService,
+    valueService,
+    historyService,
+    subscriptionService,
+    logger,
   });
 
   // 4. Connect & preload

@@ -15,7 +15,8 @@ describe('mapper', () => {
       namespaceUri: 'http://example.com/',
       eventNotifier: false,
     };
-    const browsePath = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temperature';
+    const browsePath =
+      'nsu=http://example.com/:Machine/nsu=http://example.com/:Temperature';
     const mapped = mapNode(node, [], browsePath);
     expect(mapped.kind).toBe('property');
     expect(mapped.type).toBe('Double');
@@ -133,12 +134,8 @@ describe('mapper', () => {
   });
 
   it('same leaf name under different parents → different IDs', () => {
-    const id1 = stableI3xId(
-      'nsu=http://x/:Pump/nsu=http://x/:Temperature', 'property',
-    );
-    const id2 = stableI3xId(
-      'nsu=http://x/:Motor/nsu=http://x/:Temperature', 'property',
-    );
+    const id1 = stableI3xId('nsu=http://x/:Pump/nsu=http://x/:Temperature', 'property');
+    const id2 = stableI3xId('nsu=http://x/:Motor/nsu=http://x/:Temperature', 'property');
     expect(id1).not.toBe(id2);
   });
 
@@ -163,9 +160,9 @@ describe('mapper', () => {
     // The full path is hashed, so different namespaces are included
     const idWithoutVendor = stableI3xId(
       'nsu=http://opcfoundation.org/UA/:Objects' +
-      '/nsu=http://di.org/:DeviceSet' +
-      '/nsu=http://other.com/:MyDevice' +    // different vendor
-      '/nsu=http://other.com/:Status',
+        '/nsu=http://di.org/:DeviceSet' +
+        '/nsu=http://other.com/:MyDevice' + // different vendor
+        '/nsu=http://other.com/:Status',
       'property',
     );
     expect(id).not.toBe(idWithoutVendor);

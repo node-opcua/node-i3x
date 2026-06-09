@@ -2,7 +2,7 @@
 // @node-i3x/core — SubscriptionService unit tests
 // ─────────────────────────────────────────────────────────────
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type {
   DataChangeCallback,
   IDataSourcePort,
@@ -15,7 +15,7 @@ import type {
   SourceNodeInfo,
 } from '../src/ports/data-source.js';
 import { nullLogger } from '../src/ports/logger.js';
-import {  ModelService } from '../src/services/model-service.js';
+import { ModelService } from '../src/services/model-service.js';
 import { SubscriptionService } from '../src/services/subscription-service.js';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -119,9 +119,15 @@ function createMockDataSource(): IDataSourcePort & {
   ];
 
   return {
-    get _monitoredNodeIds() { return monitoredNodeIds; },
-    get _subscriptionCreated() { return subscriptionCreated; },
-    set _fail(v: boolean) { fail = v; },
+    get _monitoredNodeIds() {
+      return monitoredNodeIds;
+    },
+    get _subscriptionCreated() {
+      return subscriptionCreated;
+    },
+    set _fail(v: boolean) {
+      fail = v;
+    },
     _triggerChange(nodeId: string, value: unknown) {
       if (changeCb) {
         changeCb(nodeId, value, 'Good', new Date().toISOString());
@@ -130,24 +136,34 @@ function createMockDataSource(): IDataSourcePort & {
 
     async connect() {},
     async disconnect() {},
-    isConnected() { return true; },
+    isConnected() {
+      return true;
+    },
     async browseTree(): Promise<SourceNodeInfo[]> {
       return sourceNodes;
     },
-    async getNamespaces(): Promise<NamespaceInfo[]> { return []; },
-    async getObjectTypes(): Promise<ObjectTypeInfo[]> { return []; },
-    async readValue(id: string): Promise<SourceDataValue> {
+    async getNamespaces(): Promise<NamespaceInfo[]> {
+      return [];
+    },
+    async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+      return [];
+    },
+    async readValue(_id: string): Promise<SourceDataValue> {
       return { value: 42, quality: 'Good', timestamp: new Date().toISOString() };
     },
     async readValues(ids: string[]): Promise<SourceDataValue[]> {
       return ids.map(() => ({
-        value: 42, quality: 'Good', timestamp: new Date().toISOString(),
+        value: 42,
+        quality: 'Good',
+        timestamp: new Date().toISOString(),
       }));
     },
     async writeValue() {},
-    async readHistory(): Promise<SourceHistoricalValue[]> { return []; },
+    async readHistory(): Promise<SourceHistoricalValue[]> {
+      return [];
+    },
     async createMonitoredSubscription(
-      opts: MonitoredSubscriptionOptions,
+      _opts: MonitoredSubscriptionOptions,
     ): Promise<IMonitoredSubscription> {
       if (fail) throw new Error('Subscription creation failed');
       subscriptionCreated = true;
@@ -215,9 +231,7 @@ describe('SubscriptionService', () => {
     const model = await modelService.getOrBuildModel();
 
     // Find the CNC Machine asset (root node)
-    const cncNode = [...model.nodesById.values()].find(
-      (n) => n.name === 'CNC Machine',
-    );
+    const cncNode = [...model.nodesById.values()].find((n) => n.name === 'CNC Machine');
     expect(cncNode).toBeTruthy();
 
     await svc.register(subscriptionId, [cncNode!.id], 1);
@@ -229,7 +243,9 @@ describe('SubscriptionService', () => {
   it('register() returns errors for unknown elementIds', async () => {
     const { subscriptionId } = svc.create();
     const { registered, errors } = await svc.register(
-      subscriptionId, ['nonexistent-id'], 1,
+      subscriptionId,
+      ['nonexistent-id'],
+      1,
     );
     expect(registered).toHaveLength(0);
     expect(errors).toHaveLength(1);
@@ -237,7 +253,11 @@ describe('SubscriptionService', () => {
   });
 
   it('register() auto-creates subscription for unknown subscriptionId', async () => {
-    const { registered, errors } = await svc.register('client-provided-id', ['nonexistent'], 1);
+    const { registered, errors } = await svc.register(
+      'client-provided-id',
+      ['nonexistent'],
+      1,
+    );
     expect(registered).toHaveLength(0);
     expect(errors).toHaveLength(1);
     // Subscription was auto-created, so list should find it
@@ -297,9 +317,7 @@ describe('SubscriptionService', () => {
     const model = await modelService.getOrBuildModel();
 
     // Find the CNC Machine asset
-    const cncNode = [...model.nodesById.values()].find(
-      (n) => n.name === 'CNC Machine',
-    );
+    const cncNode = [...model.nodesById.values()].find((n) => n.name === 'CNC Machine');
     expect(cncNode).toBeTruthy();
 
     await svc.register(subscriptionId, [cncNode!.id], 1);
@@ -543,9 +561,7 @@ describe('SubscriptionService', () => {
       const model = await serverModelService.getOrBuildModel();
 
       // Find the Server asset node
-      const serverNode = [...model.nodesById.values()].find(
-        (n) => n.name === 'Server',
-      );
+      const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
       expect(serverNode).toBeTruthy();
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 1);
@@ -561,16 +577,14 @@ describe('SubscriptionService', () => {
     it('composite value includes all direct property children', async () => {
       const { subscriptionId } = serverSvc.create();
       const model = await serverModelService.getOrBuildModel();
-      const serverNode = [...model.nodesById.values()].find(
-        (n) => n.name === 'Server',
-      );
+      const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 1);
 
       // Trigger initial on('changed') events for all 3 properties
-      serverDs._triggerChange('ns=0;i=2267', 255);   // ServiceLevel
-      serverDs._triggerChange('ns=0;i=2994', false);  // Auditing
-      serverDs._triggerChange('ns=0;i=2992', null);   // EstReturnTime
+      serverDs._triggerChange('ns=0;i=2267', 255); // ServiceLevel
+      serverDs._triggerChange('ns=0;i=2994', false); // Auditing
+      serverDs._triggerChange('ns=0;i=2992', null); // EstReturnTime
 
       await waitForDebounce();
 
@@ -587,16 +601,14 @@ describe('SubscriptionService', () => {
       expect(compValues).toHaveLength(3);
 
       // Verify specific values
-      expect(compValues.find((c) => c.value === 255)).toBeTruthy();  // ServiceLevel
+      expect(compValues.find((c) => c.value === 255)).toBeTruthy(); // ServiceLevel
       expect(compValues.find((c) => c.value === false)).toBeTruthy(); // Auditing
     });
 
     it('maxDepth=2 also collects grandchild properties inside sub-objects', async () => {
       const { subscriptionId } = serverSvc.create();
       const model = await serverModelService.getOrBuildModel();
-      const serverNode = [...model.nodesById.values()].find(
-        (n) => n.name === 'Server',
-      );
+      const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 2);
 
@@ -611,18 +623,16 @@ describe('SubscriptionService', () => {
     it('sub-object property changes appear in composite', async () => {
       const { subscriptionId } = serverSvc.create();
       const model = await serverModelService.getOrBuildModel();
-      const serverNode = [...model.nodesById.values()].find(
-        (n) => n.name === 'Server',
-      );
+      const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 2);
 
       // Trigger changes on all 5 properties
-      serverDs._triggerChange('ns=0;i=2267', 255);     // ServiceLevel
-      serverDs._triggerChange('ns=0;i=2994', false);    // Auditing
-      serverDs._triggerChange('ns=0;i=2992', null);     // EstReturnTime
-      serverDs._triggerChange('ns=0;i=2259', 0);        // ServerStatus.State
-      serverDs._triggerChange('ns=0;i=11710', 1000);    // Capabilities.MaxBrowse
+      serverDs._triggerChange('ns=0;i=2267', 255); // ServiceLevel
+      serverDs._triggerChange('ns=0;i=2994', false); // Auditing
+      serverDs._triggerChange('ns=0;i=2992', null); // EstReturnTime
+      serverDs._triggerChange('ns=0;i=2259', 0); // ServerStatus.State
+      serverDs._triggerChange('ns=0;i=11710', 1000); // Capabilities.MaxBrowse
 
       await waitForDebounce();
 
@@ -650,15 +660,21 @@ function createServerMockDataSource(): IDataSourcePort & {
 
   const mockSub: IMonitoredSubscription = {
     id: 'mock-server-sub',
-    async addItems(ids: string[]) { monitoredNodeIds.push(...ids); },
+    async addItems(ids: string[]) {
+      monitoredNodeIds.push(...ids);
+    },
     async removeItems(ids: string[]) {
       for (const id of ids) {
         const idx = monitoredNodeIds.indexOf(id);
         if (idx >= 0) monitoredNodeIds.splice(idx, 1);
       }
     },
-    onDataChange(cb: DataChangeCallback) { changeCb = cb; },
-    async close() { changeCb = null; },
+    onDataChange(cb: DataChangeCallback) {
+      changeCb = cb;
+    },
+    async close() {
+      changeCb = null;
+    },
   };
 
   // OPC UA Server-like address space
@@ -761,8 +777,12 @@ function createServerMockDataSource(): IDataSourcePort & {
   ];
 
   return {
-    get _monitoredNodeIds() { return monitoredNodeIds; },
-    set _fail(v: boolean) { fail = v; },
+    get _monitoredNodeIds() {
+      return monitoredNodeIds;
+    },
+    set _fail(v: boolean) {
+      fail = v;
+    },
     _triggerChange(nodeId: string, value: unknown) {
       if (changeCb) {
         changeCb(nodeId, value, 'Good', new Date().toISOString());
@@ -771,22 +791,34 @@ function createServerMockDataSource(): IDataSourcePort & {
 
     async connect() {},
     async disconnect() {},
-    isConnected() { return true; },
-    async browseTree(): Promise<SourceNodeInfo[]> { return sourceNodes; },
-    async getNamespaces(): Promise<NamespaceInfo[]> { return []; },
-    async getObjectTypes(): Promise<ObjectTypeInfo[]> { return []; },
-    async readValue(id: string): Promise<SourceDataValue> {
+    isConnected() {
+      return true;
+    },
+    async browseTree(): Promise<SourceNodeInfo[]> {
+      return sourceNodes;
+    },
+    async getNamespaces(): Promise<NamespaceInfo[]> {
+      return [];
+    },
+    async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+      return [];
+    },
+    async readValue(_id: string): Promise<SourceDataValue> {
       return { value: 0, quality: 'Good', timestamp: new Date().toISOString() };
     },
     async readValues(ids: string[]): Promise<SourceDataValue[]> {
       return ids.map(() => ({
-        value: 0, quality: 'Good', timestamp: new Date().toISOString(),
+        value: 0,
+        quality: 'Good',
+        timestamp: new Date().toISOString(),
       }));
     },
     async writeValue() {},
-    async readHistory(): Promise<SourceHistoricalValue[]> { return []; },
+    async readHistory(): Promise<SourceHistoricalValue[]> {
+      return [];
+    },
     async createMonitoredSubscription(
-      opts: MonitoredSubscriptionOptions,
+      _opts: MonitoredSubscriptionOptions,
     ): Promise<IMonitoredSubscription> {
       if (fail) throw new Error('Subscription creation failed');
       return mockSub;

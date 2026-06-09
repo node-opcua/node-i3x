@@ -53,9 +53,7 @@ function sourceNode(
 describe('ModelService – browse path construction', () => {
   it('single root node gets its nsuQualifiedName as browse path', async () => {
     const nsu = 'nsu=http://test.org/:Root';
-    const nodes = [
-      sourceNode({ sourceNodeId: 'ns=2;i=1', nsuQualifiedName: nsu }),
-    ];
+    const nodes = [sourceNode({ sourceNodeId: 'ns=2;i=1', nsuQualifiedName: nsu })];
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
@@ -305,8 +303,7 @@ describe('ModelService – property and action mapping', () => {
     const methodId = stableI3xId(`${rootNsu}/${methodNsu}`, 'action');
     expect(model.actionToMethod.has(methodId)).toBe(true);
 
-    const [parentSourceId, methodSourceId] =
-      model.actionToMethod.get(methodId) ?? [];
+    const [parentSourceId, methodSourceId] = model.actionToMethod.get(methodId) ?? [];
     expect(parentSourceId).toBe('ns=2;i=10');
     expect(methodSourceId).toBe('ns=2;i=11');
   });
@@ -341,10 +338,7 @@ describe('ModelService – edge cases', () => {
       }),
     );
 
-    const svc = new ModelService(
-      mockDataSource([root, ...children]),
-      nullLogger,
-    );
+    const svc = new ModelService(mockDataSource([root, ...children]), nullLogger);
     const model = await svc.getOrBuildModel();
 
     const rootId = stableI3xId(rootNsu, 'asset');
@@ -358,10 +352,7 @@ describe('ModelService – edge cases', () => {
     // Verify each child has the correct element ID
     for (const name of childNames) {
       const childNsu = `nsu=http://test.org/:${name}`;
-      const expectedId = stableI3xId(
-        `${rootNsu}/${childNsu}`,
-        'property',
-      );
+      const expectedId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
       expect(rootChildren).toContain(expectedId);
       expect(model.nodesById.has(expectedId)).toBe(true);
     }

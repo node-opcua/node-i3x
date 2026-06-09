@@ -2,15 +2,16 @@
 // Demo: Start a representative OPC UA server + i3X REST API
 // ─────────────────────────────────────────────────────────────
 
-import {consoleLogger,HistoryService,
-  ModelService, 
-  SubscriptionService, ValueService, 
+import {
+  consoleLogger,
+  HistoryService,
+  ModelService,
+  SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
-import {DataType, nodesets,
-  OPCUAServer, Variant, 
-} from 'node-opcua';
+import { DataType, nodesets, OPCUAServer, Variant } from 'node-opcua';
 
 const PORT = 8000;
 const OPCUA_PORT = 48400;
@@ -47,27 +48,35 @@ async function startOpcUaServer() {
 
   let cncTemp = 65.2;
   ns.addVariable({
-    componentOf: cnc, browseName: 'Temperature',
-    displayName: 'Temperature (°C)', dataType: DataType.Double,
+    componentOf: cnc,
+    browseName: 'Temperature',
+    displayName: 'Temperature (°C)',
+    dataType: DataType.Double,
     value: { get: () => new Variant({ dataType: DataType.Double, value: cncTemp }) },
   });
 
   let cncSpeed = 1500;
   ns.addVariable({
-    componentOf: cnc, browseName: 'SpindleSpeed',
-    displayName: 'Spindle Speed (RPM)', dataType: DataType.Int32,
+    componentOf: cnc,
+    browseName: 'SpindleSpeed',
+    displayName: 'Spindle Speed (RPM)',
+    dataType: DataType.Int32,
     value: { get: () => new Variant({ dataType: DataType.Int32, value: cncSpeed }) },
   });
 
   ns.addVariable({
-    componentOf: cnc, browseName: 'Status',
-    displayName: 'Status', dataType: DataType.String,
+    componentOf: cnc,
+    browseName: 'Status',
+    displayName: 'Status',
+    dataType: DataType.String,
     value: { get: () => new Variant({ dataType: DataType.String, value: 'Running' }) },
   });
 
   ns.addVariable({
-    componentOf: cnc, browseName: 'ToolWear',
-    displayName: 'Tool Wear (%)', dataType: DataType.Float,
+    componentOf: cnc,
+    browseName: 'ToolWear',
+    displayName: 'Tool Wear (%)',
+    dataType: DataType.Float,
     value: { get: () => new Variant({ dataType: DataType.Float, value: 37.8 }) },
   });
 
@@ -79,20 +88,26 @@ async function startOpcUaServer() {
   });
 
   ns.addVariable({
-    componentOf: laser, browseName: 'Temperature',
-    displayName: 'Temperature (°C)', dataType: DataType.Double,
+    componentOf: laser,
+    browseName: 'Temperature',
+    displayName: 'Temperature (°C)',
+    dataType: DataType.Double,
     value: { get: () => new Variant({ dataType: DataType.Double, value: 42.7 }) },
   });
 
   ns.addVariable({
-    componentOf: laser, browseName: 'LaserPower',
-    displayName: 'Laser Power (W)', dataType: DataType.Float,
+    componentOf: laser,
+    browseName: 'LaserPower',
+    displayName: 'Laser Power (W)',
+    dataType: DataType.Float,
     value: { get: () => new Variant({ dataType: DataType.Float, value: 2400.5 }) },
   });
 
   ns.addVariable({
-    componentOf: laser, browseName: 'JobCount',
-    displayName: 'Completed Jobs', dataType: DataType.UInt32,
+    componentOf: laser,
+    browseName: 'JobCount',
+    displayName: 'Completed Jobs',
+    dataType: DataType.UInt32,
     value: { get: () => new Variant({ dataType: DataType.UInt32, value: 1247 }) },
   });
 
@@ -104,32 +119,44 @@ async function startOpcUaServer() {
   });
 
   ns.addVariable({
-    componentOf: robot, browseName: 'JointAngle',
-    displayName: 'Joint Angle (deg)', dataType: DataType.Double,
+    componentOf: robot,
+    browseName: 'JointAngle',
+    displayName: 'Joint Angle (deg)',
+    dataType: DataType.Double,
     value: { get: () => new Variant({ dataType: DataType.Double, value: 127.3 }) },
   });
 
   ns.addVariable({
-    componentOf: robot, browseName: 'Payload',
-    displayName: 'Current Payload (kg)', dataType: DataType.Float,
+    componentOf: robot,
+    browseName: 'Payload',
+    displayName: 'Current Payload (kg)',
+    dataType: DataType.Float,
     value: { get: () => new Variant({ dataType: DataType.Float, value: 4.2 }) },
   });
 
   ns.addVariable({
-    componentOf: robot, browseName: 'CycleCount',
-    displayName: 'Cycle Count', dataType: DataType.UInt32,
+    componentOf: robot,
+    browseName: 'CycleCount',
+    displayName: 'Cycle Count',
+    dataType: DataType.UInt32,
     value: { get: () => new Variant({ dataType: DataType.UInt32, value: 84291 }) },
   });
 
   ns.addVariable({
-    componentOf: robot, browseName: 'OperatingMode',
-    displayName: 'Operating Mode', dataType: DataType.String,
+    componentOf: robot,
+    browseName: 'OperatingMode',
+    displayName: 'Operating Mode',
+    dataType: DataType.String,
     value: { get: () => new Variant({ dataType: DataType.String, value: 'Automatic' }) },
   });
 
   // Simulate live temperature changes
-  setInterval(() => { cncTemp += (Math.random() - 0.4) * 1.5; }, 1000);
-  setInterval(() => { cncSpeed = 1500 + Math.floor((Math.random() - 0.5) * 100); }, 2000);
+  setInterval(() => {
+    cncTemp += (Math.random() - 0.4) * 1.5;
+  }, 1000);
+  setInterval(() => {
+    cncSpeed = 1500 + Math.floor((Math.random() - 0.5) * 100);
+  }, 2000);
 
   await server.start();
   return server;
@@ -138,7 +165,7 @@ async function startOpcUaServer() {
 async function main() {
   const logger = consoleLogger;
 
-  console.log('\n' + '═'.repeat(60));
+  console.log(`\n${'═'.repeat(60)}`);
   console.log('  🏭 node-i3x Demo');
   console.log('═'.repeat(60));
 
@@ -150,9 +177,14 @@ async function main() {
 
   // 2. Connect i3X adapter
   console.log('\n▶ Connecting i3X OPC UA adapter...');
-  const client = new OpcUaClient({
-    endpointUrl, securityMode: 'None', optimizedClient: 'auto',
-  }, logger);
+  const client = new OpcUaClient(
+    {
+      endpointUrl,
+      securityMode: 'None',
+      optimizedClient: 'auto',
+    },
+    logger,
+  );
   const dataSource = new OpcUaDataSourceAdapter(client, logger);
   await dataSource.connect();
 
@@ -160,21 +192,32 @@ async function main() {
   const modelService = new ModelService(dataSource, logger);
   const valueService = new ValueService(dataSource, modelService, logger);
   const historyService = new HistoryService(dataSource, modelService, logger);
-  const subscriptionService = new SubscriptionService(dataSource, modelService, logger, 1);
+  const subscriptionService = new SubscriptionService(
+    dataSource,
+    modelService,
+    logger,
+    1,
+  );
 
   // 4. Preload model
   console.log('\n▶ Building i3X model from OPC UA...');
   const model = await modelService.preloadModel();
-  console.log(`  ✓ Model: ${model.nodesById.size} nodes, ${model.rootIds.length} roots, ${model.propertyToSource.size} properties`);
+  console.log(
+    `  ✓ Model: ${model.nodesById.size} nodes, ${model.rootIds.length} roots, ${model.propertyToSource.size} properties`,
+  );
 
   // 5. Start REST server
   const app = await createApp({
-    dataSource, modelService, valueService,
-    historyService, subscriptionService, logger,
+    dataSource,
+    modelService,
+    valueService,
+    historyService,
+    subscriptionService,
+    logger,
   });
   await app.listen({ port: PORT, host: '127.0.0.1' });
 
-  console.log('\n' + '═'.repeat(60));
+  console.log(`\n${'═'.repeat(60)}`);
   console.log(`  🚀 i3X REST API ready at http://127.0.0.1:${PORT}`);
   console.log('═'.repeat(60));
   console.log('\n  Try these endpoints:');
@@ -197,4 +240,7 @@ async function main() {
   process.on('SIGTERM', shutdown);
 }
 
-main().catch((err) => { console.error('Fatal:', err); process.exit(1); });
+main().catch((err) => {
+  console.error('Fatal:', err);
+  process.exit(1);
+});

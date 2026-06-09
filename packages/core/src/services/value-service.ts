@@ -2,7 +2,7 @@
 // @node-i3x/core  —  ValueService
 // ─────────────────────────────────────────────────────────────
 
-import type { BuildResult, ModelNode } from '../domain/model-node.js';
+import type { BuildResult, DataQuality, ModelNode } from '../domain/model-node.js';
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
@@ -13,7 +13,7 @@ export class ValueService {
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly modelService: ModelService,
-    private readonly logger: ILogger,
+    readonly _logger: ILogger,
   ) {}
 
   async readValues(
@@ -39,7 +39,8 @@ export class ValueService {
       const node = this.modelService.findNode(model, elementId);
       if (!node) {
         results[i] = {
-          success: false, elementId,
+          success: false,
+          elementId,
           error: { code: 404, message: 'Object value not found' },
         };
         continue;
@@ -61,20 +62,22 @@ export class ValueService {
       } catch {
         // Fallback: mark all as GoodNoData
         values = sourceIds.map(() => ({
-          value: null, quality: 'GoodNoData' as const,
+          value: null,
+          quality: 'GoodNoData' as const,
           timestamp: new Date().toISOString(),
-        }));  
+        }));
       }
 
       for (let j = 0; j < leaves.length; j++) {
         const { idx, elementId } = leaves[j]!;
         const dv = values[j];
         results[idx] = {
-          success: true, elementId,
+          success: true,
+          elementId,
           result: {
             isComposition: false,
             value: dv ? dv.value : null,
-            quality: dv ? dv.quality : ('GoodNoData' as const),
+            quality: (dv ? dv.quality : 'GoodNoData') as DataQuality,
             timestamp: dv ? dv.timestamp : new Date().toISOString(),
           },
         };
@@ -82,18 +85,22 @@ export class ValueService {
     }
 
     // ── Phase 3: read composites in parallel ───────────────
-    await Promise.all(composites.map(async ({ idx, elementId, node }) => {
-      const components = await this._readComponents(model, node, maxDepth, 0);
-      results[idx] = {
-        success: true, elementId,
-        result: {
-          isComposition: true, value: null, quality: 'Good',
-          timestamp: new Date().toISOString(),
-          components: components.size > 0
-            ? Object.fromEntries(components) : null,
-        },
-      };
-    }));
+    await Promise.all(
+      composites.map(async ({ idx, elementId, node }) => {
+        const components = await this._readComponents(model, node, maxDepth, 0);
+        results[idx] = {
+          success: true,
+          elementId,
+          result: {
+            isComposition: true,
+            value: null,
+            quality: 'Good',
+            timestamp: new Date().toISOString(),
+            components: components.size > 0 ? Object.fromEntries(components) : null,
+          },
+        };
+      }),
+    );
 
     return results;
   }
@@ -106,8 +113,10 @@ export class ValueService {
   }
 
   private async _readComponents(
-    model: BuildResult, parent: ModelNode,
-    maxDepth: number, currentDepth: number,
+    model: BuildResult,
+    parent: ModelNode,
+    maxDepth: number,
+    currentDepth: number,
   ): Promise<Map<string, VQT>> {
     if (maxDepth > 0 && currentDepth >= maxDepth) return new Map();
 
@@ -136,10 +145,11 @@ export class ValueService {
       const now = new Date().toISOString();
       for (let i = 0; i < propIds.length; i++) {
         const dv = values[i];
-        if (!propIds[i]) continue;
-        result.set(propIds[i], {
+        const pid = propIds[i];
+        if (!pid) continue;
+        result.set(pid, {
           value: dv ? dv.value : null,
-          quality: dv ? dv.quality : ('GoodNoData' as const),
+          quality: (dv ? dv.quality : 'GoodNoData') as DataQuality,
           timestamp: dv ? dv.timestamp : now,
         });
       }
@@ -148,7 +158,10 @@ export class ValueService {
     // Recurse into sub-object children
     for (const subAsset of subAssets) {
       const subComponents = await this._readComponents(
-        model, subAsset, maxDepth, currentDepth + 1,
+        model,
+        subAsset,
+        maxDepth,
+        currentDepth + 1,
       );
       for (const [key, vqt] of subComponents) {
         result.set(key, vqt);

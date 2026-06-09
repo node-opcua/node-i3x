@@ -2,8 +2,8 @@
 // @node-i3x/rest-server — Fastify app factory
 // ─────────────────────────────────────────────────────────────
 
-import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import Fastify, { type FastifyInstance } from 'fastify';
 
 // Augment Fastify so `app.deps` is typed without casts.
 declare module 'fastify' {
@@ -11,22 +11,23 @@ declare module 'fastify' {
     deps: RestServerDeps;
   }
 }
+
 import type {
+  HistoryService,
   IDataSourcePort,
   ILogger,
   ModelService,
-  ValueService,
-  HistoryService,
   SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
 import { registerErrorHandler } from './errors.js';
 import requestIdPlugin from './middleware/request-id.js';
-import infoRoutes from './routes/info.js';
 import healthRoutes from './routes/health.js';
+import infoRoutes from './routes/info.js';
 import namespaceRoutes from './routes/namespaces.js';
+import objectRoutes from './routes/objects.js';
 import objecttypeRoutes from './routes/objecttypes.js';
 import relationshiptypeRoutes from './routes/relationshiptypes.js';
-import objectRoutes from './routes/objects.js';
 import subscriptionRoutes from './routes/subscriptions.js';
 
 export interface RestServerDeps {

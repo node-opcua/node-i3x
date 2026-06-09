@@ -69,14 +69,14 @@ export function bulkResponse<T>(results: BulkResultItem<T>[]): BulkResponse<T> {
   return { success: true, results };
 }
 
-export function bulkSuccess<T>(
-  elementId: string, result: T,
-): BulkResultItem<T> {
+export function bulkSuccess<T>(elementId: string, result: T): BulkResultItem<T> {
   return { success: true, elementId, result };
 }
 
 export function bulkError<T>(
-  elementId: string, code: number, message: string,
+  elementId: string,
+  code: number,
+  message: string,
 ): BulkResultItem<T> {
   return { success: false, elementId, error: { code, message } };
 }

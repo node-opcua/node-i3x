@@ -12,14 +12,16 @@
 // and validates end-to-end flows against the HTTP API.
 // ─────────────────────────────────────────────────────────────
 
-import {consoleLogger,HistoryService,
-  ModelService, 
-  SubscriptionService, ValueService, 
+import {
+  consoleLogger,
+  HistoryService,
+  ModelService,
+  SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import {
-  type AddressSpace,
   DataType,
   type Namespace,
   nodesets,
@@ -109,15 +111,13 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'Reset',
     displayName: 'Reset Machine',
     inputArguments: [],
-    outputArguments: []
+    outputArguments: [],
   });
-  uaResetMethod.bindMethod(async (_inputArguments, _context) => { 
+  uaResetMethod.bindMethod(async (_inputArguments, _context) => {
     temperatureA = 25.0;
     speedA = 0;
     return { statusCode: StatusCodes.Good };
   });
-
-
 
   // ── Machine B ────────────────────────────────────────────
   const machineB = namespace.addObject({
@@ -173,7 +173,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
   // All CoffeeMachine variables MONOTONICALLY INCREASE
   // so every OPC UA sample is a guaranteed DataChange
   let brewTemperature = 93.0;
-  let brewTick = 0;
+  let _brewTick = 0;
   namespace.addVariable({
     componentOf: parameterSet,
     browseName: 'BrewTemperature',
@@ -232,22 +232,23 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     displayName: 'Grind Size',
     dataType: DataType.String,
     value: {
-      get: () => new Variant({
-        dataType: DataType.String,
-        value: grindSizes[grindSizeTick % grindSizes.length],
-      }),
+      get: () =>
+        new Variant({
+          dataType: DataType.String,
+          value: grindSizes[grindSizeTick % grindSizes.length],
+        }),
     },
   });
 
   // Monotonically increase every 200ms for clear evidence
   const interval = setInterval(() => {
-    brewTick++;
+    _brewTick++;
     temperatureA += 0.5;
-    brewTemperature += 0.1;      // 93.0 → 93.1 → 93.2 → ...
-    pumpPressure += 0.05;        //  9.0 →  9.05 →  9.10 → ...
-    waterLevel -= 0.3;           // 100 → 99.7 → 99.4 → ...
-    grinderRPM += 10;            // 1200 → 1210 → 1220 → ...
-    grindSizeTick++;             // cycles through sizes
+    brewTemperature += 0.1; // 93.0 → 93.1 → 93.2 → ...
+    pumpPressure += 0.05; //  9.0 →  9.05 →  9.10 → ...
+    waterLevel -= 0.3; // 100 → 99.7 → 99.4 → ...
+    grinderRPM += 10; // 1200 → 1210 → 1220 → ...
+    grindSizeTick++; // cycles through sizes
   }, 200);
   (server as Record<string, unknown>)._e2eInterval = interval;
 
@@ -269,25 +270,30 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // 2. Create the connector
     const logger = consoleLogger;
-    const opcuaClient = new OpcUaClient({
-      endpointUrl,
-      securityMode: 'None',
-      optimizedClient: 'auto',
-    }, logger);
+    const opcuaClient = new OpcUaClient(
+      {
+        endpointUrl,
+        securityMode: 'None',
+        optimizedClient: 'auto',
+      },
+      logger,
+    );
     const dataSource = new OpcUaDataSourceAdapter(opcuaClient, logger);
 
     // 3. Domain services
     modelService = new ModelService(dataSource, logger);
     const valueService = new ValueService(dataSource, modelService, logger);
     const historyService = new HistoryService(dataSource, modelService, logger);
-    subscriptionService = new SubscriptionService(
-      dataSource, modelService, logger, 1,
-    );
+    subscriptionService = new SubscriptionService(dataSource, modelService, logger, 1);
 
     // 4. REST server
     app = await createApp({
-      dataSource, modelService, valueService,
-      historyService, subscriptionService, logger,
+      dataSource,
+      modelService,
+      valueService,
+      historyService,
+      subscriptionService,
+      logger,
     });
 
     // 5. Connect and preload
@@ -297,9 +303,14 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
   afterAll(async () => {
     await subscriptionService.close();
-    const ds = (app as Record<string, unknown>).deps as Record<string, { disconnect: () => Promise<void> }>;
+    const ds = (app as Record<string, unknown>).deps as Record<
+      string,
+      { disconnect: () => Promise<void> }
+    >;
     if (ds?.dataSource) await ds.dataSource.disconnect();
-    clearInterval((opcuaServer as Record<string, unknown>)._e2eInterval as NodeJS.Timeout);
+    clearInterval(
+      (opcuaServer as Record<string, unknown>)._e2eInterval as NodeJS.Timeout,
+    );
     await opcuaServer.shutdown(500);
   }, 15_000);
 
@@ -367,7 +378,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const rootId = model.rootIds[0]!;
 
     const res = await app.inject({
-      method: 'POST', url: '/v1/objects/list',
+      method: 'POST',
+      url: '/v1/objects/list',
       payload: { elementIds: [rootId] },
     });
     expect(res.statusCode).toBe(200);
@@ -385,7 +397,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const propId = [...model.propertyToSource.keys()][0]!;
 
     const res = await app.inject({
-      method: 'POST', url: '/v1/objects/value',
+      method: 'POST',
+      url: '/v1/objects/value',
       payload: { elementIds: [propId], maxDepth: 1 },
     });
     expect(res.statusCode).toBe(200);
@@ -407,7 +420,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     if (!assetId) return; // skip if server has no suitable nodes
 
     const res = await app.inject({
-      method: 'POST', url: '/v1/objects/value',
+      method: 'POST',
+      url: '/v1/objects/value',
       payload: { elementIds: [assetId], maxDepth: 2 },
     });
     expect(res.statusCode).toBe(200);
@@ -424,7 +438,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Create subscription
     const createRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions',
+      method: 'POST',
+      url: '/v1/subscriptions',
       payload: { clientId: 'e2e-test', displayName: 'E2E Subscription' },
     });
     expect(createRes.statusCode).toBe(200);
@@ -433,7 +448,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Register a monitored item
     const regRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/register',
+      method: 'POST',
+      url: '/v1/subscriptions/register',
       payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
     });
     expect(regRes.statusCode).toBe(200);
@@ -446,7 +462,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Sync — should have updates
     const syncRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/sync',
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, acknowledgeSequence: 0 },
     });
     expect(syncRes.statusCode).toBe(200);
@@ -457,7 +474,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // List subscriptions
     const listRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/list',
+      method: 'POST',
+      url: '/v1/subscriptions/list',
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
@@ -467,7 +485,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Delete
     const delRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/delete',
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
       payload: { subscriptionIds: [subId] },
     });
     expect(delRes.statusCode).toBe(200);
@@ -492,8 +511,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Find ParameterSet children
     const paramSetNode = [...model.nodesById.values()].find(
-      (n) => n.name === 'ParameterSet'
-        && childIds.includes(n.id),
+      (n) => n.name === 'ParameterSet' && childIds.includes(n.id),
     );
     expect(paramSetNode).toBeTruthy();
 
@@ -509,8 +527,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Find GrinderUnit children
     const grinderNode = [...model.nodesById.values()].find(
-      (n) => n.name === 'Grinder Unit'
-        && childIds.includes(n.id),
+      (n) => n.name === 'Grinder Unit' && childIds.includes(n.id),
     );
     expect(grinderNode).toBeTruthy();
 
@@ -525,7 +542,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // 2. Create subscription
     const createRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions',
+      method: 'POST',
+      url: '/v1/subscriptions',
       payload: { clientId: 'deep-test', displayName: 'Deep CoffeeMachine Sub' },
     });
     expect(createRes.statusCode).toBe(200);
@@ -539,7 +557,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     //      → GrinderUnit (depth 1)
     //          → RPM, GrindSize (depth 2, property)
     const regRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/register',
+      method: 'POST',
+      url: '/v1/subscriptions/register',
       payload: {
         subscriptionId: subId,
         elementIds: [coffeeId],
@@ -553,7 +572,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // 4. Verify list shows the CoffeeMachine as monitored
     const listRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/list',
+      method: 'POST',
+      url: '/v1/subscriptions/list',
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
@@ -571,7 +591,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // 6. Sync — should have composite updates for the CoffeeMachine
     const syncRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/sync',
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, acknowledgeSequence: 0 },
     });
     expect(syncRes.statusCode).toBe(200);
@@ -609,19 +630,23 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     // ── Print evidence ──
     console.log(`\n╔══════════════════════════════════════════════════╗`);
     console.log(`║  Deep Subscription: CoffeeMachine composite       ║`);
-    console.log(`║  ${updates.length} updates, ${componentKeys.length} components                    ║`);
+    console.log(
+      `║  ${updates.length} updates, ${componentKeys.length} components                    ║`,
+    );
     console.log(`╠══════════════════════════════════════════════════╣`);
     for (const key of componentKeys) {
       const vqt = latest.value.components[key];
       const name = model.nodesById.get(key)?.name ?? key;
-      const val = typeof vqt.value === 'number' ? vqt.value.toFixed(2) : String(vqt.value);
+      const val =
+        typeof vqt.value === 'number' ? vqt.value.toFixed(2) : String(vqt.value);
       console.log(`║  ${name.padEnd(20)} │ ${val}`);
     }
     console.log(`╚══════════════════════════════════════════════════╝\n`);
 
     // 7. Cleanup
     const delRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/delete',
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
       payload: { subscriptionIds: [subId] },
     });
     expect(delRes.statusCode).toBe(200);
@@ -641,7 +666,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // ── Step 1: Read the canonical value via /objects/value ──
     const valueRes = await app.inject({
-      method: 'POST', url: '/v1/objects/value',
+      method: 'POST',
+      url: '/v1/objects/value',
       payload: { elementIds: [coffeeId], maxDepth: 3 },
     });
     expect(valueRes.statusCode).toBe(200);
@@ -654,13 +680,15 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // ── Step 2: Create subscription and register same asset ──
     const createRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions',
+      method: 'POST',
+      url: '/v1/subscriptions',
       payload: { clientId: 'match-test' },
     });
     const subId = createRes.json().result.subscriptionId;
 
     const regRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/register',
+      method: 'POST',
+      url: '/v1/subscriptions/register',
       payload: { subscriptionId: subId, elementIds: [coffeeId], maxDepth: 3 },
     });
     expect(regRes.statusCode).toBe(200);
@@ -670,7 +698,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     await new Promise((r) => setTimeout(r, 3000));
 
     const syncRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/sync',
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, acknowledgeSequence: 0 },
     });
     expect(syncRes.statusCode).toBe(200);
@@ -706,7 +735,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
     // Cleanup
     await app.inject({
-      method: 'POST', url: '/v1/subscriptions/delete',
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
       payload: { subscriptionIds: [subId] },
     });
   }, 20_000);
@@ -715,7 +745,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
   it('POST /v1/objects/list returns 404 for unknown elements', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/v1/objects/list',
+      method: 'POST',
+      url: '/v1/objects/list',
       payload: { elementIds: ['nonexistent-element-id'] },
     });
     expect(res.statusCode).toBe(200);
@@ -726,7 +757,8 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
   it('POST /v1/subscriptions/stream returns 404 for unknown subscription', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/stream',
+      method: 'POST',
+      url: '/v1/subscriptions/stream',
       payload: { subscriptionId: 'does-not-exist' },
     });
     expect(res.statusCode).toBe(404);

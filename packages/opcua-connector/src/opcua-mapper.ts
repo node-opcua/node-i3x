@@ -2,14 +2,18 @@
 // @node-i3x/opcua-connector — OPC UA → domain mapping helpers
 // ─────────────────────────────────────────────────────────────
 
+import type {
+  SourceDataValue,
+  SourceHistoricalValue,
+  SourceNodeInfo,
+} from '@node-i3x/core';
 import {
   type DataValue,
+  NodeClass,
   type QualifiedName,
   type ReferenceDescription,
-  NodeClass,
   StatusCodes,
 } from 'node-opcua';
-import type { SourceNodeInfo, SourceDataValue, SourceHistoricalValue } from '@node-i3x/core';
 
 const NODE_CLASS_NAMES: Record<number, string> = {
   [NodeClass.Object]: 'Object',
@@ -36,7 +40,7 @@ export function qualifiedNameToNsu(
   browseName: QualifiedName | null | undefined,
   namespaceArray: readonly string[],
 ): string {
-  if (!browseName || !browseName.name) return '';
+  if (!browseName?.name) return '';
   const nsIdx = browseName.namespaceIndex ?? 0;
   const nsUri = namespaceArray[nsIdx] ?? `ns=${nsIdx}`;
   return `nsu=${nsUri}:${browseName.name}`;
@@ -70,13 +74,13 @@ export function refToSourceNode(
     nsuQualifiedName: nsuQName,
     displayName: ref.displayName?.text ?? ref.browseName?.toString() ?? '',
     nodeClass: NODE_CLASS_NAMES[nodeClass] ?? 'Unknown',
-    typeDefinition: ref.typeDefinition
-      ? ref.typeDefinition.toString()
-      : null,
+    typeDefinition: ref.typeDefinition ? ref.typeDefinition.toString() : null,
     namespaceUri,
-    eventNotifier: (ref.nodeClass === NodeClass.Object)
-      ? (((ref as Record<string, unknown>).eventNotifier as number) ?? 0) !== 0
-      : false,
+    eventNotifier:
+      ref.nodeClass === NodeClass.Object
+        ? (((ref as unknown as Record<string, unknown>).eventNotifier as number) ?? 0) !==
+          0
+        : false,
   };
 }
 
@@ -86,9 +90,10 @@ export function dataValueToSource(dv: DataValue): SourceDataValue {
   return {
     value: dv.value?.value ?? null,
     quality: isGood ? 'Good' : 'Bad',
-    timestamp: dv.sourceTimestamp?.toISOString()
-      ?? dv.serverTimestamp?.toISOString()
-      ?? new Date().toISOString(),
+    timestamp:
+      dv.sourceTimestamp?.toISOString() ??
+      dv.serverTimestamp?.toISOString() ??
+      new Date().toISOString(),
     statusCode: dv.statusCode?.value,
   };
 }
@@ -98,8 +103,9 @@ export function dataValueToHistorical(dv: DataValue): SourceHistoricalValue {
   return {
     value: dv.value?.value ?? null,
     quality: dv.statusCode?.equals(StatusCodes.Good) ? 'Good' : 'Bad',
-    timestamp: dv.sourceTimestamp?.toISOString()
-      ?? dv.serverTimestamp?.toISOString()
-      ?? new Date().toISOString(),
+    timestamp:
+      dv.sourceTimestamp?.toISOString() ??
+      dv.serverTimestamp?.toISOString() ??
+      new Date().toISOString(),
   };
 }

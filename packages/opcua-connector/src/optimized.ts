@@ -2,8 +2,8 @@
 // @node-i3x/opcua-connector — @sterfive/opcua-optimized-client
 // ─────────────────────────────────────────────────────────────
 
-import type { ClientSession } from 'node-opcua';
 import type { ILogger } from '@node-i3x/core';
+import type { ClientSession } from 'node-opcua';
 
 /**
  * Wrap a ClientSession with @sterfive/opcua-optimized-client
@@ -28,20 +28,18 @@ export async function wrapSessionIfOptimized(
   logger: ILogger,
 ): Promise<ClientSession> {
   try {
-    const { ClientSessionOptimized } = await import(
-      '@sterfive/opcua-optimized-client'
-    );
+    const { ClientSessionOptimized } = await import('@sterfive/opcua-optimized-client');
     const optimized = new ClientSessionOptimized(session);
     logger.info(
       '✓ @sterfive/opcua-optimized-client activated — ' +
-      'auto-batching, limit-splitting, and coalescing enabled',
+        'auto-batching, limit-splitting, and coalescing enabled',
     );
     return optimized as unknown as ClientSession;
   } catch {
     logger.info(
       'Standard node-opcua client mode. ' +
-      'Install @sterfive/opcua-optimized-client for automatic ' +
-      'batching and enhanced performance.',
+        'Install @sterfive/opcua-optimized-client for automatic ' +
+        'batching and enhanced performance.',
     );
     return session;
   }

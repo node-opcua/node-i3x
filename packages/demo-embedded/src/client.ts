@@ -12,26 +12,26 @@ const BASE = process.env.NODE_I3X_URL ?? 'http://127.0.0.1:8080';
 
 const ESC = '\x1b';
 const ansi = {
-  clear:      `${ESC}[2J${ESC}[H`,
-  home:       `${ESC}[H`,
+  clear: `${ESC}[2J${ESC}[H`,
+  home: `${ESC}[H`,
   hideCursor: `${ESC}[?25l`,
   showCursor: `${ESC}[?25h`,
-  bold:       `${ESC}[1m`,
-  dim:        `${ESC}[2m`,
-  reset:      `${ESC}[0m`,
+  bold: `${ESC}[1m`,
+  dim: `${ESC}[2m`,
+  reset: `${ESC}[0m`,
   // Foreground
-  white:      `${ESC}[97m`,
-  gray:       `${ESC}[90m`,
-  cyan:       `${ESC}[96m`,
-  green:      `${ESC}[92m`,
-  red:        `${ESC}[91m`,
-  yellow:     `${ESC}[93m`,
-  blue:       `${ESC}[94m`,
-  magenta:    `${ESC}[95m`,
+  white: `${ESC}[97m`,
+  gray: `${ESC}[90m`,
+  cyan: `${ESC}[96m`,
+  green: `${ESC}[92m`,
+  red: `${ESC}[91m`,
+  yellow: `${ESC}[93m`,
+  blue: `${ESC}[94m`,
+  magenta: `${ESC}[95m`,
   // Background
-  bgDark:     `${ESC}[48;5;236m`,
-  bgCard:     `${ESC}[48;5;238m`,
-  bgHeader:   `${ESC}[48;5;24m`,
+  bgDark: `${ESC}[48;5;236m`,
+  bgCard: `${ESC}[48;5;238m`,
+  bgHeader: `${ESC}[48;5;24m`,
 };
 
 // ── Fetch helpers ────────────────────────────────────────────
@@ -103,7 +103,7 @@ interface PropertyEntry {
   value: unknown;
   quality: string;
   timestamp: string;
-  changed: boolean;   // flash on recent change
+  changed: boolean; // flash on recent change
 }
 
 const nameById = new Map<string, string>();
@@ -132,9 +132,8 @@ function boxBot(w: number): string {
 }
 function boxRow(content: string, w: number): string {
   // Strip ANSI for length calculation
-  const visible = content.replace(
-    /\x1b\[[0-9;]*m/g, '',
-  );
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional ANSI escape stripping
+  const visible = content.replace(/\x1b\[[0-9;]*m/g, '');
   const pad = Math.max(0, w - 4 - visible.length);
   return `│ ${content}${' '.repeat(pad)} │`;
 }
@@ -145,9 +144,7 @@ async function discover(): Promise<string[]> {
   process.stdout.write(ansi.clear);
   process.stdout.write(ansi.hideCursor);
   process.stdout.write(
-    `\n  ${ansi.cyan}${ansi.bold}` +
-    `📡 Discovering i3X model...` +
-    `${ansi.reset}\n\n`,
+    `\n  ${ansi.cyan}${ansi.bold}📡 Discovering i3X model...${ansi.reset}\n\n`,
   );
 
   const info = await get<{
@@ -160,13 +157,9 @@ async function discover(): Promise<string[]> {
     result: ObjectInstance[];
   }>('/v1/objects?root=true');
   const skipNames = ['Locations', 'Server', 'Aliases'];
-  const userRoots = roots.result.filter(
-    (r) => !skipNames.includes(r.displayName),
-  );
+  const userRoots = roots.result.filter((r) => !skipNames.includes(r.displayName));
 
-  process.stdout.write(
-    `  Found ${userRoots.length} user-defined root(s)\n`,
-  );
+  process.stdout.write(`  Found ${userRoots.length} user-defined root(s)\n`);
 
   // Walk tree for each root
   const compositeIds: string[] = [];
@@ -176,19 +169,13 @@ async function discover(): Promise<string[]> {
 
   // Build cards for leaf assets (ones with properties)
   for (const card of cards) {
-    process.stdout.write(
-      `  📦 ${card.name} ` +
-      `(${card.properties.length} props)\n`,
-    );
+    process.stdout.write(`  📦 ${card.name} ` + `(${card.properties.length} props)\n`);
   }
 
   return compositeIds;
 }
 
-async function walkTree(
-  obj: ObjectInstance,
-  compositeIds: string[],
-): Promise<void> {
+async function walkTree(obj: ObjectInstance, compositeIds: string[]): Promise<void> {
   nameById.set(obj.elementId, obj.displayName);
 
   if (!obj.isComposition) return;
@@ -211,12 +198,8 @@ async function walkTree(
   );
 
   // Separate assets vs properties
-  const childAssets = children.filter(
-    (c) => c.object.isComposition,
-  );
-  const childProps = children.filter(
-    (c) => !c.object.isComposition,
-  );
+  const childAssets = children.filter((c) => c.object.isComposition);
+  const childProps = children.filter((c) => !c.object.isComposition);
 
   // If this node has properties, create a card
   if (childProps.length > 0) {
@@ -248,10 +231,10 @@ async function walkTree(
 
 function iconForAsset(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('pump'))     return '💧';
-  if (n.includes('heater'))   return '🔥';
+  if (n.includes('pump')) return '💧';
+  if (n.includes('heater')) return '🔥';
   if (n.includes('conveyor')) return '🏭';
-  if (n.includes('factory'))  return '🏗️';
+  if (n.includes('factory')) return '🏗️';
   return '📦';
 }
 
@@ -268,7 +251,8 @@ async function readInitialValues(): Promise<void> {
       result: ValueResult;
     }>;
   }>('/v1/objects/value', {
-    elementIds: ids, maxDepth: 3,
+    elementIds: ids,
+    maxDepth: 3,
   });
 
   for (const entry of values.results) {
@@ -347,11 +331,8 @@ async function syncUpdates(): Promise<void> {
       const card = cards.find((c) => c.id === u.elementId);
       if (!card) continue;
 
-      for (const [propId, vqt] of
-        Object.entries(u.value.components)) {
-        const prop = card.properties.find(
-          (p) => p.id === propId,
-        );
+      for (const [propId, vqt] of Object.entries(u.value.components)) {
+        const prop = card.properties.find((p) => p.id === propId);
         if (prop) {
           prop.value = vqt.value;
           prop.quality = vqt.quality;
@@ -377,45 +358,31 @@ function render(): void {
   lines.push('');
   lines.push(
     `  ${ansi.bgHeader}${ansi.white}${ansi.bold}` +
-    `  📡 i3X Dashboard — ${serverName}  ` +
-    `${r}` +
-    `  ${ansi.dim}${now}${r}`,
+      `  📡 i3X Dashboard — ${serverName}  ` +
+      `${r}` +
+      `  ${ansi.dim}${now}${r}`,
   );
   lines.push('');
 
   // Status line
   const statusParts: string[] = [];
-  statusParts.push(
-    `${ansi.green}● Connected${r}`,
-  );
-  statusParts.push(
-    `${ansi.dim}Updates: ${updateCount}${r}`,
-  );
-  statusParts.push(
-    `${ansi.dim}Changes: ${totalChanges}${r}`,
-  );
-  statusParts.push(
-    `${ansi.dim}Seq: ${lastSeq}${r}`,
-  );
+  statusParts.push(`${ansi.green}● Connected${r}`);
+  statusParts.push(`${ansi.dim}Updates: ${updateCount}${r}`);
+  statusParts.push(`${ansi.dim}Changes: ${totalChanges}${r}`);
+  statusParts.push(`${ansi.dim}Seq: ${lastSeq}${r}`);
   lines.push(`  ${statusParts.join('  │  ')}`);
   lines.push('');
 
   // Render cards in pairs (2 per row)
   for (let i = 0; i < cards.length; i += 2) {
     const left = renderCard(cards[i]!);
-    const right = i + 1 < cards.length
-      ? renderCard(cards[i + 1]!)
-      : null;
+    const right = i + 1 < cards.length ? renderCard(cards[i + 1]!) : null;
 
-    const maxLines = Math.max(
-      left.length, right?.length ?? 0,
-    );
+    const maxLines = Math.max(left.length, right?.length ?? 0);
 
     for (let row = 0; row < maxLines; row++) {
       const l = left[row] ?? ' '.repeat(CARD_W);
-      const rr = right
-        ? (right[row] ?? ' '.repeat(CARD_W))
-        : '';
+      const rr = right ? (right[row] ?? ' '.repeat(CARD_W)) : '';
       lines.push(`  ${l}  ${rr}`);
     }
     lines.push('');
@@ -423,21 +390,15 @@ function render(): void {
 
   // Error line
   if (lastError) {
-    lines.push(
-      `  ${ansi.red}⚠ ${lastError}${r}`,
-    );
+    lines.push(`  ${ansi.red}⚠ ${lastError}${r}`);
   }
 
   // Footer
-  lines.push(
-    `  ${ansi.dim}Press Ctrl+C to stop${r}`,
-  );
+  lines.push(`  ${ansi.dim}Press Ctrl+C to stop${r}`);
   lines.push('');
 
   // Write in one shot — move cursor home, overwrite
-  process.stdout.write(
-    ansi.home + lines.join('\n'),
-  );
+  process.stdout.write(ansi.home + lines.join('\n'));
 }
 
 function renderCard(card: AssetCard): string[] {
@@ -446,43 +407,27 @@ function renderCard(card: AssetCard): string[] {
   const w = CARD_W;
 
   // Top border
-  lines.push(
-    `${ansi.dim}${boxTop(w)}${r}`,
-  );
+  lines.push(`${ansi.dim}${boxTop(w)}${r}`);
 
   // Title
-  const title = `${card.icon} ${ansi.bold}${ansi.cyan}` +
-    `${card.name}${r}`;
-  lines.push(
-    `${ansi.dim}${boxRow(title, w)}${r}`,
-  );
-  lines.push(
-    `${ansi.dim}${boxMid(w)}${r}`,
-  );
+  const title = `${card.icon} ${ansi.bold}${ansi.cyan}` + `${card.name}${r}`;
+  lines.push(`${ansi.dim}${boxRow(title, w)}${r}`);
+  lines.push(`${ansi.dim}${boxMid(w)}${r}`);
 
   // Properties
   for (const prop of card.properties) {
     const label = cleanLabel(prop.name);
-    const { text: valText, color } = formatPropValue(
-      prop.value, prop.name,
-    );
+    const { text: valText, color } = formatPropValue(prop.value, prop.name);
 
-    const flashColor = prop.changed
-      ? ansi.yellow : ansi.dim;
+    const flashColor = prop.changed ? ansi.yellow : ansi.dim;
 
-    const line =
-      `${flashColor}${label.padEnd(18)}${r} ` +
-      `${color}${valText}${r}`;
+    const line = `${flashColor}${label.padEnd(18)}${r} ` + `${color}${valText}${r}`;
 
-    lines.push(
-      `${ansi.dim}${boxRow(line, w)}${r}`,
-    );
+    lines.push(`${ansi.dim}${boxRow(line, w)}${r}`);
   }
 
   // Bottom border
-  lines.push(
-    `${ansi.dim}${boxBot(w)}${r}`,
-  );
+  lines.push(`${ansi.dim}${boxBot(w)}${r}`);
 
   return lines;
 }
@@ -497,18 +442,14 @@ function cleanLabel(name: string): string {
     .replace(' (%)', ' %');
 }
 
-function formatPropValue(
-  v: unknown, name: string,
-): { text: string; color: string } {
+function formatPropValue(v: unknown, name: string): { text: string; color: string } {
   if (typeof v === 'boolean') {
     if (name.toLowerCase().includes('heater')) {
       return v
         ? { text: '🔥 ON', color: ansi.red }
         : { text: '   OFF', color: ansi.gray };
     }
-    return v
-      ? { text: '● ON', color: ansi.green }
-      : { text: '○ OFF', color: ansi.gray };
+    return v ? { text: '● ON', color: ansi.green } : { text: '○ OFF', color: ansi.gray };
   }
 
   if (typeof v === 'number') {
@@ -530,9 +471,7 @@ function formatPropValue(
       else color = ansi.gray;
     }
 
-    const formatted = Number.isInteger(v)
-      ? v.toLocaleString()
-      : v.toFixed(2);
+    const formatted = Number.isInteger(v) ? v.toLocaleString() : v.toFixed(2);
     return { text: formatted, color };
   }
 
@@ -549,33 +488,24 @@ async function main() {
   try {
     await get('/health');
   } catch {
+    console.error(`\n  ❌ Cannot reach i3X server at ${BASE}`);
     console.error(
-      `\n  ❌ Cannot reach i3X server at ${BASE}`,
-    );
-    console.error(
-      '  Start the demo first:\n' +
-      '    npm run demo -w packages/demo-embedded\n',
+      '  Start the demo first:\n' + '    npm run demo -w packages/demo-embedded\n',
     );
     process.exit(1);
   }
 
   // Discovery phase (scrolling output)
-  const compositeIds = await discover();
+  const _compositeIds = await discover();
 
   // Initial values
-  process.stdout.write(
-    `\n  Reading initial values...\n`,
-  );
+  process.stdout.write(`\n  Reading initial values...\n`);
   await readInitialValues();
 
   // Subscription
-  process.stdout.write(
-    `  Creating subscription...\n`,
-  );
+  process.stdout.write(`  Creating subscription...\n`);
   await createSubscription();
-  process.stdout.write(
-    `  ✅ Monitoring ${cards.length} assets\n\n`,
-  );
+  process.stdout.write(`  ✅ Monitoring ${cards.length} assets\n\n`);
 
   await sleep(1000);
 
@@ -592,18 +522,25 @@ async function main() {
         await post('/v1/subscriptions/delete', {
           subscriptionIds: [subId],
         });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     console.log('  Subscription cleaned up. Bye!\n');
     process.exit(0);
   };
-  process.on('SIGINT', () => { void cleanup(); });
-  process.on('SIGTERM', () => { void cleanup(); });
+  process.on('SIGINT', () => {
+    void cleanup();
+  });
+  process.on('SIGTERM', () => {
+    void cleanup();
+  });
 
   // Render loop
   render();
   let iteration = 0;
-  while (iteration < 600) { // max ~20 minutes
+  while (iteration < 600) {
+    // max ~20 minutes
     await sleep(2000);
     iteration++;
     await syncUpdates();

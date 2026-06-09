@@ -6,18 +6,16 @@
 // AddressSpace in memory.
 // ─────────────────────────────────────────────────────────────
 
-import {consoleLogger,HistoryService,
-  ModelService, 
-  SubscriptionService, ValueService, 
-} from '@node-i3x/core';
 import {
-  PseudoSessionDataSourceAdapter,
-} from '@node-i3x/pseudo-session-connector';
+  consoleLogger,
+  HistoryService,
+  ModelService,
+  SubscriptionService,
+  ValueService,
+} from '@node-i3x/core';
+import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
 import { createApp } from '@node-i3x/rest-server';
-import {DataType, nodesets,
-  OPCUAServer, 
-  type UAVariable,Variant, 
-} from 'node-opcua';
+import { DataType, nodesets, OPCUAServer, type UAVariable, Variant } from 'node-opcua';
 
 const REST_PORT = 8080;
 const OPCUA_PORT = 48410;
@@ -64,7 +62,8 @@ async function createSampleServer() {
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 35.0,
+      dataType: DataType.Double,
+      value: 35.0,
     }),
   });
 
@@ -74,7 +73,8 @@ async function createSampleServer() {
     displayName: 'Pressure (bar)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 4.2,
+      dataType: DataType.Double,
+      value: 4.2,
     }),
   });
 
@@ -84,17 +84,19 @@ async function createSampleServer() {
     displayName: 'Flow Rate (L/min)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 120.5,
+      dataType: DataType.Double,
+      value: 120.5,
     }),
   });
 
-  const pumpRunVar = ns.addVariable({
+  const _pumpRunVar = ns.addVariable({
     componentOf: pump,
     browseName: 'Running',
     displayName: 'Running',
     dataType: DataType.Boolean,
     value: new Variant({
-      dataType: DataType.Boolean, value: true,
+      dataType: DataType.Boolean,
+      value: true,
     }),
   });
 
@@ -111,7 +113,8 @@ async function createSampleServer() {
     displayName: 'Heater On/Off',
     dataType: DataType.Boolean,
     value: new Variant({
-      dataType: DataType.Boolean, value: true,
+      dataType: DataType.Boolean,
+      value: true,
     }),
   });
 
@@ -121,17 +124,19 @@ async function createSampleServer() {
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 180.0,
+      dataType: DataType.Double,
+      value: 180.0,
     }),
   });
 
-  const heaterSetpointVar = ns.addVariable({
+  const _heaterSetpointVar = ns.addVariable({
     componentOf: heater,
     browseName: 'Setpoint',
     displayName: 'Setpoint (°C)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 200.0,
+      dataType: DataType.Double,
+      value: 200.0,
     }),
   });
 
@@ -141,7 +146,8 @@ async function createSampleServer() {
     displayName: 'Power (%)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 85.0,
+      dataType: DataType.Double,
+      value: 85.0,
     }),
   });
 
@@ -158,7 +164,8 @@ async function createSampleServer() {
     displayName: 'Speed (m/s)',
     dataType: DataType.Double,
     value: new Variant({
-      dataType: DataType.Double, value: 2.3,
+      dataType: DataType.Double,
+      value: 2.3,
     }),
   });
 
@@ -168,7 +175,8 @@ async function createSampleServer() {
     displayName: 'Items Processed',
     dataType: DataType.UInt32,
     value: new Variant({
-      dataType: DataType.UInt32, value: 8452,
+      dataType: DataType.UInt32,
+      value: 8452,
     }),
   });
 
@@ -200,10 +208,8 @@ async function createSampleServer() {
   // Heater: temp tracks setpoint, power varies
   setInterval(() => {
     if (heaterOn) {
-      heaterTemp += (200.0 - heaterTemp) * 0.05
-        + (Math.random() - 0.5) * 0.3;
-      heaterPower = Math.max(0, Math.min(100,
-        heaterPower + (Math.random() - 0.5) * 5));
+      heaterTemp += (200.0 - heaterTemp) * 0.05 + (Math.random() - 0.5) * 0.3;
+      heaterPower = Math.max(0, Math.min(100, heaterPower + (Math.random() - 0.5) * 5));
     } else {
       heaterTemp -= 1.5 + Math.random() * 0.5;
       heaterPower = 0;
@@ -238,7 +244,7 @@ async function createSampleServer() {
 async function main() {
   const logger = consoleLogger;
 
-  console.log('\n' + '═'.repeat(60));
+  console.log(`\n${'═'.repeat(60)}`);
   console.log('  🏭 i3X Embedded Demo — PseudoSession Connector');
   console.log('═'.repeat(60));
 
@@ -247,7 +253,7 @@ async function main() {
   const { server, addressSpace } = await createSampleServer();
   console.log(
     `  ✓ OPC UA binary endpoint at ` +
-    `opc.tcp://localhost:${OPCUA_PORT}/UA/EmbeddedDemo`,
+      `opc.tcp://localhost:${OPCUA_PORT}/UA/EmbeddedDemo`,
   );
 
   // ┌──────────────────────────────────────────────────────┐
@@ -255,22 +261,19 @@ async function main() {
   // │ directly to the AddressSpace, no network needed.     │
   // └──────────────────────────────────────────────────────┘
   console.log('\n▶ Connecting i3X via PseudoSession...');
-  const dataSource = new PseudoSessionDataSourceAdapter(
-    addressSpace, logger,
-  );
+  const dataSource = new PseudoSessionDataSourceAdapter(addressSpace, logger);
   await dataSource.connect();
   console.log('  ✓ Connected — zero-network, in-process');
 
   // Domain services (identical to the remote OPC UA path)
   const modelService = new ModelService(dataSource, logger);
-  const valueService = new ValueService(
-    dataSource, modelService, logger,
-  );
-  const historyService = new HistoryService(
-    dataSource, modelService, logger,
-  );
+  const valueService = new ValueService(dataSource, modelService, logger);
+  const historyService = new HistoryService(dataSource, modelService, logger);
   const subscriptionService = new SubscriptionService(
-    dataSource, modelService, logger, 1,
+    dataSource,
+    modelService,
+    logger,
+    1,
   );
 
   // Preload the model
@@ -278,36 +281,32 @@ async function main() {
   const model = await modelService.preloadModel();
   console.log(
     `  ✓ ${model.nodesById.size} nodes, ` +
-    `${model.rootIds.length} roots, ` +
-    `${model.propertyToSource.size} properties`,
+      `${model.rootIds.length} roots, ` +
+      `${model.propertyToSource.size} properties`,
   );
 
   // Start REST server
   const app = await createApp({
-    dataSource, modelService, valueService,
-    historyService, subscriptionService, logger,
+    dataSource,
+    modelService,
+    valueService,
+    historyService,
+    subscriptionService,
+    logger,
   });
   await app.listen({ port: REST_PORT, host: '127.0.0.1' });
 
-  console.log('\n' + '═'.repeat(60));
-  console.log(
-    `  🚀 i3X REST API ready at ` +
-    `http://127.0.0.1:${REST_PORT}`,
-  );
+  console.log(`\n${'═'.repeat(60)}`);
+  console.log(`  🚀 i3X REST API ready at http://127.0.0.1:${REST_PORT}`);
   console.log('═'.repeat(60));
   console.log('\n  Try these:');
   console.log(`    curl http://localhost:${REST_PORT}/health`);
   console.log(`    curl http://localhost:${REST_PORT}/v1/info`);
-  console.log(
-    `    curl http://localhost:${REST_PORT}/v1/namespaces`,
-  );
-  console.log(
-    `    curl -X POST http://localhost:${REST_PORT}` +
-    `/v1/objects/list`,
-  );
+  console.log(`    curl http://localhost:${REST_PORT}/v1/namespaces`);
+  console.log(`    curl -X POST http://localhost:${REST_PORT}/v1/objects/list`);
   console.log(
     `\n  OPC UA clients can also connect to ` +
-    `opc.tcp://localhost:${OPCUA_PORT}/UA/EmbeddedDemo`,
+      `opc.tcp://localhost:${OPCUA_PORT}/UA/EmbeddedDemo`,
   );
   console.log('\n  Press Ctrl+C to stop.\n');
 

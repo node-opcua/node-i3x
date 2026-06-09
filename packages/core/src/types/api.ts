@@ -34,9 +34,16 @@ export interface BulkResponse<T> {
 
 // ── Info ─────────────────────────────────────────────────────
 
-export interface QueryCapabilities { history: boolean; }
-export interface UpdateCapabilities { current: boolean; history: boolean; }
-export interface SubscribeCapabilities { stream: boolean; }
+export interface QueryCapabilities {
+  history: boolean;
+}
+export interface UpdateCapabilities {
+  current: boolean;
+  history: boolean;
+}
+export interface SubscribeCapabilities {
+  stream: boolean;
+}
 
 export interface ServerCapabilities {
   query: QueryCapabilities;
@@ -108,7 +115,9 @@ export interface SubscriptionDetailResponse {
 
 // ── Request bodies ───────────────────────────────────────────
 
-export interface ElementIdsRequest { elementIds: string[]; }
+export interface ElementIdsRequest {
+  elementIds: string[];
+}
 
 export interface GetObjectsRequest {
   elementIds: string[];

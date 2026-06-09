@@ -3,7 +3,12 @@
 // ─────────────────────────────────────────────────────────────
 
 // Domain models
-export type { BuildResult, DataQuality, ModelNode, NodeKind } from './domain/model-node.js';
+export type {
+  BuildResult,
+  DataQuality,
+  ModelNode,
+  NodeKind,
+} from './domain/model-node.js';
 export type { Namespace } from './domain/namespace.js';
 export type { ObjectType, RelationshipType } from './domain/object-type.js';
 export type {

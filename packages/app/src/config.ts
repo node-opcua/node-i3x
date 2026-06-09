@@ -29,9 +29,15 @@ function envInt(key: string, def: number): number {
 export const config: Config = {
   opcuaEndpoint: env('NODE_I3X_OPCUA_ENDPOINT', 'opc.tcp://localhost:4840'),
   opcuaSecurityMode: env('NODE_I3X_OPCUA_SECURITY_MODE', 'None'),
-  opcuaOptimizedClient: env('NODE_I3X_OPCUA_OPTIMIZED_CLIENT', 'auto') as Config['opcuaOptimizedClient'],
+  opcuaOptimizedClient: env(
+    'NODE_I3X_OPCUA_OPTIMIZED_CLIENT',
+    'auto',
+  ) as Config['opcuaOptimizedClient'],
   modelPreloadOnStartup: envBool('NODE_I3X_PRELOAD', true),
-  failStartupOnModelPreloadError: envBool('NODE_I3X_PRELOAD_STRICT', false),
+  failStartupOnModelPreloadError: envBool(
+    'NODE_I3X_PRELOAD_STRICT',
+    false,
+  ),
   subscriptionIntervalSeconds: envInt('NODE_I3X_PUBLISH_INTERVAL', 5),
   logLevel: env('NODE_I3X_LOG_LEVEL', 'info'),
   port: envInt('NODE_I3X_PORT', 8000),

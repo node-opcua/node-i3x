@@ -1,15 +1,23 @@
-import { describe, it, expect, beforeAll } from 'vitest';
 import type {
-  IDataSourcePort, SourceNodeInfo, SourceDataValue,
-  SourceHistoricalValue, NamespaceInfo, ObjectTypeInfo,
-  IMonitoredSubscription, MonitoredSubscriptionOptions,
-  DataChangeCallback, ILogger,
+  DataChangeCallback,
+  IDataSourcePort,
+  IMonitoredSubscription,
+  MonitoredSubscriptionOptions,
+  NamespaceInfo,
+  ObjectTypeInfo,
+  SourceDataValue,
+  SourceHistoricalValue,
+  SourceNodeInfo,
 } from '@node-i3x/core';
 import {
-  ModelService, ValueService, HistoryService,
-  SubscriptionService, nullLogger, emptyBuildResult,
+  HistoryService,
+  ModelService,
+  nullLogger,
+  SubscriptionService,
+  ValueService,
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 // ── Mock data source ─────────────────────────────────────────
 
@@ -17,29 +25,50 @@ class MockDataSource implements IDataSourcePort {
   values: Record<string, unknown> = { 'ns=2;s=Temperature': 42.5 };
   connected = true;
 
-  async connect() { this.connected = true; }
-  async disconnect() { this.connected = false; }
-  isConnected() { return this.connected; }
+  async connect() {
+    this.connected = true;
+  }
+  async disconnect() {
+    this.connected = false;
+  }
+  isConnected() {
+    return this.connected;
+  }
 
   async browseTree(): Promise<SourceNodeInfo[]> {
     return [
       {
-        sourceNodeId: 'ns=2;s=Machine', parentSourceNodeId: null,
-        browseName: 'Machine', nsuQualifiedName: 'nsu=http://example.com/:Machine',
+        sourceNodeId: 'ns=2;s=Machine',
+        parentSourceNodeId: null,
+        browseName: 'Machine',
+        nsuQualifiedName: 'nsu=http://example.com/:Machine',
         displayName: 'Machine',
-        nodeClass: 'Object', typeDefinition: null, namespaceUri: 'http://example.com/', eventNotifier: false,
+        nodeClass: 'Object',
+        typeDefinition: null,
+        namespaceUri: 'http://example.com/',
+        eventNotifier: false,
       },
       {
-        sourceNodeId: 'ns=2;s=Temperature', parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Temperature', nsuQualifiedName: 'nsu=http://example.com/:Temperature',
+        sourceNodeId: 'ns=2;s=Temperature',
+        parentSourceNodeId: 'ns=2;s=Machine',
+        browseName: 'Temperature',
+        nsuQualifiedName: 'nsu=http://example.com/:Temperature',
         displayName: 'Temperature',
-        nodeClass: 'Variable', typeDefinition: 'Double', namespaceUri: 'http://example.com/', eventNotifier: false,
+        nodeClass: 'Variable',
+        typeDefinition: 'Double',
+        namespaceUri: 'http://example.com/',
+        eventNotifier: false,
       },
       {
-        sourceNodeId: 'ns=2;s=Reset', parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Reset', nsuQualifiedName: 'nsu=http://example.com/:Reset',
+        sourceNodeId: 'ns=2;s=Reset',
+        parentSourceNodeId: 'ns=2;s=Machine',
+        browseName: 'Reset',
+        nsuQualifiedName: 'nsu=http://example.com/:Reset',
         displayName: 'Reset',
-        nodeClass: 'Method', typeDefinition: null, namespaceUri: 'http://example.com/', eventNotifier: false,
+        nodeClass: 'Method',
+        typeDefinition: null,
+        namespaceUri: 'http://example.com/',
+        eventNotifier: false,
       },
     ];
   }
@@ -53,17 +82,29 @@ class MockDataSource implements IDataSourcePort {
 
   async getObjectTypes(): Promise<ObjectTypeInfo[]> {
     return [
-      { sourceNodeId: 'ns=1;i=1001', parentSourceNodeId: null, browseName: 'MachineType', displayName: 'Machine Type', namespaceUri: 'http://example.com/' },
+      {
+        sourceNodeId: 'ns=1;i=1001',
+        parentSourceNodeId: null,
+        browseName: 'MachineType',
+        displayName: 'Machine Type',
+        namespaceUri: 'http://example.com/',
+      },
     ];
   }
 
   async readValue(nodeId: string): Promise<SourceDataValue> {
-    return { value: this.values[nodeId] ?? null, quality: 'Good', timestamp: new Date().toISOString() };
+    return {
+      value: this.values[nodeId] ?? null,
+      quality: 'Good',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async readValues(nodeIds: string[]): Promise<SourceDataValue[]> {
     return nodeIds.map((id) => ({
-      value: this.values[id] ?? null, quality: 'Good', timestamp: new Date().toISOString(),
+      value: this.values[id] ?? null,
+      quality: 'Good',
+      timestamp: new Date().toISOString(),
     }));
   }
 
@@ -75,13 +116,17 @@ class MockDataSource implements IDataSourcePort {
     return [{ value: 42, quality: 'Good', timestamp: new Date().toISOString() }];
   }
 
-  async createMonitoredSubscription(opts: MonitoredSubscriptionOptions): Promise<IMonitoredSubscription> {
-    let cb: DataChangeCallback | null = null;
+  async createMonitoredSubscription(
+    _opts: MonitoredSubscriptionOptions,
+  ): Promise<IMonitoredSubscription> {
+    let _cb: DataChangeCallback | null = null;
     return {
       id: 'mock-sub',
       async addItems() {},
       async removeItems() {},
-      onDataChange(c) { cb = c; },
+      onDataChange(c) {
+        _cb = c;
+      },
       async close() {},
     };
   }
@@ -103,8 +148,12 @@ describe('REST API', () => {
     subscriptionService = new SubscriptionService(ds, modelService, logger, 1);
 
     app = await createApp({
-      dataSource: ds, modelService, valueService,
-      historyService, subscriptionService, logger,
+      dataSource: ds,
+      modelService,
+      valueService,
+      historyService,
+      subscriptionService,
+      logger,
     });
   });
 
@@ -140,7 +189,8 @@ describe('REST API', () => {
     const rootId = model.rootIds[0]!;
 
     const res = await app.inject({
-      method: 'POST', url: '/v1/objects/list',
+      method: 'POST',
+      url: '/v1/objects/list',
       payload: { elementIds: [rootId, 'missing'] },
     });
     expect(res.statusCode).toBe(200);
@@ -156,7 +206,8 @@ describe('REST API', () => {
 
     // Create
     const createRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions',
+      method: 'POST',
+      url: '/v1/subscriptions',
       payload: { clientId: 'test', displayName: 'Test Sub' },
     });
     expect(createRes.statusCode).toBe(200);
@@ -164,7 +215,8 @@ describe('REST API', () => {
 
     // Register — now returns BulkResponse
     const regRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/register',
+      method: 'POST',
+      url: '/v1/subscriptions/register',
       payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
     });
     expect(regRes.statusCode).toBe(200);
@@ -174,7 +226,8 @@ describe('REST API', () => {
 
     // List — now returns BulkResponse with result wrapper
     const listRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/list',
+      method: 'POST',
+      url: '/v1/subscriptions/list',
       payload: { subscriptionIds: [subId] },
     });
     expect(listRes.statusCode).toBe(200);
@@ -184,7 +237,8 @@ describe('REST API', () => {
 
     // Delete
     const delRes = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/delete',
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
       payload: { subscriptionIds: [subId] },
     });
     expect(delRes.statusCode).toBe(200);
@@ -193,7 +247,8 @@ describe('REST API', () => {
 
   it('POST /v1/subscriptions/stream returns 404 for missing subscription', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/v1/subscriptions/stream',
+      method: 'POST',
+      url: '/v1/subscriptions/stream',
       payload: { subscriptionId: 'missing' },
     });
     expect(res.statusCode).toBe(404);

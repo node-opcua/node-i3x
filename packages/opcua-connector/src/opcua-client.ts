@@ -2,45 +2,45 @@
 // @node-i3x/opcua-connector — node-opcua client wrapper
 // ─────────────────────────────────────────────────────────────
 
-import {
-  OPCUAClient,
-  MessageSecurityMode,
-  type ClientSession,
-  type ClientMonitoredItem,
-  TimestampsToReturn,
-  BrowseDirection,
-  AttributeIds,
-  DataType,
-  type DataValue,
-  type ReferenceDescription,
-  coerceNodeId,
-  resolveNodeId,
-  Variant,
-  NodeClass,
-  StatusCodes,
-  type WriteValue,
-  type CallMethodRequest,
-  type ReadValueIdOptions,
-  browseAll,
-} from 'node-opcua';
 import type {
+  DataChangeCallback,
   ILogger,
-  SourceNodeInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
+  IMonitoredSubscription,
+  MonitoredSubscriptionOptions,
   NamespaceInfo,
   ObjectTypeInfo,
-  IMonitoredSubscription,
-  DataChangeCallback,
-  MonitoredSubscriptionOptions,
+  SourceDataValue,
+  SourceHistoricalValue,
+  SourceNodeInfo,
 } from '@node-i3x/core';
+import {
+  AttributeIds,
+  BrowseDirection,
+  browseAll,
+  type CallMethodRequest,
+  type ClientMonitoredItem,
+  type ClientSession,
+  coerceNodeId,
+  DataType,
+  type DataValue,
+  MessageSecurityMode,
+  NodeClass,
+  OPCUAClient,
+  type ReadValueIdOptions,
+  type ReferenceDescription,
+  resolveNodeId,
+  StatusCodes,
+  TimestampsToReturn,
+  Variant,
+  type WriteValue,
+} from 'node-opcua';
+import {
+  dataValueToHistorical,
+  dataValueToSource,
+  refToSourceNode,
+} from './opcua-mapper.js';
 import type { OpcUaClientOptions } from './opcua-types.js';
 import { wrapSessionIfOptimized } from './optimized.js';
-import {
-  refToSourceNode,
-  dataValueToSource,
-  dataValueToHistorical,
-} from './opcua-mapper.js';
 
 const SECURITY_MODES: Record<string, MessageSecurityMode> = {
   None: MessageSecurityMode.None,
@@ -54,7 +54,10 @@ export class OpcUaClient {
   private _namespaceArray: string[] = [];
   private readonly _opts: Required<OpcUaClientOptions>;
 
-  constructor(opts: OpcUaClientOptions, private readonly logger: ILogger) {
+  constructor(
+    opts: OpcUaClientOptions,
+    private readonly logger: ILogger,
+  ) {
     this._opts = {
       endpointUrl: opts.endpointUrl,
       securityMode: opts.securityMode ?? 'None',
@@ -67,8 +70,8 @@ export class OpcUaClient {
   // ── Lifecycle ──────────────────────────────────────────────
 
   async connect(): Promise<void> {
-    const securityMode = SECURITY_MODES[this._opts.securityMode]
-      ?? MessageSecurityMode.None;
+    const securityMode =
+      SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
 
     this._client = OPCUAClient.create({
       applicationName: this._opts.applicationName,
@@ -115,11 +118,19 @@ export class OpcUaClient {
 
   async disconnect(): Promise<void> {
     if (this._session) {
-      try { await this._session.close(); } catch { /* best effort */ }
+      try {
+        await this._session.close();
+      } catch {
+        /* best effort */
+      }
       this._session = null;
     }
     if (this._client) {
-      try { await this._client.disconnect(); } catch { /* best effort */ }
+      try {
+        await this._client.disconnect();
+      } catch {
+        /* best effort */
+      }
       this._client = null;
     }
     this.logger.info('OPC UA disconnected');
@@ -163,9 +174,7 @@ export class OpcUaClient {
   ): Promise<{ refs: ReferenceDescription[]; txCount: number }> {
     const desc = this._makeBrowseDescriptions([nodeId])[0]!;
     const result = await this.session.browse(desc);
-    const refs: ReferenceDescription[] = [
-      ...(result.references ?? []),
-    ];
+    const refs: ReferenceDescription[] = [...(result.references ?? [])];
     let txCount = 1;
 
     let cp = result.continuationPoint;
@@ -214,9 +223,7 @@ export class OpcUaClient {
           wave.map((w) => this._browseSingleNode(w.nodeId)),
         );
       } else {
-        const descriptions = this._makeBrowseDescriptions(
-          wave.map((w) => w.nodeId),
-        );
+        const descriptions = this._makeBrowseDescriptions(wave.map((w) => w.nodeId));
         const browseResults = await browseAll(this.session, descriptions);
         totalTx += 1;
         waveResults = browseResults.map((r) => ({
@@ -256,20 +263,16 @@ export class OpcUaClient {
       objectsFolderId,
       (ref, parentNodeId) => {
         // Children of ObjectsFolder are roots (parentId = null)
-        const effectiveParent =
-          parentNodeId === objectsFolderId ? null : parentNodeId;
+        const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
         return refToSourceNode(ref, effectiveParent, this._namespaceArray);
       },
-      (ref) =>
-        ref.nodeClass === NodeClass.Object ||
-        ref.nodeClass === NodeClass.Variable,
+      (ref) => ref.nodeClass === NodeClass.Object || ref.nodeClass === NodeClass.Variable,
     );
 
-    const strategy = this._opts.browseStrategy !== 'browseAll'
-      ? 'parallel' : 'browseAll';
+    const strategy = this._opts.browseStrategy !== 'browseAll' ? 'parallel' : 'browseAll';
     this.logger.info(
       `Browse tree: ${items.length} nodes in ${ms.toFixed(0)}ms ` +
-      `(strategy=${strategy}, transactions=${txCount})`,
+        `(strategy=${strategy}, transactions=${txCount})`,
     );
     return items;
   }
@@ -291,11 +294,10 @@ export class OpcUaClient {
       () => true,
     );
 
-    const strategy = this._opts.browseStrategy !== 'browseAll'
-      ? 'parallel' : 'browseAll';
+    const strategy = this._opts.browseStrategy !== 'browseAll' ? 'parallel' : 'browseAll';
     this.logger.info(
       `Browse object types: ${items.length} types in ${ms.toFixed(0)}ms ` +
-      `(strategy=${strategy}, transactions=${txCount})`,
+        `(strategy=${strategy}, transactions=${txCount})`,
     );
     return items;
   }
@@ -357,10 +359,10 @@ export class OpcUaClient {
       startTime,
       endTime,
     );
-    const dataValues: DataValue[] =
-      (result as Record<string, unknown>).historyData
-        ? ((result as Record<string, { dataValues?: DataValue[] }>).historyData?.dataValues ?? [])
-        : [];
+    const resultAny = result as unknown as Record<string, { dataValues?: DataValue[] }>;
+    const dataValues: DataValue[] = resultAny.historyData
+      ? (resultAny.historyData?.dataValues ?? [])
+      : [];
     return dataValues.map(dataValueToHistorical);
   }
 
@@ -374,12 +376,10 @@ export class OpcUaClient {
     const request: CallMethodRequest = {
       objectId: coerceNodeId(objectNodeId),
       methodId: coerceNodeId(methodNodeId),
-      inputArguments: args.map((a) =>
-        new Variant({ dataType: DataType.Null, value: a }),
-      ),
+      inputArguments: args.map((a) => new Variant({ dataType: DataType.Null, value: a })),
     } as CallMethodRequest;
     const result = await this.session.call(request);
-    return (result as Record<string, unknown>).outputArguments ?? null;
+    return (result as unknown as Record<string, unknown>).outputArguments ?? null;
   }
 
   // ── Subscriptions ──────────────────────────────────────────
@@ -405,7 +405,7 @@ export class OpcUaClient {
 
     logger.info(
       `OPC UA CreateSubscription id=${subId} ` +
-      `publishingInterval=${options.publishingIntervalMs}ms`,
+        `publishingInterval=${options.publishingIntervalMs}ms`,
     );
 
     const wrapper: IMonitoredSubscription = {
@@ -447,7 +447,7 @@ export class OpcUaClient {
         }
         logger.info(
           `OPC UA CreateMonitoredItems: ${newIds.length} items added ` +
-          `(total=${monitored.size})`,
+            `(total=${monitored.size})`,
         );
       },
 
@@ -460,7 +460,9 @@ export class OpcUaClient {
         await Promise.all(
           toRemove.map(({ id, item }) => {
             monitored.delete(id);
-            return item!.terminate().catch(() => { /* best effort */ });
+            return item!.terminate().catch(() => {
+              /* best effort */
+            });
           }),
         );
       },
@@ -470,7 +472,11 @@ export class OpcUaClient {
       },
 
       async close(): Promise<void> {
-        try { await sub.terminate(); } catch { /* best effort */ }
+        try {
+          await sub.terminate();
+        } catch {
+          /* best effort */
+        }
         monitored.clear();
       },
     };

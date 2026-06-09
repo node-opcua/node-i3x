@@ -24,10 +24,7 @@ const CLASS_TO_KIND: Record<string, NodeKind> = {
  * Format: `{kind}-{sha1_prefix_16}`
  */
 export function stableI3xId(browsePath: string, kind: NodeKind): string {
-  const digest = createHash('sha1')
-    .update(browsePath, 'utf8')
-    .digest('hex')
-    .slice(0, 16);
+  const digest = createHash('sha1').update(browsePath, 'utf8').digest('hex').slice(0, 16);
   return `${kind}-${digest}`;
 }
 

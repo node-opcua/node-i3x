@@ -2,7 +2,7 @@
 // @node-i3x/core  —  ModelService
 // ─────────────────────────────────────────────────────────────
 
-import type { BuildResult, ModelNode, NodeKind } from '../domain/model-node.js';
+import type { BuildResult, ModelNode } from '../domain/model-node.js';
 import type { IDataSourcePort, SourceNodeInfo } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import { inferKind, mapNode, stableI3xId } from './mapper.js';
@@ -37,17 +37,21 @@ export class ModelService {
     this._cache = result;
     this.logger.info(
       `Model preload finished nodes=${result.nodesById.size} ` +
-      `roots=${result.rootIds.length} ` +
-      `properties=${result.propertyToSource.size} ` +
-      `actions=${result.actionToMethod.size} ` +
-      `duration_ms=${(performance.now() - started).toFixed(0)}`,
+        `roots=${result.rootIds.length} ` +
+        `properties=${result.propertyToSource.size} ` +
+        `actions=${result.actionToMethod.size} ` +
+        `duration_ms=${(performance.now() - started).toFixed(0)}`,
     );
     return result;
   }
 
-  invalidateCache(): void { this._cache = null; }
+  invalidateCache(): void {
+    this._cache = null;
+  }
 
-  setCache(result: BuildResult): void { this._cache = result; }
+  setCache(result: BuildResult): void {
+    this._cache = result;
+  }
 
   findNode(model: BuildResult, elementId: string): ModelNode | null {
     const direct = model.nodesById.get(elementId);
@@ -74,7 +78,10 @@ export class ModelService {
     for (const node of sourceNodes) {
       if (node.parentSourceNodeId == null) continue;
       let list = childSourcesByParent.get(node.parentSourceNodeId);
-      if (!list) { list = []; childSourcesByParent.set(node.parentSourceNodeId, list); }
+      if (!list) {
+        list = [];
+        childSourcesByParent.set(node.parentSourceNodeId, list);
+      }
       list.push(node.sourceNodeId);
     }
 
@@ -116,14 +123,14 @@ export class ModelService {
         return stableI3xId(cPath, inferKind(cNode));
       });
 
-      const browsePath = browsePathBySourceId.get(sourceId)
-        ?? srcNode.nsuQualifiedName;
+      const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.nsuQualifiedName;
       const mapped = mapNode(srcNode, childIds, browsePath);
       nodesById.set(mapped.id, mapped);
       childrenById.set(mapped.id, childIds);
 
       if (srcNode.parentSourceNodeId == null) rootIds.push(mapped.id);
-      if (mapped.kind === 'property') propertyToSource.set(mapped.id, srcNode.sourceNodeId);
+      if (mapped.kind === 'property')
+        propertyToSource.set(mapped.id, srcNode.sourceNodeId);
       if (mapped.kind === 'action' && srcNode.parentSourceNodeId != null) {
         actionToMethod.set(mapped.id, [srcNode.parentSourceNodeId, srcNode.sourceNodeId]);
       }
