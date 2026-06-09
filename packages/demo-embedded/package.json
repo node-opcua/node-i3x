@@ -7,7 +7,7 @@
   "homepage": "https://sterfive.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/node-opcua/node-i3x.git",
+    "url": "git+https://github.com/node-opcua/node-i3x.git",
     "directory": "packages/demo-embedded"
   },
   "description": "End-to-end demo: OPC UA server + i3X REST API wired via PseudoSession — zero network, direct AddressSpace access",

@@ -7,7 +7,7 @@
   "homepage": "https://sterfive.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/node-opcua/node-i3x.git",
+    "url": "git+https://github.com/node-opcua/node-i3x.git",
     "directory": "packages/core"
   },
   "bugs": {

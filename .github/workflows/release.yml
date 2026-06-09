@@ -24,6 +24,8 @@ jobs:
   release:
     name: Version & Publish
     runs-on: ubuntu-latest
+    # Only run if NPM_TOKEN is configured — skip otherwise
+    if: ${{ secrets.NPM_TOKEN != '' }}
 
     permissions:
       contents: write       # to push version commits & tags
