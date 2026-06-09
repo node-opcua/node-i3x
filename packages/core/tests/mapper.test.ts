@@ -68,6 +68,8 @@ describe('mapper', () => {
     expect(inferKind(node)).toBe('eventSource');
   });
 
+  // ── stableI3xId ──────────────────────────────────────────────
+
   it('generates stable deterministic IDs from browse paths', () => {
     const path = 'nsu=http://example.com/:Machine/nsu=http://example.com/:Temp';
     const id1 = stableI3xId(path, 'property');
@@ -89,5 +91,83 @@ describe('mapper', () => {
     // The path is the same regardless of whether the server assigned
     // ns=2 or ns=5 to http://example.com/ — the URI is what matters
     expect(id).toMatch(/^property-[a-f0-9]{16}$/);
+  });
+
+  it('different kinds at the same path produce different IDs', () => {
+    const path = 'nsu=http://x/:Parent/nsu=http://x/:Node';
+    const assetId = stableI3xId(path, 'asset');
+    const propId = stableI3xId(path, 'property');
+    const actionId = stableI3xId(path, 'action');
+    const eventId = stableI3xId(path, 'eventSource');
+
+    // All four should differ
+    const ids = [assetId, propId, actionId, eventId];
+    expect(new Set(ids).size).toBe(4);
+
+    // Each should have the correct prefix
+    expect(assetId).toMatch(/^asset-/);
+    expect(propId).toMatch(/^property-/);
+    expect(actionId).toMatch(/^action-/);
+    expect(eventId).toMatch(/^eventSource-/);
+  });
+
+  it('deep 4-level path produces a valid ID', () => {
+    const path =
+      'nsu=http://di.org/:DeviceSet' +
+      '/nsu=http://coffee.com/:CoffeeMachine' +
+      '/nsu=http://coffee.com/:Status' +
+      '/nsu=http://coffee.com/:Temperature';
+    const id = stableI3xId(path, 'property');
+    expect(id).toMatch(/^property-[a-f0-9]{16}$/);
+  });
+
+  it('root path (single segment) produces a valid ID', () => {
+    const id = stableI3xId('nsu=http://di.org/:DeviceSet', 'asset');
+    expect(id).toMatch(/^asset-[a-f0-9]{16}$/);
+  });
+
+  it('path order matters (parent/child ≠ child/parent)', () => {
+    const id1 = stableI3xId('nsu=http://x/:A/nsu=http://x/:B', 'asset');
+    const id2 = stableI3xId('nsu=http://x/:B/nsu=http://x/:A', 'asset');
+    expect(id1).not.toBe(id2);
+  });
+
+  it('same leaf name under different parents → different IDs', () => {
+    const id1 = stableI3xId(
+      'nsu=http://x/:Pump/nsu=http://x/:Temperature', 'property',
+    );
+    const id2 = stableI3xId(
+      'nsu=http://x/:Motor/nsu=http://x/:Temperature', 'property',
+    );
+    expect(id1).not.toBe(id2);
+  });
+
+  it('handles empty string path without throwing', () => {
+    const id = stableI3xId('', 'asset');
+    expect(id).toMatch(/^asset-[a-f0-9]{16}$/);
+  });
+
+  it('handles unicode browse names', () => {
+    const id = stableI3xId('nsu=http://x/:Température', 'property');
+    expect(id).toMatch(/^property-[a-f0-9]{16}$/);
+  });
+
+  it('multi-namespace path — each segment uses its own URI', () => {
+    const path =
+      'nsu=http://opcfoundation.org/UA/:Objects' +
+      '/nsu=http://di.org/:DeviceSet' +
+      '/nsu=http://vendor.com/:MyDevice' +
+      '/nsu=http://vendor.com/:Status';
+    const id = stableI3xId(path, 'property');
+    expect(id).toMatch(/^property-[a-f0-9]{16}$/);
+    // The full path is hashed, so different namespaces are included
+    const idWithoutVendor = stableI3xId(
+      'nsu=http://opcfoundation.org/UA/:Objects' +
+      '/nsu=http://di.org/:DeviceSet' +
+      '/nsu=http://other.com/:MyDevice' +    // different vendor
+      '/nsu=http://other.com/:Status',
+      'property',
+    );
+    expect(id).not.toBe(idWithoutVendor);
   });
 });
