@@ -3,6 +3,22 @@
   "version": "0.1.0",
   "description": "i3X REST inbound adapter — Fastify routes for the i3X Beta API",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
+  "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
+  "homepage": "https://sterfive.com",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/sterfive/node-i3x.git",
+    "directory": "packages/rest-server"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/sterfive/node-i3x/-/issues",
+    "email": "contact@sterfive.com"
+  },
+  "funding": {
+    "type": "commercial",
+    "url": "https://sterfive.com"
+  },
+  "keywords": ["opcua", "opc-ua", "i3x", "rest-api", "rest", "fastify", "industrial", "iiot", "iot", "automation", "digital-twin", "sterfive"],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

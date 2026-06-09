@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
+  "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
+  "homepage": "https://sterfive.com",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/sterfive/node-i3x.git",
+    "directory": "packages/demo-embedded"
+  },
   "description": "End-to-end demo: OPC UA server + i3X REST API wired via PseudoSession — zero network, direct AddressSpace access",
   "type": "module",
   "main": "./src/index.ts",

@@ -4,6 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-ESM--only-blue)](https://www.typescriptlang.org)
 [![Fastify v5](https://img.shields.io/badge/Fastify-v5-black)](https://fastify.dev)
 [![License: AGPL-3.0-or-later OR Commercial](https://img.shields.io/badge/license-AGPL--3.0--or--later%20OR%20Commercial-orange)](../../LICENSE)
+[![Built by Sterfive](https://img.shields.io/badge/built%20by-Sterfive-ff6600)](https://sterfive.com)
 
 > Fastify REST routes implementing the [i3X Beta API](https://i3x-spec.example.com) specification.
 

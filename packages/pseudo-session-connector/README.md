@@ -2,9 +2,10 @@
 
 > **In-process OPC UA adapter — implements `IDataSourcePort` using node-opcua `PseudoSession` for zero-network embedded mode.**
 
-![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)
-![License](https://img.shields.io/badge/license-AGPL--3.0%20%7C%20Commercial-blue)
+[![Node.js >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-ESM--only-blue)](https://www.typescriptlang.org)
+[![License: AGPL-3.0-or-later OR Commercial](https://img.shields.io/badge/license-AGPL--3.0--or--later%20OR%20Commercial-orange)](../../LICENSE)
+[![Built by Sterfive](https://img.shields.io/badge/built%20by-Sterfive-ff6600)](https://sterfive.com)
 
 ## Overview
 

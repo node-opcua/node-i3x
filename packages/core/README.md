@@ -4,6 +4,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-green?logo=node.js)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-AGPL--3.0--or--later%20OR%20Commercial-blue)](#license)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](#)
+[![Built by Sterfive](https://img.shields.io/badge/built%20by-Sterfive-ff6600)](https://sterfive.com)
 
 > Domain core for the i3X specification — models, ports, and services with zero runtime dependencies.
 

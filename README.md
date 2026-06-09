@@ -3,10 +3,11 @@
 > TypeScript implementation of the i3X Beta specification — bridging OPC UA industrial automation to a modern REST API
 
 <!-- Badges -->
-![Pipeline Status](https://img.shields.io/badge/pipeline-passing-brightgreen)
-![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)
-![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D%2020-brightgreen?logo=node.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)
+[![License: AGPL-3.0 OR Commercial](https://img.shields.io/badge/license-AGPL--3.0%20%7C%20Commercial-blue)](LICENSE)
+[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js)](https://nodejs.org)
+[![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://typescriptlang.org)
+[![Biome](https://img.shields.io/badge/linter-Biome-60a5fa?logo=biome)](https://biomejs.dev)
+[![Built by Sterfive](https://img.shields.io/badge/built%20by-Sterfive-ff6600)](https://sterfive.com)
 
 ---
 

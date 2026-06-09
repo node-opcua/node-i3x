@@ -1,7 +1,32 @@
 {
   "name": "node-i3x",
   "private": true,
+  "description": "TypeScript implementation of the i3X Beta specification — bridging OPC UA industrial automation to a modern REST API",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
+  "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
+  "homepage": "https://sterfive.com",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/sterfive/node-i3x.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/sterfive/node-i3x/-/issues",
+    "email": "contact@sterfive.com"
+  },
+  "funding": {
+    "type": "commercial",
+    "url": "https://sterfive.com"
+  },
+  "keywords": [
+    "opcua", "opc-ua", "opc ua",
+    "i3x", "i3x2ua",
+    "industrial", "industry-4.0", "iiot",
+    "iot", "scada", "mes", "plc",
+    "rest-api", "rest", "fastify",
+    "automation", "manufacturing",
+    "digital-twin", "asset-management",
+    "sterfive"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
