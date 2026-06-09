@@ -3,6 +3,7 @@
 > TypeScript implementation of the i3X Beta specification — bridging OPC UA industrial automation to a modern REST API
 
 <!-- Badges -->
+[![CI](https://github.com/node-opcua/node-i3x/actions/workflows/ci.yml/badge.svg)](https://github.com/node-opcua/node-i3x/actions/workflows/ci.yml)
 [![License: AGPL-3.0 OR Commercial](https://img.shields.io/badge/license-AGPL--3.0%20%7C%20Commercial-blue)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js)](https://nodejs.org)
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://typescriptlang.org)
@@ -93,7 +94,7 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/sterfive/node-i3x.git
+git clone https://github.com/node-opcua/node-i3x.git
 cd node-i3x
 
 # Install dependencies

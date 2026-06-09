@@ -7,10 +7,10 @@
   "homepage": "https://sterfive.com",
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/sterfive/node-i3x.git"
+    "url": "https://github.com/node-opcua/node-i3x.git"
   },
   "bugs": {
-    "url": "https://gitlab.com/sterfive/node-i3x/-/issues",
+    "url": "https://github.com/node-opcua/node-i3x/issues",
     "email": "contact@sterfive.com"
   },
   "funding": {

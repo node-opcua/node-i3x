@@ -1,0 +1,173 @@
+# ─────────────────────────────────────────────────────────────
+# node-i3x — GitHub Actions CI/CD pipeline
+# ─────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_ENV: development
+
+jobs:
+  # ── Install ─────────────────────────────────────────────────
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configure @sterfive registry
+        run: |
+          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
+          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
+            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+  # ── Check ───────────────────────────────────────────────────
+  typecheck:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+  lint:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Biome lint & format check
+        run: npx biome check .
+
+  # ── Test ────────────────────────────────────────────────────
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  test-no-optimized-client:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Remove @sterfive/opcua-optimized-client
+        run: |
+          echo "── Removing @sterfive/opcua-optimized-client ──"
+          npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed — good"
+          ! node -e "require.resolve('@sterfive/opcua-optimized-client')" 2>/dev/null || (echo 'FAIL: package still resolvable' && exit 1)
+
+      - name: Run tests without optimized client
+        run: npm test
+
+  # ── Build ───────────────────────────────────────────────────
+  build:
+    needs: [typecheck, lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Build all packages
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: packages/*/dist/
+          retention-days: 7
