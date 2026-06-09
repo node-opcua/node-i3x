@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "i3X application — composition root that wires all packages together",
   "private": true,
+  "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

@@ -73,14 +73,25 @@ test:
       - coverage/
     expire_in: 7 days
 
+test:no-optimized-client:
+  stage: test
+  needs: [install]
+  script:
+    - echo "── Removing @sterfive/opcua-optimized-client ──"
+    - npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed — good"
+    - "! node -e \"require.resolve('@sterfive/opcua-optimized-client')\" 2>/dev/null || (echo 'FAIL: package still resolvable' && exit 1)"
+    - echo "── Running tests without optimized client ──"
+    - npm test
+
 # ── Build ─────────────────────────────────────────────────────
 
 build:
   stage: build
-  needs: [typecheck, test]
+  needs: [typecheck, lint, test]
   script:
     - npm run build
   artifacts:
     paths:
       - packages/*/dist/
     expire_in: 7 days
+

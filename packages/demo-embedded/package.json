@@ -2,6 +2,7 @@
   "name": "@node-i3x/demo-embedded",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "description": "End-to-end demo: OPC UA server + i3X REST API wired via PseudoSession — zero network, direct AddressSpace access",
   "type": "module",
   "main": "./src/index.ts",

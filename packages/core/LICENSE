@@ -1,0 +1,53 @@
+# Dual License
+
+This software is licensed under a **dual-license** model:
+
+## 1. GNU Affero General Public License v3.0 (AGPL-3.0)
+
+Copyright (C) 2026 Sterfive SAS - https://sterfive.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public
+License along with this program. If not, see
+<https://www.gnu.org/licenses/agpl-3.0.html>.
+
+### What the AGPL requires
+
+The AGPL-3.0 license requires that:
+
+- Any modified version of this software that is deployed as a
+  network service must make the **complete source code** available
+  to all users of that service.
+- All derivative works must also be licensed under the AGPL-3.0.
+- You must preserve all copyright and license notices.
+
+## 2. Commercial License
+
+If the AGPL-3.0 terms do not fit your use case -- for example, if
+you need to:
+
+- Use this software in **proprietary / closed-source** products
+- Deploy as a service **without disclosing your source code**
+- Remove the AGPL copyleft obligations
+- Obtain **dedicated support and maintenance**
+
+...you can acquire a **commercial license** from Sterfive SAS that
+removes all AGPL restrictions.
+
+### Obtain a Commercial License
+
+  **Website**: https://sterfive.com
+  **Email**:   contact@sterfive.com
+
+---
+
+SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial
