@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────
+# node-i3x — Automated release with Changesets
+# ─────────────────────────────────────────────────────────────
+#
+# How it works:
+#   1. Developers add changesets: `npm run changeset`
+#   2. PRs with changesets trigger this workflow on merge to main
+#   3. The workflow either:
+#      a) Opens/updates a "Version Packages" PR (bumps versions + changelogs)
+#      b) If that PR is merged, publishes to npm with provenance
+#
+# Required secrets:
+#   NPM_TOKEN — npm automation token with publish access to @node-i3x scope
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Version & Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write       # to push version commits & tags
+      pull-requests: write  # to create/update the "Version Packages" PR
+      id-token: write       # for npm provenance attestation
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for changeset detection
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Configure @sterfive registry
+        run: |
+          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
+          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
+            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create Release PR or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # When changesets are pending → creates/updates a PR
+          title: "chore: version packages"
+          commit: "chore: version packages"
+          # When the PR is merged → builds and publishes
+          publish: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Releases for published packages
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          echo "Published packages:"
+          echo '${{ steps.changesets.outputs.publishedPackages }}' | jq '.'
+          # Tag the release
+          VERSION=$(node -p "require('./packages/core/package.json').version")
+          git tag "v${VERSION}" || true
+          git push origin "v${VERSION}" || true
