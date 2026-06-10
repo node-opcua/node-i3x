@@ -18,9 +18,6 @@ This package is the **inbound adapter** in the [hexagonal architecture](https://
 npm install @node-i3x/rest-server
 ```
 
-> [!NOTE]
-> This package is published on the private **@sterfive** npm registry at `npm-registry.sterfive.fr`.
-
 ## Usage
 
 ```typescript
@@ -122,6 +119,13 @@ interface RestServerDeps {
 
 ## Architecture
 
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Z3JhcGggVEQKICAgIENMSUVOVFsiSFRUUCBDbGllbnQiXSAtLT4gRkFTVElGWVsiRmFzdGlmeSBJbnN0YW5jZSJdCgogICAgc3ViZ3JhcGggIkBub2RlLWkzeC9yZXN0LXNlcnZlciIKICAgICAgICBGQVNUSUZZIC0tPiBNV1siTWlkZGxld2FyZSJdCiAgICAgICAgTVcgLS0+IHwicmVxdWVzdC1pZCJ8IFJPVVRFUwogICAgICAgIE1XIC0tPiB8IkNPUlMifCBST1VURVMKCiAgICAgICAgc3ViZ3JhcGggUk9VVEVTWyJSb3V0ZSBQbHVnaW5zIl0KICAgICAgICAgICAgUjFbIi9oZWFsdGgsIC9yZWFkeSJdCiAgICAgICAgICAgIFIyWyIvdjEvaW5mbyJdCiAgICAgICAgICAgIFIzWyIvdjEvbmFtZXNwYWNlcyJdCiAgICAgICAgICAgIFI0WyIvdjEvb2JqZWN0dHlwZXMiXQogICAgICAgICAgICBSNVsiL3YxL29iamVjdHMvKiJdCiAgICAgICAgICAgIFI2WyIvdjEvc3Vic2NyaXB0aW9ucy8qIl0KICAgICAgICAgICAgUjdbIi92MS9yZWxhdGlvbnNoaXB0eXBlcyJdCiAgICAgICAgZW5kCgogICAgICAgIFJPVVRFUyAtLT4gRVJSWyJFcnJvciBIYW5kbGVyIl0KICAgIGVuZAoKICAgIHN1YmdyYXBoICJAbm9kZS1pM3gvY29yZSIKICAgICAgICBNU1siTW9kZWxTZXJ2aWNlIl0KICAgICAgICBWU1siVmFsdWVTZXJ2aWNlIl0KICAgICAgICBIU1siSGlzdG9yeVNlcnZpY2UiXQogICAgICAgIFNTWyJTdWJzY3JpcHRpb25TZXJ2aWNlIl0KICAgICAgICBEU1siSURhdGFTb3VyY2VQb3J0Il0KICAgIGVuZAoKICAgIFIzIC0tPiBEUwogICAgUjQgLS0+IERTCiAgICBSNSAtLT4gTVMKICAgIFI1IC0tPiBWUwogICAgUjUgLS0+IEhTCiAgICBSNiAtLT4gU1M=" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
+
 ```mermaid
 graph TD
     CLIENT["HTTP Client"] --> FASTIFY["Fastify Instance"]
@@ -159,6 +163,8 @@ graph TD
     R5 --> HS
     R6 --> SS
 ```
+
+</details>
 
 ## Key Exports
 

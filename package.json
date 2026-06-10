@@ -65,6 +65,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "npm run build && changeset publish",
+    "readme:update": "node scripts/mermaid-to-img.mjs --write",
     "prepare": "husky"
   },
   "devDependencies": {

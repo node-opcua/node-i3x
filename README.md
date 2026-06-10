@@ -27,6 +27,13 @@ Built with [node-opcua](https://node-opcua.github.io/), [Fastify](https://fastif
 
 ## Architecture
 
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Z3JhcGggVEIKICAgIENsaWVudFsiSFRUUCBDbGllbnQiXQoKICAgIHN1YmdyYXBoIGkzeDJ1YS1ub2RlCiAgICAgICAgUkVTVFsiQG5vZGUtaTN4L3Jlc3Qtc2VydmVyPGJyLz5GYXN0aWZ5IHJvdXRlcyDigJQgaTNYIEJldGEgQVBJIl0KICAgICAgICBDb3JlWyJAbm9kZS1pM3gvY29yZTxici8+RG9tYWluIHNlcnZpY2VzIMK3IE1vZGVscyDCtyBTdGFibGUgSURzIl0KICAgICAgICBPUENbIkBub2RlLWkzeC9vcGN1YS1jb25uZWN0b3I8YnIvPk9QQyBVQSBjbGllbnQgYWRhcHRlciAocmVtb3RlKSJdCiAgICAgICAgUHNldWRvWyJAbm9kZS1pM3gvcHNldWRvLXNlc3Npb24tY29ubmVjdG9yPGJyLz5Qc2V1ZG9TZXNzaW9uIGFkYXB0ZXIgKGVtYmVkZGVkKSJdCiAgICAgICAgQXBwWyJAbm9kZS1pM3gvYXBwPGJyLz5Db21wb3NpdGlvbiBSb290Il0KICAgIGVuZAoKICAgIE9QQ1VBWyJPUEMgVUEgU2VydmVyIl0KCiAgICBDbGllbnQgPC0tPnxIVFRQIC8gSlNPTnwgUkVTVAogICAgUkVTVCAtLT4gQ29yZQogICAgQ29yZSAtLT58SURhdGFTb3VyY2VQb3J0fCBPUEMKICAgIENvcmUgLS0+fElEYXRhU291cmNlUG9ydHwgUHNldWRvCiAgICBPUEMgPC0tPnxPUEMgVUEgVENQIC8gQmluYXJ5fCBPUENVQQogICAgUHNldWRvIDwtLT58SW4tcHJvY2Vzc3wgT1BDVUEKICAgIEFwcCAtLi0+fHdpcmVzfCBSRVNUCiAgICBBcHAgLS4tPnx3aXJlc3wgQ29yZQogICAgQXBwIC0uLT58d2lyZXN8IE9QQwogICAgQXBwIC0uLT58d2lyZXN8IFBzZXVkbw==" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
+
 ```mermaid
 graph TB
     Client["HTTP Client"]
@@ -52,6 +59,8 @@ graph TB
     App -.->|wires| OPC
     App -.->|wires| Pseudo
 ```
+
+</details>
 
 ### Hexagonal Layers
 

@@ -17,9 +17,6 @@ This package is the **outbound adapter** in the [hexagonal architecture](https:/
 npm install @node-i3x/opcua-connector
 ```
 
-> [!NOTE]
-> This package is published on the private **@sterfive** npm registry at `npm-registry.sterfive.fr`.
-
 ## Usage
 
 ```typescript
@@ -65,6 +62,13 @@ await dataSource.connect();
 
 ## Architecture
 
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Z3JhcGggTFIKICAgIHN1YmdyYXBoICJAbm9kZS1pM3gvY29yZSIKICAgICAgICBQT1JUWyJJRGF0YVNvdXJjZVBvcnQiXQogICAgZW5kCiAgICBzdWJncmFwaCAiQG5vZGUtaTN4L29wY3VhLWNvbm5lY3RvciIKICAgICAgICBBREFQVEVSWyJPcGNVYURhdGFTb3VyY2VBZGFwdGVyIl0KICAgICAgICBDTElFTlRbIk9wY1VhQ2xpZW50Il0KICAgICAgICBNQVBQRVJbIm9wY3VhLW1hcHBlciJdCiAgICAgICAgT1BUWyJ3cmFwU2Vzc2lvbklmT3B0aW1pemVkIl0KICAgIGVuZAogICAgc3ViZ3JhcGggIm5vZGUtb3BjdWEiCiAgICAgICAgT1BDVUFbIk9QQ1VBQ2xpZW50IC8gQ2xpZW50U2Vzc2lvbiJdCiAgICBlbmQKICAgIHN1YmdyYXBoICJPUEMgVUEgU2VydmVyIgogICAgICAgIFNFUlZFUlsib3BjLnRjcDovL+KApiJdCiAgICBlbmQKCiAgICBQT1JUIC0uIGltcGxlbWVudHMgLi0+IEFEQVBURVIKICAgIEFEQVBURVIgLS0+IENMSUVOVAogICAgQ0xJRU5UIC0tPiBNQVBQRVIKICAgIENMSUVOVCAtLT4gT1BUCiAgICBDTElFTlQgLS0+IE9QQ1VBCiAgICBPUENVQSAtLSBUQ1AvYmluYXJ5IC0tPiBTRVJWRVI=" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
+
 ```mermaid
 graph LR
     subgraph "@node-i3x/core"
@@ -90,6 +94,8 @@ graph LR
     CLIENT --> OPCUA
     OPCUA -- TCP/binary --> SERVER
 ```
+
+</details>
 
 ## Optional: Optimized Client
 

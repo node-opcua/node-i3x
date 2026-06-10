@@ -18,13 +18,18 @@
 npm install @node-i3x/core
 ```
 
-> **Private registry** — this package is published to the `@sterfive` scope on `npm-registry.sterfive.fr`. Make sure your `.npmrc` is configured accordingly.
-
 ---
 
 ## Architecture
 
 This package follows **hexagonal architecture** (ports & adapters). The domain owns the business logic and exposes well-defined port interfaces; concrete infrastructure is always injected from the outside.
+
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Z3JhcGggVEQKICAgIHN1YmdyYXBoICJAbm9kZS1pM3gvY29yZSIKICAgICAgICBkaXJlY3Rpb24gVEIKICAgICAgICBNWyJEb21haW4gTW9kZWxzIl0KICAgICAgICBTWyJTZXJ2aWNlcyJdCiAgICAgICAgUFsiUG9ydHMgKGludGVyZmFjZXMpIl0KICAgICAgICBNQVBbIk1hcHBlciJdCgogICAgICAgIFMgLS0+IE0KICAgICAgICBTIC0tPiBQCiAgICAgICAgUyAtLT4gTUFQCiAgICBlbmQKCiAgICBPUENbIkBub2RlLWkzeC9vcGN1YS1jb25uZWN0b3IiXSAtLi0+fGltcGxlbWVudHN8IFAKICAgIFBTQ1siQG5vZGUtaTN4L3BzZXVkby1zZXNzaW9uLWNvbm5lY3RvciJdIC0uLT58aW1wbGVtZW50c3wgUAogICAgUkVTVFsiQG5vZGUtaTN4L3Jlc3Qtc2VydmVyIl0gLS0+fGNhbGxzfCBTCiAgICBBUFBbIkBub2RlLWkzeC9hcHAiXSAtLT58d2lyZXN8IFMKICAgIEFQUCAtLT58aW5qZWN0c3wgT1BDCiAgICBBUFAgLS0+fGluamVjdHN8IFBTQw==" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
 
 ```mermaid
 graph TD
@@ -47,6 +52,8 @@ graph TD
     APP -->|injects| OPC
     APP -->|injects| PSC
 ```
+
+</details>
 
 ### Domain Models
 
@@ -137,6 +144,13 @@ OPC UA `NodeId` values contain a **namespace index** (`ns=2;i=1234`) that is vol
 
 `@node-i3x/core` solves this with a **3-stage pipeline**:
 
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Zmxvd2NoYXJ0IExSCiAgICBBWyJTdGFnZSAxXG5xdWFsaWZpZWROYW1lVG9Oc3UoKSJdIC0tPiBCWyJTdGFnZSAyXG5CRlMgYnJvd3NlLXBhdGhcbmFzc2VtYmx5Il0KICAgIEIgLS0+IENbIlN0YWdlIDNcbnN0YWJsZUkzeElkKCkiXQoKICAgIHN0eWxlIEEgZmlsbDojZTNmMmZkLHN0cm9rZTojMTU2NWMwCiAgICBzdHlsZSBCIGZpbGw6I2U4ZjVlOSxzdHJva2U6IzJlN2QzMgogICAgc3R5bGUgQyBmaWxsOiNmZmYzZTAsc3Ryb2tlOiNlNjUxMDA=" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
+
 ```mermaid
 flowchart LR
     A["Stage 1\nqualifiedNameToNsu()"] --> B["Stage 2\nBFS browse-path\nassembly"]
@@ -146,6 +160,8 @@ flowchart LR
     style B fill:#e8f5e9,stroke:#2e7d32
     style C fill:#fff3e0,stroke:#e65100
 ```
+
+</details>
 
 ### Stage 1 — Namespace-URI qualification
 
