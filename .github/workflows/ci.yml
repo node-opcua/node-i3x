@@ -1,6 +1,6 @@
-# ─────────────────────────────────────────────────────────────
-# node-i3x — GitHub Actions CI/CD pipeline
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# node-i3x - GitHub Actions CI/CD pipeline
+# -------------------------------------------------------------
 
 name: CI
 
@@ -14,7 +14,7 @@ env:
   NODE_ENV: development
 
 jobs:
-  # ── Install ─────────────────────────────────────────────────
+  # -- Install -------------------------------------------------
   install:
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +43,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
 
-  # ── Check ───────────────────────────────────────────────────
+  # -- Check ---------------------------------------------------
   typecheck:
     needs: install
     runs-on: ubuntu-latest
@@ -86,7 +86,7 @@ jobs:
       - name: Biome lint & format check
         run: npx biome check .
 
-  # ── Test ────────────────────────────────────────────────────
+  # -- Test ----------------------------------------------------
   test:
     needs: install
     runs-on: ubuntu-latest
@@ -136,14 +136,14 @@ jobs:
 
       - name: Remove @sterfive/opcua-optimized-client
         run: |
-          echo "── Removing @sterfive/opcua-optimized-client ──"
-          npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed — good"
+          echo "-- Removing @sterfive/opcua-optimized-client --"
+          npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed - good"
           ! node -e "require.resolve('@sterfive/opcua-optimized-client')" 2>/dev/null || (echo 'FAIL: package still resolvable' && exit 1)
 
       - name: Run tests without optimized client
         run: npm test
 
-  # ── Build ───────────────────────────────────────────────────
+  # -- Build ---------------------------------------------------
   build:
     needs: [typecheck, lint, test]
     runs-on: ubuntu-latest
