@@ -162,10 +162,11 @@ node-i3x is **dual-licensed** under the
 [Sterfive Commercial License](LICENSING.md). This dual-licensing
 model is essential to the project's sustainability:
 
-- The **AGPL** ensures the software remains free and open for the
-  community.
+- The **AGPL** ensures the software remains open -- any derivative work
+  or network-accessible deployment must also share its source code under
+  the same terms.
 - The **Commercial License** allows industrial and SaaS users to
-  deploy without AGPL obligations, funding ongoing development.
+  deploy without AGPL copyleft obligations, funding ongoing development.
 
 For this to work, **Sterfive must hold the rights to relicense all
 contributed code** under the commercial license. The CLA grants

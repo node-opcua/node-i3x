@@ -278,7 +278,8 @@ All domain model and port interfaces are re-exported as types:
 
 This package is dual-licensed:
 
-- **[AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html)** — free for open-source use under the AGPL terms.
-- **Commercial (LicenseRef-Sterfive-Commercial)** — proprietary license available from [Sterfive](https://www.sterfive.com) for use without AGPL obligations.
+- **[AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html)** -- you may use, modify, and distribute this software freely, provided that all derivative works and network-accessible deployments also make their complete source code available under the AGPL.
+- **Commercial (LicenseRef-Sterfive-Commercial)** -- allows proprietary and closed-source use without copyleft obligations. Available from [Sterfive](https://www.sterfive.com).
 
-See the root [`LICENSE`](../../LICENSE) file for details.
+See the root [`LICENSE`](../../LICENSE) and [`LICENSING.md`](../../LICENSING.md) for details.
+

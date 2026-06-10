@@ -55,23 +55,29 @@ process: Your Node.js Process {
   services -> i3x
 }
 
-ext: "OPC UA Clients\n(UaExpert, PLCs, ...)" {
-  style.fill: "#d5f5e5"
-  style.stroke: "#27ae60"
-  style.border-radius: 4
+consumers: " " {
+  direction: right
+  style.fill: "transparent"
+  style.stroke: "transparent"
+
+  ext: "OPC UA Clients\n(UaExpert, PLCs, ...)" {
+    style.fill: "#d5f5e5"
+    style.stroke: "#27ae60"
+    style.border-radius: 4
+  }
+
+  client: "Your Web App\n(HTTP Client)" {
+    style.fill: "#f9e85c"
+    style.stroke: "#f1c40f"
+    style.border-radius: 4
+  }
 }
 
-client: "Your Web App\n(HTTP Client)" {
-  style.fill: "#f9e85c"
-  style.stroke: "#f1c40f"
-  style.border-radius: 4
-}
-
-process.opcua -> ext: opc.tcp {
+process.opcua -> consumers.ext: opc.tcp {
   style.stroke: "#27ae60"
   style.stroke-width: 2
 }
-process.i3x -> client: HTTP {
+process.i3x -> consumers.client: HTTP {
   style.stroke: "#3498db"
   style.stroke-width: 2
 }

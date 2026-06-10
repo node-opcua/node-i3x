@@ -4,7 +4,7 @@
 > in a single Node.js process using `@node-i3x/pseudo-session-connector`.**
 
 <p align="center">
-  <img src="https://kroki.io/d2/svg/eNqtlFFr2zAUhd_1Ky7eSwqNyWI7dfQwCOnGBmM1pGEb9EWRrpg2zzKS3KYU__dhNWkSRx5l7MEPvgd0vnt1dIUyyJ3SFQWhHypCaqM5Wkvhu24MfNEC458WiucqPBEA6x5LjKUqSwrRGzmRqcyjl7p1Rv_CTknSeS42fWX8oIT7QWH6Ut9oI9CMDROqsRRyQgB0zRtG4aZYrhcrNPdoYFRpgWMvXHiOPgluZCa93znLdJ5PNvNz7ZhmgGdGvMYshYUQBq1d1YzjDqEPITKZYRadaEcYVwxnk1O1Z5d6sSXdRwCYYLVDQ6Gw2Ai9QmuVrq6ZYyvdGI6LZz04EIE4lTI8kCyd5adagMMT1No4Cp8OloU2LnwBVylPeNiPT5L59ORypK7cmOtSGx-jPkwpKDjT4CsILZp7xdFSuNa_mapgtSsEKaXAHPMw5XkHQ54q2VJQyTfYp_MDs07Jx3A0D0_hNdH8f5PxryVmFsbvBpJ0ghsKansIYXdKl4ZdKLrf_eiPbqErq2RLWkJw6yhEN8US1gtYlgorZ--q0Zq939Zo3CUUn5f2EuI4vogCq-XwlobxBvpvCeHej0LkF9lX3MCiru-q0cfb22IHE3SVc8wzHnKVb3k6kX933a3P2E--G4Wfga557Hh95DbcS38xtS9nqmTbnbhvzDfy9A-LtyV_APRy0aY" alt="Embedded i3X architecture" />
+  <img src="https://kroki.io/d2/svg/eNqtVV1r2zAUfdevuHgvKTQmi5PU0cMgpBsbjNWQhm3QF0W6WrW5lpHkNqX4vxer-bKjdGXsIQ--B3TOPffcG6EMcqd0QUHoh4KQ0miO1lL4qSsD37TA-LeF7KUKTwTAusccY6nynEL0Tg7kSKbRrm6d0X-wQZLRNBWrLtJ_UMLdUhju6yttBJq-YUJVlkJKCIAuecUoXGXz5WyB5h4N9AotsO-BM6-jqwRXciw937GW4TQdrKbH2KGaE3omxGPMUpgJYdDaRck4biR0RYixHOM4amEHMi4YTgZttEM38mBNmh8BYIKVDg2FzGIl9AKtVbq4ZI4tdGU4zl7woCECcShl2JDxaJK2sYAOr6DUxlH4sqfMtHHhAVyMeMLDfHyQTIet4UhduD7XuTY-Rl0xuaDgTIVvUGjR3CuOlsKlvmOqgMWmEFQpBaaYhlUed3CKUyVrCir5Adt0fmLWKfkYjuZ-Fd4Szf_njN-WmFnofziRpJbcUFDrfQibV5o0bELRfG6tP5hCU1bJmtSEcF3Y6g6NpRBB5KnE_t4Y9evWde-JM6ywJTNYuMBNaaEEANeOQnSVzWE5g3musHD2pugt2cd1icadQ_Z1bs8hjuOzKLwiB-v62rK-bjP3zBQifzO_4wpmZXlT9D5fX2cbWSf45RTT8YmVke_5aPD3Fa13Nzv242783xkfe4d0yWPHy4PrHeoyfBfr3esqWbff3rbt23z6h3-AmjwDqqb8xw" alt="Embedded i3X architecture" />
 </p>
 
 <details><summary>Diagram source (D2 -- rendered via Kroki)</summary>
@@ -27,11 +27,14 @@ process: Your Node.js Process {
   services -> i3x
 }
 
-ext: "OPC UA Clients (UaExpert, PLCs, ...)"
-client: "Your Web App (HTTP Client)"
+consumers: " " {
+  direction: right
+  ext: "OPC UA Clients (UaExpert, PLCs, ...)"
+  client: "Your Web App (HTTP Client)"
+}
 
-process.opcua -> ext: opc.tcp
-process.i3x -> client: HTTP
+process.opcua -> consumers.ext: opc.tcp
+process.i3x -> consumers.client: HTTP
 ```
 
 </details>

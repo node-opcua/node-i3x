@@ -44,4 +44,9 @@ See `.env.example` for the full list.
 
 ## License
 
-**AGPL-3.0-or-later** OR [Sterfive Commercial License](https://sterfive.com)
+Dual-licensed:
+
+- **AGPL-3.0-or-later** -- you may use, modify, and distribute this software freely, provided that all derivative works and network-accessible deployments also make their complete source code available under the AGPL.
+- **Sterfive Commercial License** -- allows proprietary use without copyleft obligations.
+
+See the root [LICENSE](../../LICENSE) and [LICENSING.md](../../LICENSING.md) for details.
