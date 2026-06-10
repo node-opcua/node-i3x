@@ -29,7 +29,7 @@ const WRITE = process.argv.includes('--write');
 const files = execSync('git ls-files "*.md"', { cwd: ROOT, encoding: 'utf8' })
   .trim()
   .split('\n')
-  .filter(f => f.endsWith('README.md'))
+  .filter(f => f.endsWith('README.md') || f.endsWith('TUTORIAL.md'))
   .map(f => resolve(ROOT, f));
 
 // Match raw mermaid blocks (not already converted)

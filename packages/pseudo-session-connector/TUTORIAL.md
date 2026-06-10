@@ -512,36 +512,52 @@ main().catch((err) => {
 
 ## Architecture
 
+<!-- mermaid-img -->
+<p align="center">
+  <img src="https://mermaid.ink/svg/Z3JhcGggVEQKICAgIHN1YmdyYXBoIFBST0NFU1NbIllvdXIgTm9kZS5qcyBQcm9jZXNzIl0KICAgICAgICBkaXJlY3Rpb24gVEIKCiAgICAgICAgc3ViZ3JhcGggU0VSVkVSWyJPUENVQVNlcnZlciAobm9kZS1vcGN1YSkiXQogICAgICAgICAgICBBU1siQWRkcmVzc1NwYWNlPGJyLz4oeW91ciBub2RlcykiXQogICAgICAgIGVuZAoKICAgICAgICBBUyAtLSAiUHNldWRvU2Vzc2lvbjxici8+KGluLXByb2Nlc3MsIDAgbXMpIiAtLT4gQURBUFRFUlsiUHNldWRvU2Vzc2lvbkRhdGFTb3VyY2VBZGFwdGVyIl0KCiAgICAgICAgQURBUFRFUiAtLT4gUE9SVFsiSURhdGFTb3VyY2VQb3J0Il0KCiAgICAgICAgUE9SVCAtLT4gTVNbIk1vZGVsU2VydmljZSJdCiAgICAgICAgUE9SVCAtLT4gVlNbIlZhbHVlU2VydmljZSJdCiAgICAgICAgUE9SVCAtLT4gSFNbIkhpc3RvcnlTZXJ2aWNlIl0KICAgICAgICBQT1JUIC0tPiBTU1siU3Vic2NyaXB0aW9uU2VydmljZSJdCgogICAgICAgIE1TICYgVlMgJiBIUyAmIFNTIC0tPiBSRVNUWyJSRVNUIFNlcnZlciAoRmFzdGlmeSkiXQogICAgZW5kCgogICAgU0VSVkVSIC0tICJvcGMudGNwOi8vIiAtLT4gRVhUWyJPUEMgVUEgQ2xpZW50czxici8+KFVhRXhwZXJ0LCBQTENzLCAuLi4pIl0KICAgIFJFU1QgLS0gImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIgLS0+IENMSUVOVFsiWW91ciBXZWIgQXBwIC8gSFRUUCBDbGllbnQiXQoKICAgIHN0eWxlIFBST0NFU1MgZmlsbDojMWExYTJlLHN0cm9rZTojMTYyMTNlLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFNFUlZFUiBmaWxsOiMwZjM0NjAsc3Ryb2tlOiM1MzM0ODMsY29sb3I6I2UwZTBlMAogICAgc3R5bGUgQVMgZmlsbDojNTMzNDgzLHN0cm9rZTojZTk0NTYwLGNvbG9yOiNmZmYKICAgIHN0eWxlIEFEQVBURVIgZmlsbDojMTYyMTNlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFBPUlQgZmlsbDojZTk0NTYwLHN0cm9rZTojZmZmLGNvbG9yOiNmZmYsZm9udC13ZWlnaHQ6Ym9sZAogICAgc3R5bGUgTVMgZmlsbDojMWExYTJlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFZTIGZpbGw6IzFhMWEyZSxzdHJva2U6IzBmMzQ2MCxjb2xvcjojZTBlMGUwCiAgICBzdHlsZSBIUyBmaWxsOiMxYTFhMmUsc3Ryb2tlOiMwZjM0NjAsY29sb3I6I2UwZTBlMAogICAgc3R5bGUgU1MgZmlsbDojMWExYTJlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFJFU1QgZmlsbDojMGYzNDYwLHN0cm9rZTojZTk0NTYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIENMSUVOVCBmaWxsOiNlOTQ1NjAsc3Ryb2tlOiNmZmYsY29sb3I6I2ZmZgogICAgc3R5bGUgRVhUIGZpbGw6IzUzMzQ4MyxzdHJva2U6I2U5NDU2MCxjb2xvcjojZmZm" alt="diagram" />
+</p>
+
+<details><summary>Diagram source (mermaid)</summary>
+
+```mermaid
+graph TD
+    subgraph PROCESS["Your Node.js Process"]
+        direction TB
+
+        subgraph SERVER["OPCUAServer (node-opcua)"]
+            AS["AddressSpace<br/>(your nodes)"]
+        end
+
+        AS -- "PseudoSession<br/>(in-process, 0 ms)" --> ADAPTER["PseudoSessionDataSourceAdapter"]
+
+        ADAPTER --> PORT["IDataSourcePort"]
+
+        PORT --> MS["ModelService"]
+        PORT --> VS["ValueService"]
+        PORT --> HS["HistoryService"]
+        PORT --> SS["SubscriptionService"]
+
+        MS & VS & HS & SS --> REST["REST Server (Fastify)"]
+    end
+
+    SERVER -- "opc.tcp://" --> EXT["OPC UA Clients<br/>(UaExpert, PLCs, ...)"]
+    REST -- "http://localhost:8080" --> CLIENT["Your Web App / HTTP Client"]
+
+    style PROCESS fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+    style SERVER fill:#0f3460,stroke:#533483,color:#e0e0e0
+    style AS fill:#533483,stroke:#e94560,color:#fff
+    style ADAPTER fill:#16213e,stroke:#0f3460,color:#e0e0e0
+    style PORT fill:#e94560,stroke:#fff,color:#fff,font-weight:bold
+    style MS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
+    style VS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
+    style HS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
+    style SS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
+    style REST fill:#0f3460,stroke:#e94560,color:#e0e0e0
+    style CLIENT fill:#e94560,stroke:#fff,color:#fff
+    style EXT fill:#533483,stroke:#e94560,color:#fff
 ```
-  +-----------------------------------------------+
-  |              Your Node.js Process              |
-  |                                                |
-  |  +------------------------------------------+  |
-  |  |           OPCUAServer (node-opcua)        |  |
-  |  |  +-----------------+                      |  |
-  |  |  |  AddressSpace   | <-- PseudoSession    |  |
-  |  |  |  (your nodes)   |        |             |  |
-  |  |  +-----------------+        |             |  |
-  |  +-----|-------------------------------|-----+  |
-  |        |                               |        |
-  |   opc.tcp://                           v        |
-  |   (external clients)   PseudoSessionDataSource  |
-  |                                |                |
-  |                         IDataSourcePort         |
-  |                                |                |
-  |                    +-----------+-----------+    |
-  |                    |           |           |    |
-  |               ModelService ValueService  ...   |
-  |                    |           |           |    |
-  |                    +-----+-----+-----------+    |
-  |                          |                      |
-  |                    REST Server (Fastify)         |
-  |                          |                      |
-  +--------------------------|----------------------+
-                             |
-                    http://localhost:8080
-                      (your web app)
-```
+
+</details>
 
 ---
 
