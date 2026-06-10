@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "i3X domain core — models, ports, and services (zero dependencies)",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",

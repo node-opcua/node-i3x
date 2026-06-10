@@ -57,11 +57,14 @@ jobs:
       - name: Build all packages
         run: npm run build
 
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
       - name: Publish all packages
         run: |
           for pkg in core opcua-connector pseudo-session-connector rest-server app demo-embedded; do
             echo "📦 Publishing @node-i3x/$pkg..."
-            npm publish -w "packages/$pkg" --access public --provenance 2>&1 || echo "⚠️  @node-i3x/$pkg failed"
+            npm publish -w "packages/$pkg" --access public --provenance
           done
 
       - name: Create GitHub Release
