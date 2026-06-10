@@ -6,7 +6,16 @@
 //   npm run client -w packages/demo-embedded   (terminal 2)
 // ─────────────────────────────────────────────────────────────
 
-const BASE = process.env.NODE_I3X_URL ?? 'http://127.0.0.1:8080';
+import { parseArgs } from 'node:util';
+
+const { values: clientArgs } = parseArgs({
+  options: {
+    url: { type: 'string', default: process.env.NODE_I3X_URL ?? 'http://127.0.0.1:8080' },
+  },
+});
+
+const BASE_URL = clientArgs.url!;
+const BASE = BASE_URL;
 
 // ── ANSI helpers ─────────────────────────────────────────────
 

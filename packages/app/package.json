@@ -1,8 +1,7 @@
 {
   "name": "@node-i3x/app",
   "version": "0.1.0",
-  "description": "i3X application — composition root that wires all packages together",
-  "private": true,
+  "description": "i3X CLI -- expose OPC UA servers as i3X REST APIs",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
   "homepage": "https://sterfive.com",
@@ -12,23 +11,41 @@
     "directory": "packages/app"
   },
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "i3x": "./dist/cli.js"
+  },
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "node --import tsx/esm src/server.ts",
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@node-i3x/core": "*",
     "@node-i3x/opcua-connector": "*",
     "@node-i3x/rest-server": "*",
-    "dotenv": "^16.4.0"
+    "commander": "^13.0.0",
+    "cosmiconfig": "^9.0.0",
+    "fastify": "^5.0.0",
+    "@fastify/cors": "^11.0.0",
+    "fastify-plugin": "^5.0.0",
+    "js-yaml": "^4.1.0",
+    "node-opcua": "^2.128.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "tsup": "^8.0.0",
     "tsx": "^4.16.0"
   }
 }

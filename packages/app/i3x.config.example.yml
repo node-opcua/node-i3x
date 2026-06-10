@@ -1,0 +1,21 @@
+# i3X configuration
+# See: npx @node-i3x/app --help
+
+# OPC UA server to connect to
+endpoint: opc.tcp://localhost:4840
+
+# REST API settings
+port: 8080
+host: 0.0.0.0
+
+# OPC UA security
+securityMode: None
+# optimizedClient: auto
+
+# Domain settings
+subscriptionInterval: 5
+modelPreload: true
+# failOnPreloadError: false
+
+# Logging
+logLevel: info

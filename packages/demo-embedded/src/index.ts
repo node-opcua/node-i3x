@@ -16,9 +16,30 @@ import {
 import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { DataType, nodesets, OPCUAServer, type UAVariable, Variant } from 'node-opcua';
+import { parseArgs } from 'node:util';
 
-const REST_PORT = 8080;
-const OPCUA_PORT = 48410;
+const { values: args } = parseArgs({
+  options: {
+    'rest-port': { type: 'string', default: '8080' },
+    'opcua-port': { type: 'string', default: '48410' },
+    help: { type: 'boolean', short: 'h', default: false },
+  },
+});
+
+if (args.help) {
+  console.log(`
+Usage: i3x-demo [options]
+
+Options:
+  --rest-port <port>   REST API port (default: 8080)
+  --opcua-port <port>  OPC UA server port (default: 48410)
+  -h, --help           Show this help
+`);
+  process.exit(0);
+}
+
+const REST_PORT = parseInt(args['rest-port']!, 10);
+const OPCUA_PORT = parseInt(args['opcua-port']!, 10);
 
 // ── Helper: update a variable and fire value_changed ──────
 

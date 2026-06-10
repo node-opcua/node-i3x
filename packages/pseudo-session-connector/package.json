@@ -20,21 +20,16 @@
   },
   "keywords": ["opcua", "opc-ua", "i3x", "industrial", "iiot", "embedded", "pseudo-session", "address-space", "in-process", "node-opcua", "sterfive"],
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "publishConfig": {
-    "provenance": true,
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js"
-      }
-    }
+    "provenance": true
   },
   "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
   "scripts": {

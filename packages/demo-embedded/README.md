@@ -1,29 +1,28 @@
-# i3X Embedded Demo — PseudoSession Connector
+# @node-i3x/demo-embedded
 
-> **OPC UA server + i3X REST API in a single process, with zero network overhead.**
+> **See i3X in action -- OPC UA + REST API in 30 seconds.**
 
-This demo shows how to embed the i3X REST server **directly inside** a node-opcua `OPCUAServer` using `@node-i3x/pseudo-session-connector`. Instead of connecting via OPC UA binary transport (TCP + serialization), the i3X adapter talks **directly to the AddressSpace in memory**.
+[![Node.js >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-ESM--only-blue)](https://www.typescriptlang.org)
+[![License: AGPL-3.0-or-later OR Commercial](https://img.shields.io/badge/license-AGPL--3.0--or--later%20OR%20Commercial-orange)](../../LICENSE)
+[![Built by Sterfive](https://img.shields.io/badge/built%20by-Sterfive-ff6600)](https://sterfive.com)
+
+<!-- TODO: Add animated terminal GIF here -->
+<!-- <p align="center"><img src="./demo.gif" alt="i3X demo" width="800" /></p> -->
 
 ## Quick Start
 
-**Terminal 1 — Start the server:**
-
 ```bash
-npm run demo -w packages/demo-embedded
+npx @node-i3x/demo-embedded
 ```
 
-**Terminal 2 — Run the REST client dashboard:**
+That's it. In ~5 seconds you get:
 
-```bash
-npm run client -w packages/demo-embedded
-```
+- An OPC UA server with a simulated Smart Factory (Pump, Heater, Conveyor)
+- i3X REST API at http://localhost:8080
+- Live-updating simulated sensor values
 
-The client will:
-1. Discover the full i3X model (assets, properties, tree)
-2. Read current values for all assets
-3. Display a live dashboard with refreshing cards showing temperature, pressure, heater on/off, etc.
-
-Then test the endpoints manually:
+## Try the API
 
 ```bash
 # Health check
@@ -32,168 +31,57 @@ curl http://localhost:8080/health
 # Server info
 curl http://localhost:8080/v1/info
 
-# Namespace list
+# List namespaces  
 curl http://localhost:8080/v1/namespaces
 
-# Object list (POST with JSON body)
-curl -X POST http://localhost:8080/v1/objects/list \
-  -H 'Content-Type: application/json' \
-  -d '{"elementIds":[]}'
+# Browse objects
+curl -X POST http://localhost:8080/v1/objects/list
 ```
 
-<details>
-<summary>PowerShell equivalents</summary>
+## Live Dashboard
 
-```powershell
-Invoke-RestMethod http://localhost:8080/health
-Invoke-RestMethod http://localhost:8080/v1/info
-Invoke-RestMethod http://localhost:8080/v1/namespaces
+In a second terminal, launch the ANSI dashboard client:
 
-Invoke-RestMethod http://localhost:8080/v1/objects/list `
-  -Method POST -ContentType 'application/json' `
-  -Body '{"elementIds":[]}'
+```bash
+npx @node-i3x/demo-embedded --client
 ```
 
-</details>
+Or point it at any running i3X server:
+
+```bash
+npx @node-i3x/demo-embedded --client --url http://my-server:8080
+```
+
+(Note: the --client flag is for future use; for now run the client separately with `npx tsx src/client.ts`)
+
+## Options
+
+| Option | Default | Description |
+|---|---|---|
+| `--rest-port <port>` | `8080` | REST API port |
+| `--opcua-port <port>` | `48410` | OPC UA server port |
+| `-h, --help` | | Show help |
+
+## What's Inside
+
+The demo creates a simulated Smart Factory with three assets:
+
+| Asset | Variables | Update Rate |
+|---|---|---|
+| Main Coolant Pump | Temperature, Pressure, FlowRate, Running | 800ms |
+| Process Heater | Temperature, HeaterOn, Setpoint, Power | 1000ms |
+| Assembly Conveyor | Speed, ItemCount | 1200ms |
+
+Values drift realistically -- temperature rises, pressure fluctuates, the heater toggles every 15 seconds.
 
 ## How It Works
 
-### The Traditional Way (Remote OPC UA Client)
+This demo uses `@node-i3x/pseudo-session-connector` to wire the i3X domain services directly to the OPC UA AddressSpace in memory. No network roundtrip -- microsecond latency.
 
-```
-+-------------+    TCP/Binary     +---------------+
-|  i3X REST   | --------------->  |  OPC UA       |
-|  Server     |  OPC UA Protocol  |  Server       |
-|             | <---------------  |               |
-+-------------+    Serialize/     +---------------+
-                   Deserialize
-```
+See the [Embedding Tutorial](../pseudo-session-connector/TUTORIAL.md) for a step-by-step guide.
 
-```typescript
-// 6 lines — client, session, TCP connection
-const client = new OpcUaClient({
-  endpointUrl: 'opc.tcp://localhost:4840',
-  securityMode: 'None',
-}, logger);
-const dataSource = new OpcUaDataSourceAdapter(client, logger);
-await dataSource.connect();
-```
+## License
 
-### The Embedded Way (PseudoSession)
+**AGPL-3.0-or-later** -- Free for open-source projects.
 
-```
-+---------------------------------------+
-|           Single Process              |
-|                                       |
-|  i3X REST --> PseudoSession --> AddressSpace
-|  Server        (in-memory)            |
-|                                       |
-+---------------------------------------+
-```
-
-```typescript
-// 3 lines — direct AddressSpace access, no network
-const dataSource = new PseudoSessionDataSourceAdapter(
-  server.engine.addressSpace!, logger,
-);
-await dataSource.connect();
-```
-
-**That's it.** Everything downstream (domain services, REST routes, subscriptions) is identical.
-
-## The Key Code
-
-Here's the complete wiring — see how simple it is:
-
-```typescript
-import { OPCUAServer } from 'node-opcua';
-import { ModelService, ValueService, /* ... */ } from '@node-i3x/core';
-import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
-import { createApp } from '@node-i3x/rest-server';
-
-// 1. Create your OPC UA server (with your address space)
-const server = new OPCUAServer({ port: 4840 });
-await server.initialize();
-// ... add nodes to server.engine.addressSpace ...
-await server.start();
-
-// 2. Connect i3X directly to the AddressSpace
-const dataSource = new PseudoSessionDataSourceAdapter(
-  server.engine.addressSpace!, logger,
-);
-await dataSource.connect();
-
-// 3. Wire up domain services (same as remote mode)
-const modelService = new ModelService(dataSource, logger);
-const valueService = new ValueService(dataSource, modelService, logger);
-
-// 4. Start REST API
-const app = await createApp({
-  dataSource, modelService, valueService, /* ... */
-});
-await app.listen({ port: 8080 });
-```
-
-## Benefits
-
-| Feature | Remote (OPC UA Client) | Embedded (PseudoSession) |
-|---------|----------------------|--------------------------|
-| Network round-trip | TCP + binary encoding | None — in-process calls |
-| Latency | Milliseconds | Microseconds |
-| Serialization | Full OPC UA binary protocol | None |
-| Deployment | Two processes | Single process |
-| Subscriptions | OPC UA protocol | `UAVariable.on('value_changed')` |
-| Extra dependencies | `node-opcua-client` | `node-opcua-address-space` |
-
-## Subscription Support
-
-The PseudoSession connector supports two subscription strategies:
-
-### Event-based (default) — zero latency
-
-```
-UAVariable.setValueFromSource(...)
-  +-- 'value_changed' event
-       +-- DataChangeCallback fires immediately
-```
-
-### Polling-based — works with any session
-
-```
-setInterval(100ms)
-  +-- PseudoSession.read(nodeIds)
-       +-- Compare with previous values
-            +-- DataChangeCallback fires on change
-```
-
-## Running the Comparison Demo
-
-```bash
-# Embedded mode (PseudoSession — no network)
-npm run demo -w packages/demo-embedded
-
-# Remote mode (OPC UA binary transport)
-npm run demo:remote -w packages/demo-embedded
-```
-
-Both serve the same REST API at `http://localhost:8080` — the difference is the transport layer.
-
-## Architecture
-
-```
-@node-i3x/pseudo-session-connector
-|-- PseudoSessionDataSourceAdapter   # implements IDataSourcePort
-|   |-- browse()     -> PseudoSession.browse()
-|   |-- read()       -> PseudoSession.read()
-|   |-- write()      -> PseudoSession.write()  (auto DataType)
-|   |-- call()       -> PseudoSession.call()
-|   +-- subscribe()  -> AddressSpaceMonitoredSubscription
-|
-|-- AddressSpaceMonitoredSubscription  # event-based
-|   +-- UAVariable.on('value_changed', handler)
-|
-+-- PollingMonitoredSubscription       # polling-based
-    +-- setInterval + IBasicSession.read()
-```
-
-The `PseudoSessionDataSourceAdapter` implements the same `IDataSourcePort` interface as `OpcUaDataSourceAdapter` — the domain services don't know or care which one is active.
+For commercial / proprietary use, contact [Sterfive](https://sterfive.com) for a commercial license.

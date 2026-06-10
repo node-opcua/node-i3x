@@ -1,6 +1,7 @@
 {
   "name": "node-i3x",
   "private": true,
+  "packageManager": "npm@11.14.1",
   "description": "TypeScript implementation of the i3X Beta specification — bridging OPC UA industrial automation to a modern REST API",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -54,17 +55,17 @@
   "scripts": {
     "dev": "npm run dev -w packages/app",
     "start": "npm run start -w packages/app",
-    "build": "npm run build --workspaces --if-present",
+    "build": "turbo run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -b packages/core packages/opcua-connector packages/pseudo-session-connector packages/rest-server packages/app",
+    "typecheck": "turbo run typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "npm run build && changeset publish",
+    "release": "npm run build; changeset publish",
     "readme:update": "node scripts/mermaid-to-img.mjs --write",
     "prepare": "husky"
   },
@@ -76,6 +77,7 @@
     "lint-staged": "^16.4.0",
     "tsup": "^8.5.1",
     "typescript": "^5.7.0",
+    "turbo": "^2.5.0",
     "vitest": "^3.2.0"
   },
   "lint-staged": {

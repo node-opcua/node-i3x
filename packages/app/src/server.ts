@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import {
   consoleLogger,
   HistoryService,
@@ -8,37 +7,21 @@ import {
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
-import { config } from './config.js';
+import type { I3xConfig } from './config.js';
+import { printBanner } from './banner.js';
 
-const require = createRequire(import.meta.url);
-const { version } = require('../package.json') as { version: string };
-
-async function main(): Promise<void> {
+export async function startServer(
+  config: I3xConfig,
+  version: string,
+): Promise<void> {
   const logger = consoleLogger;
-
-  // ── Startup banner ──────────────────────────────────────────
-  const v = `v${version}`;
-  console.log(`
-  ╔══════════════════════════════════════════════════╗
-  ║                                                  ║
-  ║   node-i3x  ${v.padEnd(34)}║
-  ║   OPC UA → i3X REST API bridge                   ║
-  ║                                                  ║
-  ║   Built by Sterfive — https://sterfive.com       ║
-  ║   License: AGPL-3.0 | Commercial                 ║
-  ║   Contact: contact@sterfive.com                  ║
-  ║                                                  ║
-  ╚══════════════════════════════════════════════════╝
-`);
-
-  logger.info(`OPC UA endpoint: ${config.opcuaEndpoint}`);
 
   // 1. Outbound adapter (OPC UA)
   const opcuaClient = new OpcUaClient(
     {
-      endpointUrl: config.opcuaEndpoint,
-      securityMode: config.opcuaSecurityMode,
-      optimizedClient: config.opcuaOptimizedClient,
+      endpointUrl: config.endpoint,
+      securityMode: config.securityMode,
+      optimizedClient: config.optimizedClient,
     },
     logger,
   );
@@ -52,7 +35,7 @@ async function main(): Promise<void> {
     dataSource,
     modelService,
     logger,
-    config.subscriptionIntervalSeconds,
+    config.subscriptionInterval,
   );
 
   // 3. Inbound adapter (REST)
@@ -65,25 +48,28 @@ async function main(): Promise<void> {
     logger,
   });
 
-  // 4. Connect & preload
-  if (!config.skipOpcuaConnect) {
-    await dataSource.connect();
-    if (config.modelPreloadOnStartup) {
-      try {
-        await modelService.preloadModel();
-      } catch (err) {
-        logger.error(`Model preload failed: ${err}`);
-        if (config.failStartupOnModelPreloadError) process.exit(1);
-      }
+  // 4. Connect to OPC UA
+  await dataSource.connect();
+
+  // 5. Preload model
+  let nodeCount: number | undefined;
+  if (config.modelPreload) {
+    try {
+      const model = await modelService.preloadModel();
+      nodeCount = model.nodesById.size;
+    } catch (err) {
+      logger.error('Model preload failed: ' + String(err));
+      if (config.failOnPreloadError) process.exit(1);
     }
-  } else {
   }
 
-  // 5. Start HTTP server
+  // 6. Start HTTP server
   await app.listen({ port: config.port, host: config.host });
-  logger.info(`node-i3x listening on http://${config.host}:${config.port}`);
 
-  // 6. Graceful shutdown
+  // 7. Banner
+  printBanner(version, config, nodeCount);
+
+  // 8. Graceful shutdown
   const shutdown = async () => {
     logger.info('Shutting down...');
     await app.close();
@@ -94,8 +80,3 @@ async function main(): Promise<void> {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 }
-
-main().catch((err) => {
-  console.error('Fatal:', err);
-  process.exit(1);
-});
