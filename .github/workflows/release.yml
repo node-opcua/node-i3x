@@ -72,4 +72,8 @@ jobs:
           gh release create "$VERSION" \
             --title "$VERSION" \
             --generate-notes \
+            --latest 2>/dev/null || \
+          gh release edit "$VERSION" \
+            --title "$VERSION" \
             --latest
+
