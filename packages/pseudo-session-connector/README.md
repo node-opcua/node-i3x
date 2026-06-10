@@ -94,6 +94,12 @@ setInterval(100ms)
 | `node-opcua-pseudo-session` | In-process session |
 | `node-opcua-data-model` | QualifiedName, NodeClass |
 
+## Tutorial
+
+For a complete, step-by-step guide with a full working example, see
+**[TUTORIAL.md](./TUTORIAL.md)** -- a literate-programming walkthrough
+that builds an OPC UA server + i3X REST API from scratch in ~80 lines.
+
 ## License
 
 **AGPL-3.0-or-later** — Free for open-source projects.
