@@ -19,7 +19,7 @@ Enter
 Sleep 1s
 
 # Left pane: install & run server from scratch
-Type "cd /tmp && mkdir i3x-demo && cd i3x-demo"
+Type "cd /tmp && mkdir -p i3x-demo && cd i3x-demo"
 Enter
 Sleep 500ms
 
@@ -27,11 +27,14 @@ Type "npm init -y > /dev/null 2>&1"
 Enter
 Sleep 1s
 
+# Show the install command, then hide during the long wait
 Type "npm install @node-i3x/demo-embedded"
 Enter
+Sleep 3s
 
-# Wait for npm install to complete
-Sleep 30s
+Hide
+Sleep 45s
+Show
 
 Type "clear"
 Enter

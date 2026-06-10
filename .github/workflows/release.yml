@@ -2,10 +2,9 @@
 # Publish to npm when a version tag (v*) is pushed
 # -------------------------------------------------------------
 #
-# Trigger: git push origin main --tags  (after npm run bump)
-#
 # Uses npm Trusted Publishing (OIDC) — no NPM_TOKEN needed.
-# Configure on npmjs.com → package settings → Trusted Publishers
+# Each @node-i3x/* package must have a Trusted Publisher
+# configured on npmjs.com → release.yml
 
 name: Release
 
@@ -17,12 +16,10 @@ concurrency:
   group: publish
   cancel-in-progress: false
 
-permissions:
-  id-token: write       # OIDC token for npm trusted publishing
-  contents: write       # to create GitHub release
-
 jobs:
   ci:
+    permissions:
+      contents: read
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
@@ -31,6 +28,9 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      id-token: write     # OIDC token for npm trusted publishing
+      contents: write     # GitHub release
 
     steps:
       - uses: actions/checkout@v4
@@ -39,10 +39,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          registry-url: https://registry.npmjs.org
 
-      - name: Configure @sterfive registry
+      - name: Configure registries
         run: |
+          # npm trusted publishing: set registry without auth token
+          npm config set registry https://registry.npmjs.org/
+
+          # @sterfive scoped registry (for install only)
           echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
           if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
             echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
@@ -58,7 +61,7 @@ jobs:
         run: |
           for pkg in core opcua-connector pseudo-session-connector rest-server app demo-embedded; do
             echo "📦 Publishing @node-i3x/$pkg..."
-            npm publish -w "packages/$pkg" --access public --provenance || true
+            npm publish -w "packages/$pkg" --access public --provenance 2>&1 || echo "⚠️  @node-i3x/$pkg failed"
           done
 
       - name: Create GitHub Release
