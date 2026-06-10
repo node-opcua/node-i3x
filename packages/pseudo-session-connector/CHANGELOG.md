@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.3.0 (2026-06-10)
+
+- chore: rename repo  to node-i3x
+
 ## 0.2.4 (2026-06-10)
 
 - chore: upgrade all dependencies (TS6, vitest 4, node-opcua 2.173)
