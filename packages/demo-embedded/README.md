@@ -82,6 +82,13 @@ See the [Embedding Tutorial](../pseudo-session-connector/TUTORIAL.md) for a step
 
 ## License
 
-**AGPL-3.0-or-later** -- Free for open-source projects.
+Dual-licensed:
 
-For commercial / proprietary use, contact [Sterfive](https://sterfive.com) for a commercial license.
+- **AGPL-3.0-or-later** -- you may use, modify, and distribute this software
+  freely, provided that all derivative works and network-accessible deployments
+  also make their complete source code available under the AGPL.
+- **Sterfive Commercial License** -- allows proprietary and closed-source use
+  without copyleft obligations.
+
+See [LICENSING.md](../../LICENSING.md) for details, or contact
+[Sterfive](https://sterfive.com) for commercial licensing.

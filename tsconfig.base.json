@@ -3,6 +3,7 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "Node16",
+    "types": ["node"],
     "moduleResolution": "Node16",
     "strict": true,
     "esModuleInterop": true,

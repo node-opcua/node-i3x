@@ -189,7 +189,7 @@ async function walkTree(obj: ObjectInstance, compositeIds: string[]): Promise<vo
 
   if (!obj.isComposition) return;
 
-  compositeIds.push(obj.id);
+  compositeIds.push(obj.elementId);
 
   const related = await post<{
     results: Array<{

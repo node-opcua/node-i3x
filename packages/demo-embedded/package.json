@@ -14,7 +14,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "i3x-demo": "./dist/index.js"
+    "i3x-demo": "./dist/index.js",
+    "i3x-demo-client": "./dist/client.js"
   },
   "exports": {
     ".": {

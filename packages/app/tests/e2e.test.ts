@@ -113,7 +113,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     inputArguments: [],
     outputArguments: [],
   });
-  uaResetMethod.bindMethod(async (_inputArguments, _context) => {
+  uaResetMethod.bindMethod(async (_inputArguments: unknown[], _context: unknown) => {
     temperatureA = 25.0;
     speedA = 0;
     return { statusCode: StatusCodes.Good };
@@ -250,7 +250,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     grinderRPM += 10; // 1200 → 1210 → 1220 → ...
     grindSizeTick++; // cycles through sizes
   }, 200);
-  (server as Record<string, unknown>)._e2eInterval = interval;
+  (server as unknown as Record<string, unknown>)._e2eInterval = interval;
 
   await server.start();
   return server;
@@ -303,13 +303,13 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
 
   afterAll(async () => {
     await subscriptionService.close();
-    const ds = (app as Record<string, unknown>).deps as Record<
+    const ds = (app as unknown as Record<string, unknown>).deps as Record<
       string,
       { disconnect: () => Promise<void> }
     >;
     if (ds?.dataSource) await ds.dataSource.disconnect();
     clearInterval(
-      (opcuaServer as Record<string, unknown>)._e2eInterval as NodeJS.Timeout,
+      (opcuaServer as unknown as Record<string, unknown>)._e2eInterval as NodeJS.Timeout,
     );
     await opcuaServer.shutdown(500);
   }, 15_000);

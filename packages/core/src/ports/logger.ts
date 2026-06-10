@@ -21,8 +21,8 @@ export const nullLogger: ILogger = {
 };
 
 export const consoleLogger: ILogger = {
-  debug: console.debug.bind(console),
-  info: console.info.bind(console),
-  warn: console.warn.bind(console),
-  error: console.error.bind(console),
+  debug: (msg: string, ...args: unknown[]) => console.debug(msg, ...args),
+  info: (msg: string, ...args: unknown[]) => console.info(msg, ...args),
+  warn: (msg: string, ...args: unknown[]) => console.warn(msg, ...args),
+  error: (msg: string, ...args: unknown[]) => console.error(msg, ...args),
 };
