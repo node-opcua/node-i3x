@@ -17,10 +17,7 @@ program
   .option('-p, --port <port>', 'REST API port', parseInt)
   .option('-H, --host <host>', 'REST API bind address')
   .option('--security-mode <mode>', 'OPC UA security mode')
-  .option(
-    '--optimized-client <mode>',
-    'Optimized client: auto | disabled',
-  )
+  .option('--optimized-client <mode>', 'Optimized client: auto | disabled')
   .option(
     '--subscription-interval <seconds>',
     'Subscription interval in seconds',
@@ -36,8 +33,7 @@ program
     if (opts.port !== undefined) cliArgs.port = opts.port;
     if (opts.host) cliArgs.host = opts.host;
     if (opts.securityMode) cliArgs.securityMode = opts.securityMode;
-    if (opts.optimizedClient)
-      cliArgs.optimizedClient = opts.optimizedClient;
+    if (opts.optimizedClient) cliArgs.optimizedClient = opts.optimizedClient;
     if (opts.subscriptionInterval !== undefined)
       cliArgs.subscriptionInterval = opts.subscriptionInterval;
     if (opts.logLevel) cliArgs.logLevel = opts.logLevel;

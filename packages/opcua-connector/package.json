@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/opcua-connector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "i3X OPC UA adapter — implements IDataSourcePort using node-opcua",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -18,7 +18,21 @@
     "type": "commercial",
     "url": "https://sterfive.com"
   },
-  "keywords": ["opcua", "opc-ua", "opc ua", "i3x", "industrial", "iiot", "iot", "scada", "plc", "node-opcua", "client", "automation", "sterfive"],
+  "keywords": [
+    "opcua",
+    "opc-ua",
+    "opc ua",
+    "i3x",
+    "industrial",
+    "iiot",
+    "iot",
+    "scada",
+    "plc",
+    "node-opcua",
+    "client",
+    "automation",
+    "sterfive"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,13 +45,18 @@
   "publishConfig": {
     "provenance": true
   },
-  "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@node-i3x/core": "*",
+    "@node-i3x/core": "0.2.0",
     "node-opcua": "^2.128.0",
     "node-opcua-client": "^2.128.0"
   },

@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/pseudo-session-connector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "i3X data-source adapter using node-opcua PseudoSession — connects directly to an AddressSpace without binary OPC UA transport",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -18,7 +18,19 @@
     "type": "commercial",
     "url": "https://sterfive.com"
   },
-  "keywords": ["opcua", "opc-ua", "i3x", "industrial", "iiot", "embedded", "pseudo-session", "address-space", "in-process", "node-opcua", "sterfive"],
+  "keywords": [
+    "opcua",
+    "opc-ua",
+    "i3x",
+    "industrial",
+    "iiot",
+    "embedded",
+    "pseudo-session",
+    "address-space",
+    "in-process",
+    "node-opcua",
+    "sterfive"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,14 +43,19 @@
   "publishConfig": {
     "provenance": true
   },
-  "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@node-i3x/core": "*",
+    "@node-i3x/core": "0.2.0",
     "node-opcua-address-space": "^2.128.0",
     "node-opcua-address-space-base": "^2.128.0",
     "node-opcua-data-model": "^2.128.0",

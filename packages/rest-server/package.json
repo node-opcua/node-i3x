@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/rest-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "i3X REST inbound adapter — Fastify routes for the i3X Beta API",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -18,7 +18,20 @@
     "type": "commercial",
     "url": "https://sterfive.com"
   },
-  "keywords": ["opcua", "opc-ua", "i3x", "rest-api", "rest", "fastify", "industrial", "iiot", "iot", "automation", "digital-twin", "sterfive"],
+  "keywords": [
+    "opcua",
+    "opc-ua",
+    "i3x",
+    "rest-api",
+    "rest",
+    "fastify",
+    "industrial",
+    "iiot",
+    "iot",
+    "automation",
+    "digital-twin",
+    "sterfive"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,13 +44,18 @@
   "publishConfig": {
     "provenance": true
   },
-  "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@node-i3x/core": "*",
+    "@node-i3x/core": "0.2.0",
     "fastify": "^5.0.0",
     "@fastify/cors": "^11.0.0",
     "fastify-plugin": "^5.0.0"

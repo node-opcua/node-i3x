@@ -1,47 +1,39 @@
 # -------------------------------------------------------------
-# node-i3x - Automated release with Changesets
+# Publish to npm when a version tag (v*) is pushed
 # -------------------------------------------------------------
 #
-# Uses npm Trusted Publishing (OIDC) - no NPM_TOKEN needed.
-# Configure on npmjs.com: package settings -> Trusted Publishers
-#   -> Provider: GitHub Actions
-#   -> Repository: node-opcua/node-i3x
-#   -> Workflow: release.yml
+# Trigger: git push origin main --tags  (after npm run bump)
 #
-# How it works:
-#   1. Developers add changesets: `npm run changeset`
-#   2. On merge to main, the workflow either:
-#      a) Opens/updates a "Version Packages" PR
-#      b) If that PR is merged, publishes to npm with provenance
+# Uses npm Trusted Publishing (OIDC) — no NPM_TOKEN needed.
+# Configure on npmjs.com → package settings → Trusted Publishers
 
 name: Release
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
+    tags: ['v*']
 
-# Serialize publishes: never run two at once, and never cancel
-# an in-flight one (partial publishes are hard to recover from).
 concurrency:
   group: publish
   cancel-in-progress: false
 
 permissions:
   id-token: write       # OIDC token for npm trusted publishing
-  contents: write       # to push version commits & tags
-  pull-requests: write  # to create/update the "Version Packages" PR
+  contents: write       # to create GitHub release
 
 jobs:
-  release:
-    name: Version & Publish
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish:
+    name: Publish to npm
+    needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # full history for changeset detection
 
       - uses: actions/setup-node@v4
         with:
@@ -59,21 +51,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create Release PR or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          title: "chore: version packages"
-          commit: "chore: version packages"
-          publish: npm run release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build all packages
+        run: npm run build
 
-      - name: Tag release
-        if: steps.changesets.outputs.published == 'true'
+      - name: Publish all packages
         run: |
-          echo "Published packages:"
-          echo '${{ steps.changesets.outputs.publishedPackages }}' | jq '.'
-          VERSION=$(node -p "require('./packages/core/package.json').version")
-          git tag "v${VERSION}" || true
-          git push origin "v${VERSION}" || true
+          for pkg in core opcua-connector pseudo-session-connector rest-server app demo-embedded; do
+            echo "📦 Publishing @node-i3x/$pkg..."
+            npm publish -w "packages/$pkg" --access public --provenance || true
+          done
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            --latest

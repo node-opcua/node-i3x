@@ -7,13 +7,10 @@ import {
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
-import type { I3xConfig } from './config.js';
 import { printBanner } from './banner.js';
+import type { I3xConfig } from './config.js';
 
-export async function startServer(
-  config: I3xConfig,
-  version: string,
-): Promise<void> {
+export async function startServer(config: I3xConfig, version: string): Promise<void> {
   const logger = consoleLogger;
 
   // 1. Outbound adapter (OPC UA)
@@ -58,7 +55,7 @@ export async function startServer(
       const model = await modelService.preloadModel();
       nodeCount = model.nodesById.size;
     } catch (err) {
-      logger.error('Model preload failed: ' + String(err));
+      logger.error(`Model preload failed: ${String(err)}`);
       if (config.failOnPreloadError) process.exit(1);
     }
   }

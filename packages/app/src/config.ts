@@ -97,9 +97,7 @@ export async function resolveConfig(
   });
 
   try {
-    const result = configPath
-      ? await explorer.load(configPath)
-      : await explorer.search();
+    const result = configPath ? await explorer.load(configPath) : await explorer.search();
     if (result && !result.isEmpty) {
       fileConfig = result.config as Partial<I3xConfig>;
     }

@@ -6,6 +6,7 @@
 // AddressSpace in memory.
 // ─────────────────────────────────────────────────────────────
 
+import { parseArgs } from 'node:util';
 import {
   consoleLogger,
   HistoryService,
@@ -16,7 +17,6 @@ import {
 import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { DataType, nodesets, OPCUAServer, type UAVariable, Variant } from 'node-opcua';
-import { parseArgs } from 'node:util';
 
 const { values: args } = parseArgs({
   options: {

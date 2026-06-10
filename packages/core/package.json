@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "i3X domain core — models, ports, and services (zero dependencies)",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -18,7 +18,21 @@
     "type": "commercial",
     "url": "https://sterfive.com"
   },
-  "keywords": ["opcua", "opc-ua", "i3x", "i3x2ua", "industrial", "iiot", "iot", "domain", "hexagonal-architecture", "ports-and-adapters", "digital-twin", "asset-management", "sterfive"],
+  "keywords": [
+    "opcua",
+    "opc-ua",
+    "i3x",
+    "i3x2ua",
+    "industrial",
+    "iiot",
+    "iot",
+    "domain",
+    "hexagonal-architecture",
+    "ports-and-adapters",
+    "digital-twin",
+    "asset-management",
+    "sterfive"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,7 +45,12 @@
   "publishConfig": {
     "provenance": true
   },
-  "files": ["dist", "LICENSE", "LICENSE-AGPL-3.0", "LICENSING.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"

@@ -9,12 +9,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
+    secrets:
+      NPM_STERFIVE_TOKEN:
+        required: false
 
 env:
   NODE_ENV: development
 
 jobs:
-  # -- Install -------------------------------------------------
+  # -- Install & Build ------------------------------------------
   install:
     runs-on: ubuntu-latest
     steps:
@@ -35,13 +39,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Cache node_modules
+      - name: Build all packages
+        run: npm run build
+
+      - name: Cache workspace
         uses: actions/cache/save@v4
         with:
           path: |
             node_modules
             packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+            packages/*/dist
+          key: workspace-${{ github.sha }}
 
   # -- Check ---------------------------------------------------
   typecheck:
@@ -54,13 +62,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Restore node_modules
+      - name: Restore workspace
         uses: actions/cache/restore@v4
         with:
           path: |
             node_modules
             packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+            packages/*/dist
+          key: workspace-${{ github.sha }}
 
       - name: TypeScript type check
         run: npm run typecheck
@@ -75,13 +84,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Restore node_modules
+      - name: Restore workspace
         uses: actions/cache/restore@v4
         with:
           path: |
             node_modules
             packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+            packages/*/dist
+          key: workspace-${{ github.sha }}
 
       - name: Biome lint & format check
         run: npx biome check .
@@ -97,13 +107,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Restore node_modules
+      - name: Restore workspace
         uses: actions/cache/restore@v4
         with:
           path: |
             node_modules
             packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+            packages/*/dist
+          key: workspace-${{ github.sha }}
 
       - name: Run tests
         run: npm test
@@ -126,13 +137,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Restore node_modules
+      - name: Restore workspace
         uses: actions/cache/restore@v4
         with:
           path: |
             node_modules
             packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+            packages/*/dist
+          key: workspace-${{ github.sha }}
 
       - name: Remove @sterfive/opcua-optimized-client
         run: |
@@ -142,32 +154,3 @@ jobs:
 
       - name: Run tests without optimized client
         run: npm test
-
-  # -- Build ---------------------------------------------------
-  build:
-    needs: [typecheck, lint, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore node_modules
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Build all packages
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: packages/*/dist/
-          retention-days: 7

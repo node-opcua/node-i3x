@@ -7,14 +7,14 @@ export function printBanner(
 ): void {
   const lines = [
     '',
-    '  i3X Server v' + version,
+    `  i3X Server v${version}`,
     '',
-    '  OPC UA:  ' + config.endpoint,
-    '  REST:    http://' + config.host + ':' + config.port,
+    `  OPC UA:  ${config.endpoint}`,
+    `  REST:    http://${config.host}:${config.port}`,
   ];
 
   if (nodeCount !== undefined) {
-    lines.push('  Model:   ' + nodeCount + ' nodes');
+    lines.push(`  Model:   ${nodeCount} nodes`);
   }
 
   lines.push('');
@@ -26,12 +26,12 @@ export function printBanner(
   const width = maxLen + 2;
 
   const hr = '-'.repeat(width);
-  const top = '  +' + hr + '+';
-  const bot = '  +' + hr + '+';
+  const top = `  +${hr}+`;
+  const bot = `  +${hr}+`;
 
   console.log(top);
   for (const line of lines) {
-    console.log('  |' + line.padEnd(width) + '|');
+    console.log(`  |${line.padEnd(width)}|`);
   }
   console.log(bot);
   console.log();
