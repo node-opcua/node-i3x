@@ -467,8 +467,8 @@ export class SubscriptionService {
   ): void {
     const assetIds = sub.sourceToAsset.get(sourceNodeId);
     if (!assetIds || assetIds.size === 0) {
-      this.logger.warn(
-        `_onDataChange: sourceNodeId=${sourceNodeId} NOT in sourceToAsset (size=${sub.sourceToAsset.size})`,
+      this.logger.debug(
+        `onDataChange: sourceNodeId=${sourceNodeId} NOT in sourceToAsset (size=${sub.sourceToAsset.size})`,
       );
       return;
     }
