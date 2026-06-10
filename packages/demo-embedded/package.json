@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/demo-embedded",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
   "homepage": "https://sterfive.com",
@@ -25,6 +25,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "start": "npx tsx src/index.ts",
@@ -33,10 +36,10 @@
     "client": "npx tsx src/client.ts"
   },
   "dependencies": {
-    "@node-i3x/core": "0.2.2",
-    "@node-i3x/opcua-connector": "0.2.2",
-    "@node-i3x/pseudo-session-connector": "0.2.2",
-    "@node-i3x/rest-server": "0.2.2",
+    "@node-i3x/core": "0.2.3",
+    "@node-i3x/opcua-connector": "0.2.3",
+    "@node-i3x/pseudo-session-connector": "0.2.3",
+    "@node-i3x/rest-server": "0.2.3",
     "fastify": "^5.0.0",
     "@fastify/cors": "^11.0.0",
     "fastify-plugin": "^5.0.0",

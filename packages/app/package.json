@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/app",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "i3X CLI -- expose OPC UA servers as i3X REST APIs",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -25,6 +25,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist",
+    "i3x.config.example.yml"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/cli.ts",
@@ -32,9 +36,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@node-i3x/core": "0.2.2",
-    "@node-i3x/opcua-connector": "0.2.2",
-    "@node-i3x/rest-server": "0.2.2",
+    "@node-i3x/core": "0.2.3",
+    "@node-i3x/opcua-connector": "0.2.3",
+    "@node-i3x/rest-server": "0.2.3",
     "commander": "^13.0.0",
     "cosmiconfig": "^9.0.0",
     "fastify": "^5.0.0",

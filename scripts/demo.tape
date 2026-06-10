@@ -1,25 +1,33 @@
 # i3X Demo — Fresh Install Experience
 # Run from WSL: vhs scripts/demo.tape
 #
-# Prerequisites: publish all @node-i3x packages to npm first
+# Prerequisites:
+#   - publish all @node-i3x packages to npm first
+#   - install JetBrains Mono: sudo apt install fonts-jetbrains-mono
 
 Output packages/demo-embedded/demo.gif
-Set Width 1400
-Set Height 700
-Set FontSize 14
+Set Width 960
+Set Height 480
+Set FontSize 13
 Set FontFamily "JetBrains Mono"
 Set Theme "Catppuccin Mocha"
-Set Padding 12
+Set Padding 10
 Set TypingSpeed 50ms
 Set CursorBlink false
+Set Framerate 15
+Set PlaybackSpeed 1
+Set LoopOffset 0
 
-# Start tmux
-Type "tmux new-session -d -s demo -x 168 -y 42 && tmux attach -t demo"
+# ── Setup (hidden from recording) ────────────────────────
+Hide
+
+# Set a clean prompt
+Type `export PS1='$ '`
 Enter
-Sleep 1s
+Sleep 500ms
 
-# Left pane: install & run server from scratch
-Type "cd /tmp && mkdir -p i3x-demo && cd i3x-demo"
+# Prepare demo folder
+Type "rm -rf /tmp/i3x-demo && mkdir -p /tmp/i3x-demo && cd /tmp/i3x-demo"
 Enter
 Sleep 500ms
 
@@ -27,14 +35,23 @@ Type "npm init -y > /dev/null 2>&1"
 Enter
 Sleep 1s
 
-# Show the install command, then hide during the long wait
-Type "npm install @node-i3x/demo-embedded"
+# Pre-install while hidden (too slow for video)
+Type "npm install @node-i3x/demo-embedded > /dev/null 2>&1"
 Enter
-Sleep 3s
-
-Hide
 Sleep 45s
+
+Type "clear"
+Enter
+Sleep 500ms
+
 Show
+
+# ── Recording starts here ────────────────────────────────
+
+# Show what we installed
+Type "cat package.json | head -5"
+Enter
+Sleep 2s
 
 Type "clear"
 Enter
@@ -52,7 +69,11 @@ Ctrl+b
 Type "%"
 Sleep 1s
 
-# Right pane: run the dashboard client
+# Right pane: set prompt and run client
+Type `export PS1='$ '`
+Enter
+Sleep 300ms
+
 Type "cd /tmp/i3x-demo"
 Enter
 Sleep 500ms

@@ -40,12 +40,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Configure registries
+      - name: Upgrade npm for OIDC trusted publishing
         run: |
-          # npm trusted publishing: set registry without auth token
-          npm config set registry https://registry.npmjs.org/
+          npm install -g npm@latest
+          npm --version
 
-          # @sterfive scoped registry (for install only)
+      - name: Configure @sterfive registry
+        run: |
           echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
           if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
             echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
@@ -57,15 +58,23 @@ jobs:
       - name: Build all packages
         run: npm run build
 
-      - name: Upgrade npm for OIDC trusted publishing
-        run: npm install -g npm@latest
+      - name: Publish @node-i3x/core
+        run: npm publish -w packages/core --access public --provenance
 
-      - name: Publish all packages
-        run: |
-          for pkg in core opcua-connector pseudo-session-connector rest-server app demo-embedded; do
-            echo "📦 Publishing @node-i3x/$pkg..."
-            npm publish -w "packages/$pkg" --access public --provenance
-          done
+      - name: Publish @node-i3x/opcua-connector
+        run: npm publish -w packages/opcua-connector --access public --provenance
+
+      - name: Publish @node-i3x/pseudo-session-connector
+        run: npm publish -w packages/pseudo-session-connector --access public --provenance
+
+      - name: Publish @node-i3x/rest-server
+        run: npm publish -w packages/rest-server --access public --provenance
+
+      - name: Publish @node-i3x/app
+        run: npm publish -w packages/app --access public --provenance
+
+      - name: Publish @node-i3x/demo-embedded
+        run: npm publish -w packages/demo-embedded --access public --provenance
 
       - name: Create GitHub Release
         env:
@@ -79,4 +88,3 @@ jobs:
           gh release edit "$VERSION" \
             --title "$VERSION" \
             --latest
-
