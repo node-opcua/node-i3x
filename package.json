@@ -66,6 +66,7 @@
     "release": "npm run build",
     "readme:update": "node scripts/mermaid-to-img.mjs --write",
     "bump": "node scripts/bump.mjs",
+    "ncu": "npx npm-check-updates -u --deep",
     "prepare": "husky"
   },
   "devDependencies": {

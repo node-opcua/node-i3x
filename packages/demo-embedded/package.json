@@ -19,6 +19,7 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
@@ -26,7 +27,10 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
   ],
   "scripts": {
     "build": "tsup",

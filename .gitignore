@@ -6,3 +6,7 @@ coverage/
 .turbo/
 *.log
 *.deb
+
+# VHS demo outputs (generated, not committed)
+packages/demo-embedded/demo.gif
+packages/demo-embedded/demo-screenshot.png
