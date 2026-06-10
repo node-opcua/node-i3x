@@ -1,5 +1,10 @@
 # @node-i3x/demo-embedded
 
+## 0.2.4 (2026-06-10)
+
+- chore: upgrade all dependencies (TS6, vitest 4, node-opcua 2.173)
+- fix: monorepo hygiene - licenses, publishConfig, tsconfig, gitignore
+
 ## 0.2.3 (2026-06-10)
 
 - Version bump
