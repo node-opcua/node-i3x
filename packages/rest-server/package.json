@@ -57,8 +57,8 @@
   },
   "dependencies": {
     "@node-i3x/core": "0.2.3",
-    "fastify": "^5.0.0",
-    "@fastify/cors": "^11.0.0",
-    "fastify-plugin": "^5.0.0"
+    "fastify": "^5.8.5",
+    "@fastify/cors": "^11.2.0",
+    "fastify-plugin": "^6.0.0"
   }
 }

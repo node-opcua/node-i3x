@@ -58,8 +58,8 @@
   },
   "dependencies": {
     "@node-i3x/core": "0.2.3",
-    "node-opcua": "^2.128.0",
-    "node-opcua-client": "^2.128.0"
+    "node-opcua": "^2.173.1",
+    "node-opcua-client": "^2.173.1"
   },
   "optionalDependencies": {
     "@sterfive/opcua-optimized-client": "*"

@@ -42,17 +42,17 @@
     "@node-i3x/core": "0.2.3",
     "@node-i3x/opcua-connector": "0.2.3",
     "@node-i3x/rest-server": "0.2.3",
-    "commander": "^13.0.0",
-    "cosmiconfig": "^9.0.0",
-    "fastify": "^5.0.0",
-    "@fastify/cors": "^11.0.0",
-    "fastify-plugin": "^5.0.0",
-    "js-yaml": "^4.1.0",
-    "node-opcua": "^2.128.0"
+    "commander": "^15.0.0",
+    "cosmiconfig": "^9.0.2",
+    "fastify": "^5.8.5",
+    "@fastify/cors": "^11.2.0",
+    "fastify-plugin": "^6.0.0",
+    "js-yaml": "^4.2.0",
+    "node-opcua": "^2.173.1"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "tsup": "^8.0.0",
-    "tsx": "^4.16.0"
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4"
   }
 }
