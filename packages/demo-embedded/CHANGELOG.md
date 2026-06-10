@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.3.1 (2026-06-10)
+
+- feat: gate debug logs behind DEBUG env var, widen VHS demo, rename repo refs to node-i3x
+
 ## 0.3.0 (2026-06-10)
 
 - chore: rename repo  to node-i3x

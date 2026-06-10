@@ -51,6 +51,18 @@ else {
   process.exit(1);
 }
 
+// ── Guard: prevent version downgrade ────────────────────
+const semverCompare = (a, b) => {
+  const [a1, a2, a3] = a.split('.').map(Number);
+  const [b1, b2, b3] = b.split('.').map(Number);
+  return a1 - b1 || a2 - b2 || a3 - b3;
+};
+
+if (semverCompare(next, current) <= 0) {
+  console.error(`\n  ❌ Cannot bump ${current} → ${next} (must be higher)\n`);
+  process.exit(1);
+}
+
 console.log(`\n  📦 Bumping all @node-i3x packages: ${current} → ${next}\n`);
 
 // ── Find previous tag ───────────────────────────────────
