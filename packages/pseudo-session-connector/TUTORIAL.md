@@ -3,6 +3,39 @@
 > **A step-by-step, literate-programming guide to running OPC UA + i3X REST
 > in a single Node.js process using `@node-i3x/pseudo-session-connector`.**
 
+<p align="center">
+  <img src="https://kroki.io/d2/svg/eNqtlFFr2zAUhd_1Ky7eSwqNyWI7dfQwCOnGBmM1pGEb9EWRrpg2zzKS3KYU__dhNWkSRx5l7MEPvgd0vnt1dIUyyJ3SFQWhHypCaqM5Wkvhu24MfNEC458WiucqPBEA6x5LjKUqSwrRGzmRqcyjl7p1Rv_CTknSeS42fWX8oIT7QWH6Ut9oI9CMDROqsRRyQgB0zRtG4aZYrhcrNPdoYFRpgWMvXHiOPgluZCa93znLdJ5PNvNz7ZhmgGdGvMYshYUQBq1d1YzjDqEPITKZYRadaEcYVwxnk1O1Z5d6sSXdRwCYYLVDQ6Gw2Ai9QmuVrq6ZYyvdGI6LZz04EIE4lTI8kCyd5adagMMT1No4Cp8OloU2LnwBVylPeNiPT5L59ORypK7cmOtSGx-jPkwpKDjT4CsILZp7xdFSuNa_mapgtSsEKaXAHPMw5XkHQ54q2VJQyTfYp_MDs07Jx3A0D0_hNdH8f5PxryVmFsbvBpJ0ghsKansIYXdKl4ZdKLrf_eiPbqErq2RLWkJw6yhEN8US1gtYlgorZ--q0Zq939Zo3CUUn5f2EuI4vogCq-XwlobxBvpvCeHej0LkF9lX3MCiru-q0cfb22IHE3SVc8wzHnKVb3k6kX933a3P2E--G4Wfga557Hh95DbcS38xtS9nqmTbnbhvzDfy9A-LtyV_APRy0aY" alt="Embedded i3X architecture" />
+</p>
+
+<details><summary>Diagram source (D2 -- rendered via Kroki)</summary>
+
+```d2
+direction: down
+
+process: Your Node.js Process {
+  opcua: OPCUAServer (node-opcua) {
+    as: AddressSpace
+  }
+  adapter: PseudoSessionDataSourceAdapter
+  port: IDataSourcePort
+  services: Domain Services
+  i3x: i3X Server (Fastify)
+
+  opcua.as -> adapter: PseudoSession
+  adapter -> port
+  port -> services
+  services -> i3x
+}
+
+ext: "OPC UA Clients (UaExpert, PLCs, ...)"
+client: "Your Web App (HTTP Client)"
+
+process.opcua -> ext: opc.tcp
+process.i3x -> client: HTTP
+```
+
+</details>
+
 ---
 
 ## Why embed?
@@ -510,65 +543,17 @@ main().catch((err) => {
 
 ---
 
-## Architecture
-
-<!-- mermaid-img -->
-<p align="center">
-  <img src="https://mermaid.ink/svg/Z3JhcGggVEQKICAgIHN1YmdyYXBoIFBST0NFU1NbIllvdXIgTm9kZS5qcyBQcm9jZXNzIl0KICAgICAgICBkaXJlY3Rpb24gVEIKCiAgICAgICAgc3ViZ3JhcGggU0VSVkVSWyJPUENVQVNlcnZlciAobm9kZS1vcGN1YSkiXQogICAgICAgICAgICBBU1siQWRkcmVzc1NwYWNlPGJyLz4oeW91ciBub2RlcykiXQogICAgICAgIGVuZAoKICAgICAgICBBUyAtLSAiUHNldWRvU2Vzc2lvbjxici8+KGluLXByb2Nlc3MsIDAgbXMpIiAtLT4gQURBUFRFUlsiUHNldWRvU2Vzc2lvbkRhdGFTb3VyY2VBZGFwdGVyIl0KCiAgICAgICAgQURBUFRFUiAtLT4gUE9SVFsiSURhdGFTb3VyY2VQb3J0Il0KCiAgICAgICAgUE9SVCAtLT4gTVNbIk1vZGVsU2VydmljZSJdCiAgICAgICAgUE9SVCAtLT4gVlNbIlZhbHVlU2VydmljZSJdCiAgICAgICAgUE9SVCAtLT4gSFNbIkhpc3RvcnlTZXJ2aWNlIl0KICAgICAgICBQT1JUIC0tPiBTU1siU3Vic2NyaXB0aW9uU2VydmljZSJdCgogICAgICAgIE1TICYgVlMgJiBIUyAmIFNTIC0tPiBSRVNUWyJSRVNUIFNlcnZlciAoRmFzdGlmeSkiXQogICAgZW5kCgogICAgU0VSVkVSIC0tICJvcGMudGNwOi8vIiAtLT4gRVhUWyJPUEMgVUEgQ2xpZW50czxici8+KFVhRXhwZXJ0LCBQTENzLCAuLi4pIl0KICAgIFJFU1QgLS0gImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIgLS0+IENMSUVOVFsiWW91ciBXZWIgQXBwIC8gSFRUUCBDbGllbnQiXQoKICAgIHN0eWxlIFBST0NFU1MgZmlsbDojMWExYTJlLHN0cm9rZTojMTYyMTNlLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFNFUlZFUiBmaWxsOiMwZjM0NjAsc3Ryb2tlOiM1MzM0ODMsY29sb3I6I2UwZTBlMAogICAgc3R5bGUgQVMgZmlsbDojNTMzNDgzLHN0cm9rZTojZTk0NTYwLGNvbG9yOiNmZmYKICAgIHN0eWxlIEFEQVBURVIgZmlsbDojMTYyMTNlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFBPUlQgZmlsbDojZTk0NTYwLHN0cm9rZTojZmZmLGNvbG9yOiNmZmYsZm9udC13ZWlnaHQ6Ym9sZAogICAgc3R5bGUgTVMgZmlsbDojMWExYTJlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFZTIGZpbGw6IzFhMWEyZSxzdHJva2U6IzBmMzQ2MCxjb2xvcjojZTBlMGUwCiAgICBzdHlsZSBIUyBmaWxsOiMxYTFhMmUsc3Ryb2tlOiMwZjM0NjAsY29sb3I6I2UwZTBlMAogICAgc3R5bGUgU1MgZmlsbDojMWExYTJlLHN0cm9rZTojMGYzNDYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIFJFU1QgZmlsbDojMGYzNDYwLHN0cm9rZTojZTk0NTYwLGNvbG9yOiNlMGUwZTAKICAgIHN0eWxlIENMSUVOVCBmaWxsOiNlOTQ1NjAsc3Ryb2tlOiNmZmYsY29sb3I6I2ZmZgogICAgc3R5bGUgRVhUIGZpbGw6IzUzMzQ4MyxzdHJva2U6I2U5NDU2MCxjb2xvcjojZmZm" alt="diagram" />
-</p>
-
-<details><summary>Diagram source (mermaid)</summary>
-
-```mermaid
-graph TD
-    subgraph PROCESS["Your Node.js Process"]
-        direction TB
-
-        subgraph SERVER["OPCUAServer (node-opcua)"]
-            AS["AddressSpace<br/>(your nodes)"]
-        end
-
-        AS -- "PseudoSession<br/>(in-process, 0 ms)" --> ADAPTER["PseudoSessionDataSourceAdapter"]
-
-        ADAPTER --> PORT["IDataSourcePort"]
-
-        PORT --> MS["ModelService"]
-        PORT --> VS["ValueService"]
-        PORT --> HS["HistoryService"]
-        PORT --> SS["SubscriptionService"]
-
-        MS & VS & HS & SS --> REST["REST Server (Fastify)"]
-    end
-
-    SERVER -- "opc.tcp://" --> EXT["OPC UA Clients<br/>(UaExpert, PLCs, ...)"]
-    REST -- "http://localhost:8080" --> CLIENT["Your Web App / HTTP Client"]
-
-    style PROCESS fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
-    style SERVER fill:#0f3460,stroke:#533483,color:#e0e0e0
-    style AS fill:#533483,stroke:#e94560,color:#fff
-    style ADAPTER fill:#16213e,stroke:#0f3460,color:#e0e0e0
-    style PORT fill:#e94560,stroke:#fff,color:#fff,font-weight:bold
-    style MS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
-    style VS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
-    style HS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
-    style SS fill:#1a1a2e,stroke:#0f3460,color:#e0e0e0
-    style REST fill:#0f3460,stroke:#e94560,color:#e0e0e0
-    style CLIENT fill:#e94560,stroke:#fff,color:#fff
-    style EXT fill:#533483,stroke:#e94560,color:#fff
-```
-
-</details>
-
----
-
 ## License
 
 This tutorial and the `@node-i3x/pseudo-session-connector` package are
 dual-licensed:
 
 - **[AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html)** --
-  free for open-source use
-- **[Sterfive Commercial License](https://sterfive.com)** -- proprietary use
+  you may use, modify, and distribute this software freely, provided that
+  all derivative works and network-accessible deployments also make their
+  complete source code available under the AGPL.
+- **[Sterfive Commercial License](https://sterfive.com)** -- allows
+  proprietary and closed-source use without copyleft obligations.
 
 Contact [contact@sterfive.com](mailto:contact@sterfive.com) for commercial
 licensing.

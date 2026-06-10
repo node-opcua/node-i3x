@@ -1,0 +1,77 @@
+direction: down
+
+process: Your Node.js Process {
+  style.fill: "#f0f4f8"
+  style.stroke: "#3498db"
+  style.stroke-width: 2
+  style.border-radius: 8
+
+  opcua: OPCUAServer (node-opcua) {
+    style.fill: "#ebf5fb"
+    style.stroke: "#2980b9"
+    style.stroke-width: 2
+    style.border-radius: 6
+
+    as: AddressSpace {
+      style.fill: "#d5f5e5"
+      style.stroke: "#27ae60"
+      style.border-radius: 4
+    }
+  }
+
+  adapter: PseudoSessionDataSourceAdapter {
+    style.fill: "#dee2ff"
+    style.stroke: "#5468ff"
+    style.border-radius: 4
+  }
+
+  port: IDataSourcePort {
+    style.fill: "#e74c3c"
+    style.stroke: "#c0392b"
+    style.font-color: "#fff"
+    style.bold: true
+    style.border-radius: 4
+  }
+
+  services: Domain Services {
+    style.fill: "#fde8e8"
+    style.stroke: "#e74c3c"
+    style.border-radius: 4
+  }
+
+  i3x: i3X Server (Fastify) {
+    style.fill: "#3498db"
+    style.stroke: "#2980b9"
+    style.font-color: "#fff"
+    style.bold: true
+    style.border-radius: 4
+  }
+
+  opcua.as -> adapter: PseudoSession {
+    style.stroke: "#27ae60"
+  }
+  adapter -> port
+  port -> services
+  services -> i3x
+}
+
+ext: "OPC UA Clients\n(UaExpert, PLCs, ...)" {
+  style.fill: "#d5f5e5"
+  style.stroke: "#27ae60"
+  style.border-radius: 4
+}
+
+client: "Your Web App\n(HTTP Client)" {
+  style.fill: "#f9e85c"
+  style.stroke: "#f1c40f"
+  style.border-radius: 4
+}
+
+process.opcua -> ext: opc.tcp {
+  style.stroke: "#27ae60"
+  style.stroke-width: 2
+}
+process.i3x -> client: HTTP {
+  style.stroke: "#3498db"
+  style.stroke-width: 2
+}
