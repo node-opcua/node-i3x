@@ -395,6 +395,33 @@ describe('REST API', () => {
     expect(body.results[2].error.code).toBe(404);
   });
 
+  it('GET /v1/relationshiptypes returns static relationship types list', async () => {
+    const res = await app.inject({ method: 'GET', url: '/v1/relationshiptypes' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.result).toHaveLength(2);
+    expect(body.result[0].elementId).toBe('HasComponent');
+    expect(body.result[1].elementId).toBe('IsComponentOf');
+  });
+
+  it('POST /v1/relationshiptypes/query returns bulk relationship types details', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/relationshiptypes/query',
+      payload: { elementIds: ['HasComponent', 'missing-rel-id'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false); // Top level false due to missing-rel-id
+    expect(body.results).toHaveLength(2);
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[0].elementId).toBe('HasComponent');
+    expect(body.results[1].success).toBe(false);
+    expect(body.results[1].elementId).toBe('missing-rel-id');
+    expect(body.results[1].error.code).toBe(404);
+  });
+
   it('GET /health returns ok', async () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);
