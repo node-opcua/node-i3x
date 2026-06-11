@@ -482,9 +482,13 @@ export class SubscriptionService {
       if (!propertyElementId) continue;
 
       // Update the VQT cache for this property
+      let mappedQuality = quality as DataQuality;
+      if ((value === null || value === undefined) && mappedQuality !== 'Bad') {
+        mappedQuality = 'GoodNoData';
+      }
       asset.components.set(propertyElementId, {
         value,
-        quality: quality as DataQuality,
+        quality: mappedQuality,
         timestamp,
       });
       asset.dirty = true;
@@ -532,10 +536,15 @@ export class SubscriptionService {
     } else {
       // Leaf node — single property value
       const firstVqt = asset.components.values().next().value as VQT | undefined;
+      const val = firstVqt?.value ?? null;
+      let qual = firstVqt?.quality ?? 'Good';
+      if ((val === null || val === undefined) && qual !== 'Bad') {
+        qual = 'GoodNoData';
+      }
       compositeValue = {
         isComposition: false,
-        value: firstVqt?.value ?? null,
-        quality: firstVqt?.quality ?? 'Good',
+        value: val,
+        quality: qual as DataQuality,
         timestamp: firstVqt?.timestamp ?? now,
       };
     }

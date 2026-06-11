@@ -264,6 +264,56 @@ describe('REST API', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it('POST /v1/objects/value obeys maxDepth semantics and maps null quality', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const rootId = model.rootIds[0]!; // Machine asset
+
+    // 1. maxDepth = 1 => components is null
+    const resDepth1 = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [rootId], maxDepth: 1 },
+    });
+    expect(resDepth1.statusCode).toBe(200);
+    const body1 = resDepth1.json();
+    expect(body1.success).toBe(true);
+    expect(body1.results[0].result.isComposition).toBe(true);
+    expect(body1.results[0].result.components).toBeNull();
+
+    // 2. maxDepth = 2 => components contains Temperature property
+    const resDepth2 = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [rootId], maxDepth: 2 },
+    });
+    expect(resDepth2.statusCode).toBe(200);
+    const body2 = resDepth2.json();
+    expect(body2.success).toBe(true);
+    expect(body2.results[0].result.isComposition).toBe(true);
+    expect(body2.results[0].result.components).not.toBeNull();
+    const tempKey = Object.keys(body2.results[0].result.components)[0]!;
+    expect(body2.results[0].result.components[tempKey].value).toBe(42.5);
+    expect(body2.results[0].result.components[tempKey].quality).toBe('Good');
+
+    // 3. Null value quality mapping
+    // Set Temperature to null
+    const ds = (modelService as any).dataSource as MockDataSource;
+    ds.values['ns=2;s=Temperature'] = null;
+
+    const resNullVal = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [rootId], maxDepth: 2 },
+    });
+    const bodyNullVal = resNullVal.json();
+    expect(bodyNullVal.results[0].result.components[tempKey].value).toBeNull();
+    expect(bodyNullVal.results[0].result.components[tempKey].quality).toBe('GoodNoData');
+
+    // Restore temperature value
+    ds.values['ns=2;s=Temperature'] = 42.5;
+  });
+
   it('GET /health returns ok', async () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);

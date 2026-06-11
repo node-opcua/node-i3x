@@ -71,13 +71,18 @@ export class ValueService {
       for (let j = 0; j < leaves.length; j++) {
         const { idx, elementId } = leaves[j]!;
         const dv = values[j];
+        const val = dv ? dv.value : null;
+        let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
+        if ((val === null || val === undefined) && qual !== 'Bad') {
+          qual = 'GoodNoData';
+        }
         results[idx] = {
           success: true,
           elementId,
           result: {
             isComposition: false,
-            value: dv ? dv.value : null,
-            quality: (dv ? dv.quality : 'GoodNoData') as DataQuality,
+            value: val,
+            quality: qual,
             timestamp: dv ? dv.timestamp : new Date().toISOString(),
           },
         };
@@ -87,7 +92,8 @@ export class ValueService {
     // ── Phase 3: read composites in parallel ───────────────
     await Promise.all(
       composites.map(async ({ idx, elementId, node }) => {
-        const components = await this._readComponents(model, node, maxDepth, 0);
+        const components =
+          maxDepth > 1 ? await this._readComponents(model, node, maxDepth, 0) : null;
         results[idx] = {
           success: true,
           elementId,
@@ -96,7 +102,8 @@ export class ValueService {
             value: null,
             quality: 'Good',
             timestamp: new Date().toISOString(),
-            components: components.size > 0 ? Object.fromEntries(components) : null,
+            components:
+              components && components.size > 0 ? Object.fromEntries(components) : null,
           },
         };
       }),
@@ -118,7 +125,7 @@ export class ValueService {
     maxDepth: number,
     currentDepth: number,
   ): Promise<Map<string, VQT>> {
-    if (maxDepth > 0 && currentDepth >= maxDepth) return new Map();
+    if (maxDepth > 0 && currentDepth >= maxDepth - 1) return new Map();
 
     const childIds = model.childrenById.get(parent.id) ?? [];
     const propIds: string[] = [];
@@ -147,9 +154,14 @@ export class ValueService {
         const dv = values[i];
         const pid = propIds[i];
         if (!pid) continue;
+        const val = dv ? dv.value : null;
+        let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
+        if ((val === null || val === undefined) && qual !== 'Bad') {
+          qual = 'GoodNoData';
+        }
         result.set(pid, {
-          value: dv ? dv.value : null,
-          quality: (dv ? dv.quality : 'GoodNoData') as DataQuality,
+          value: val,
+          quality: qual,
           timestamp: dv ? dv.timestamp : now,
         });
       }
