@@ -48,7 +48,11 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
 
   await app.register(requestIdPlugin);
   await app.register(cors, { origin: true });
-  await app.register(compress, { global: true });
+  await app.register(compress, {
+    global: true,
+    threshold: 0,
+    encodings: ['gzip', 'identity'],
+  });
 
   // Register error handler
   registerErrorHandler(app);

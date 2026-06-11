@@ -167,6 +167,16 @@ describe('REST API', () => {
     expect(body.result.capabilities.subscribe.stream).toBe(true);
   });
 
+  it('responds with gzip when Accept-Encoding: gzip is sent', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/namespaces',
+      headers: { 'accept-encoding': 'gzip' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-encoding']).toBe('gzip');
+  });
+
   it('GET /v1/namespaces returns namespace list', async () => {
     const res = await app.inject({ method: 'GET', url: '/v1/namespaces' });
     expect(res.statusCode).toBe(200);
