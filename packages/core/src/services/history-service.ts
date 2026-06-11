@@ -36,6 +36,11 @@ export class HistoryService {
               success: false,
               elementId,
               error: { code: 404, message: 'Element not found' },
+              responseDetail: {
+                title: 'Not Found',
+                status: 404,
+                detail: 'Element not found',
+              },
             };
           }
 
@@ -62,6 +67,11 @@ export class HistoryService {
               success: false,
               elementId,
               error: { code: 501, message: 'History read not supported' },
+              responseDetail: {
+                title: 'Not Implemented',
+                status: 501,
+                detail: 'History read not supported',
+              },
             };
           }
         },

@@ -42,6 +42,11 @@ export class ValueService {
           success: false,
           elementId,
           error: { code: 404, message: 'Object value not found' },
+          responseDetail: {
+            title: 'Not Found',
+            status: 404,
+            detail: 'Object value not found',
+          },
         };
         continue;
       }

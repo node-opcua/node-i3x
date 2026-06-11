@@ -384,7 +384,7 @@ describe('REST API', () => {
 
   it('POST /v1/objecttypes/query returns bulk object types details', async () => {
     // MachineType elementId
-    const machineTypeId = stableI3xId('nsu=http://example.com/:Machine Type', 'asset');
+    const machineTypeId = stableI3xId('nsu=http://example.com/:Machine Type', 'type');
 
     const res = await app.inject({
       method: 'POST',
@@ -547,5 +547,45 @@ describe('REST API', () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);
     expect(res.json().status).toBe('ok');
+  });
+  it('POST /v1/objects/value failed items include responseDetail', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [propId, 'no-such-element'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[1].success).toBe(false);
+    expect(body.results[1].responseDetail).toEqual({
+      title: 'Not Found',
+      status: 404,
+      detail: 'Object value not found',
+    });
+  });
+
+  it('POST /v1/objects/history failed items include responseDetail', async () => {
+    await modelService.preloadModel();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/history',
+      payload: { elementIds: ['no-such-element'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.results[0].success).toBe(false);
+    expect(body.results[0].responseDetail).toEqual({
+      title: 'Not Found',
+      status: 404,
+      detail: 'Element not found',
+    });
   });
 });

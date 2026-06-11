@@ -19,12 +19,19 @@ export interface ErrorResponse {
   error: ErrorDetail;
 }
 
+export interface ResponseDetail {
+  title: string;
+  status: number;
+  detail: string;
+}
+
 export interface BulkResultItem<T> {
   success: boolean;
   elementId?: string | null;
   subscriptionId?: string | null;
   result?: T | null;
   error?: ErrorDetail | null;
+  responseDetail?: ResponseDetail | null;
 }
 
 export interface BulkResponse<T> {
