@@ -260,6 +260,30 @@ describe('ModelService – uniqueness', () => {
     expect(assetId).toMatch(/^asset-/);
     expect(propertyId).toMatch(/^property-/);
   });
+
+  it('dangling/unreachable nodes fallback to sourceNodeId to ensure unique element IDs', async () => {
+    const nodes = [
+      sourceNode({
+        sourceNodeId: 'ns=2;i=10',
+        nsuQualifiedName: 'nsu=http://test.org/:Dangling',
+        parentSourceNodeId: 'ns=2;i=999',
+      }),
+      sourceNode({
+        sourceNodeId: 'ns=2;i=11',
+        nsuQualifiedName: 'nsu=http://test.org/:Dangling',
+        parentSourceNodeId: 'ns=2;i=999',
+      }),
+    ];
+    const svc = new ModelService(mockDataSource(nodes), nullLogger);
+    const model = await svc.getOrBuildModel();
+
+    const expectedId1 = stableI3xId('ns=2;i=10', 'asset');
+    const expectedId2 = stableI3xId('ns=2;i=11', 'asset');
+
+    expect(model.nodesById.has(expectedId1)).toBe(true);
+    expect(model.nodesById.has(expectedId2)).toBe(true);
+    expect(expectedId1).not.toBe(expectedId2);
+  });
 });
 
 describe('ModelService – property and action mapping', () => {

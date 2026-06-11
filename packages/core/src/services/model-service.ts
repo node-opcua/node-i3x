@@ -119,11 +119,11 @@ export class ModelService {
       const childSources = childSourcesByParent.get(sourceId) ?? [];
       const childIds = childSources.map((cId) => {
         const cNode = bySourceId.get(cId)!;
-        const cPath = browsePathBySourceId.get(cId) ?? cNode.nsuQualifiedName;
+        const cPath = browsePathBySourceId.get(cId) ?? cNode.sourceNodeId;
         return stableI3xId(cPath, inferKind(cNode));
       });
 
-      const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.nsuQualifiedName;
+      const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
       const mapped = mapNode(srcNode, childIds, browsePath);
       nodesById.set(mapped.id, mapped);
       childrenById.set(mapped.id, childIds);
