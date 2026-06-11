@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { getDeps, rethrowAsI3x } from '../errors.js';
+import { getDeps, i3xError, rethrowAsI3x } from '../errors.js';
 import { bulkResponse } from '../helpers/response.js';
 
 export default async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
@@ -11,9 +11,13 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     async (
       req: FastifyRequest<{ Body: { clientId?: string; displayName?: string } }>,
     ) => {
+      const { clientId, displayName } = req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
       const result = deps.subscriptionService.create({
-        clientId: req.body.clientId,
-        displayName: req.body.displayName,
+        clientId,
+        displayName,
       });
       return { success: true, result };
     },
@@ -24,10 +28,22 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     '/v1/subscriptions/register',
     async (
       req: FastifyRequest<{
-        Body: { subscriptionId: string; elementIds: string[]; maxDepth?: number };
+        Body: {
+          subscriptionId: string;
+          elementIds: string[];
+          maxDepth?: number;
+          clientId?: string;
+        };
       }>,
     ) => {
-      const { subscriptionId, elementIds, maxDepth } = req.body;
+      const { subscriptionId, elementIds, maxDepth, clientId } = req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list([subscriptionId]);
+      if (details.length === 0 || details[0]!.clientId !== clientId) {
+        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+      }
       try {
         const { registered, errors } = await deps.subscriptionService.register(
           subscriptionId,
@@ -54,9 +70,18 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   app.post(
     '/v1/subscriptions/unregister',
     async (
-      req: FastifyRequest<{ Body: { subscriptionId: string; elementIds: string[] } }>,
+      req: FastifyRequest<{
+        Body: { subscriptionId: string; elementIds: string[]; clientId?: string };
+      }>,
     ) => {
-      const { subscriptionId, elementIds } = req.body;
+      const { subscriptionId, elementIds, clientId } = req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list([subscriptionId]);
+      if (details.length === 0 || details[0]!.clientId !== clientId) {
+        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+      }
       try {
         await deps.subscriptionService.unregister(subscriptionId, elementIds);
         const results = elementIds.map((eid) => ({
@@ -80,10 +105,19 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           subscriptionId: string;
           acknowledgeSequence?: number;
           lastSequenceNumber?: number;
+          clientId?: string;
         };
       }>,
     ) => {
-      const { subscriptionId, acknowledgeSequence, lastSequenceNumber } = req.body;
+      const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
+        req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list([subscriptionId]);
+      if (details.length === 0 || details[0]!.clientId !== clientId) {
+        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+      }
       const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
       try {
         const updates = deps.subscriptionService.sync(subscriptionId, ackSeq);
@@ -95,10 +129,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   );
 
   // ── POST /v1/subscriptions/stream ──────────────────────────
-  // True Server-Sent Events (SSE) stream, matching the Python
-  // reference: the connection stays open and we loop, yielding
-  // batches of updates as they arrive.  Keepalive comments are
-  // sent on timeout so the connection doesn't drop.
   app.post(
     '/v1/subscriptions/stream',
     async (
@@ -107,26 +137,25 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           subscriptionId: string;
           acknowledgeSequence?: number;
           lastSequenceNumber?: number;
+          clientId?: string;
         };
       }>,
       reply,
     ) => {
-      const { subscriptionId, acknowledgeSequence, lastSequenceNumber } = req.body;
+      const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
+        req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list([subscriptionId]);
+      if (details.length === 0 || details[0]!.clientId !== clientId) {
+        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+      }
       const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
 
       try {
         // Validate subscription exists BEFORE hijacking the response
         deps.subscriptionService.acknowledge(subscriptionId, ackSeq);
-
-        // If acknowledge didn't throw but sub doesn't exist in list,
-        // return 404 via normal Fastify response (before hijack).
-        const details = deps.subscriptionService.list([subscriptionId]);
-        if (details.length === 0) {
-          return reply.status(404).send({
-            success: false,
-            error: { code: 404, message: `Subscription ${subscriptionId} not found` },
-          });
-        }
 
         // Tell Fastify we're taking over the raw response —
         // without this, Fastify finalizes the response immediately.
@@ -185,10 +214,21 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   // ── POST /v1/subscriptions/delete ──────────────────────────
   app.post(
     '/v1/subscriptions/delete',
-    async (req: FastifyRequest<{ Body: { subscriptionIds: string[] } }>) => {
-      const results = await deps.subscriptionService.deleteSubscriptions(
-        req.body.subscriptionIds,
-      );
+    async (
+      req: FastifyRequest<{ Body: { subscriptionIds: string[]; clientId?: string } }>,
+    ) => {
+      const { subscriptionIds, clientId } = req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list(subscriptionIds);
+      for (const id of subscriptionIds) {
+        const d = details.find((x) => x.subscriptionId === id);
+        if (!d || d.clientId !== clientId) {
+          throw i3xError(404, 404, `Subscription ${id} not found`);
+        }
+      }
+      const results = await deps.subscriptionService.deleteSubscriptions(subscriptionIds);
       return bulkResponse(results);
     },
   );
@@ -196,13 +236,46 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
   // ── POST /v1/subscriptions/list ────────────────────────────
   app.post(
     '/v1/subscriptions/list',
-    async (req: FastifyRequest<{ Body: { subscriptionIds: string[] } }>) => {
-      const details = deps.subscriptionService.list(req.body.subscriptionIds);
-      const results = details.map((d) => ({
-        success: true,
-        subscriptionId: d.subscriptionId,
-        result: d,
-      }));
+    async (
+      req: FastifyRequest<{ Body: { subscriptionIds?: string[]; clientId?: string } }>,
+    ) => {
+      const { subscriptionIds, clientId } = req.body;
+      if (!clientId) {
+        throw i3xError(400, 400, 'clientId is required');
+      }
+      const details = deps.subscriptionService.list(subscriptionIds);
+
+      let results: any[];
+      if (subscriptionIds && subscriptionIds.length > 0) {
+        results = subscriptionIds.map((id) => {
+          const d = details.find((x) => x.subscriptionId === id);
+          if (!d || d.clientId !== clientId) {
+            return {
+              success: false,
+              subscriptionId: id,
+              error: { code: 404, message: `Subscription ${id} not found` },
+              responseDetail: {
+                title: 'Not Found',
+                status: 404,
+                detail: `Subscription ${id} not found`,
+              },
+            };
+          }
+          return {
+            success: true,
+            subscriptionId: id,
+            result: d,
+          };
+        });
+      } else {
+        const filtered = details.filter((d) => d.clientId === clientId);
+        results = filtered.map((d) => ({
+          success: true,
+          subscriptionId: d.subscriptionId,
+          result: d,
+        }));
+      }
+
       return bulkResponse(results);
     },
   );

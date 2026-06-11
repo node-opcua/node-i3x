@@ -228,7 +228,12 @@ describe('REST API', () => {
     const regRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/register',
-      payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
+      payload: {
+        subscriptionId: subId,
+        elementIds: [propId],
+        maxDepth: 1,
+        clientId: 'test',
+      },
     });
     expect(regRes.statusCode).toBe(200);
     expect(regRes.json().success).toBe(true);
@@ -239,7 +244,7 @@ describe('REST API', () => {
     const listRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/list',
-      payload: { subscriptionIds: [subId] },
+      payload: { subscriptionIds: [subId], clientId: 'test' },
     });
     expect(listRes.statusCode).toBe(200);
     expect(listRes.json().results[0].success).toBe(true);
@@ -250,7 +255,7 @@ describe('REST API', () => {
     const delRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/delete',
-      payload: { subscriptionIds: [subId] },
+      payload: { subscriptionIds: [subId], clientId: 'test' },
     });
     expect(delRes.statusCode).toBe(200);
     expect(delRes.json().results[0].success).toBe(true);
@@ -260,7 +265,7 @@ describe('REST API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/stream',
-      payload: { subscriptionId: 'missing' },
+      payload: { subscriptionId: 'missing', clientId: 'test' },
     });
     expect(res.statusCode).toBe(404);
   });
@@ -351,14 +356,23 @@ describe('REST API', () => {
     await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/register',
-      payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
+      payload: {
+        subscriptionId: subId,
+        elementIds: [propId],
+        maxDepth: 1,
+        clientId: 'test-unregister',
+      },
     });
 
     // Unregister
     const unregRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/unregister',
-      payload: { subscriptionId: subId, elementIds: [propId] },
+      payload: {
+        subscriptionId: subId,
+        elementIds: [propId],
+        clientId: 'test-unregister',
+      },
     });
     expect(unregRes.statusCode).toBe(200);
     const unregBody = unregRes.json();
@@ -476,6 +490,57 @@ describe('REST API', () => {
       url: '/v1/objects/history',
     });
     expect(resHist.statusCode).toBe(501);
+  });
+
+  it('enforces clientId checks and returns 400/404 appropriately', async () => {
+    // 1. Create subscription with missing clientId -> 400 Bad Request
+    const resCreateMissing = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { displayName: 'No Client ID' },
+    });
+    expect(resCreateMissing.statusCode).toBe(400);
+
+    // 2. Create subscription with correct clientId
+    const resCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { clientId: 'client-a', displayName: 'Client A Sub' },
+    });
+    expect(resCreate.statusCode).toBe(200);
+    const subId = resCreate.json().result.subscriptionId;
+
+    // 3. Register with missing clientId -> 400 Bad Request
+    const resRegMissing = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: { subscriptionId: subId, elementIds: [] },
+    });
+    expect(resRegMissing.statusCode).toBe(400);
+
+    // 4. Register with incorrect clientId -> 404 Not Found
+    const resRegWrong = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: { subscriptionId: subId, elementIds: [], clientId: 'client-b' },
+    });
+    expect(resRegWrong.statusCode).toBe(404);
+
+    // 5. Register with correct clientId -> 200 OK
+    const resRegOk = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: { subscriptionId: subId, elementIds: [], clientId: 'client-a' },
+    });
+    expect(resRegOk.statusCode).toBe(200);
+
+    // 6. Delete with wrong client -> 404 Not Found
+    const resDelWrong = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
+      payload: { subscriptionIds: [subId], clientId: 'client-b' },
+    });
+    expect(resDelWrong.statusCode).toBe(404);
   });
 
   it('GET /health returns ok', async () => {
