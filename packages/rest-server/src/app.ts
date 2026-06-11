@@ -2,6 +2,7 @@
 // @node-i3x/rest-server — Fastify app factory
 // ─────────────────────────────────────────────────────────────
 
+import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 
@@ -47,6 +48,7 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
 
   await app.register(requestIdPlugin);
   await app.register(cors, { origin: true });
+  await app.register(compress, { global: true });
 
   // Register error handler
   registerErrorHandler(app);
