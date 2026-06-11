@@ -70,6 +70,16 @@ export class ModelService {
   }
 
   private async _build(): Promise<BuildResult> {
+    const sourceTypes = await this.dataSource.getObjectTypes();
+    const typeIdMap = new Map<string, string>();
+    for (const t of sourceTypes) {
+      const typeElementId = stableI3xId(
+        `nsu=${t.namespaceUri}:${t.displayName}`,
+        'asset',
+      );
+      typeIdMap.set(t.sourceNodeId, typeElementId);
+    }
+
     const sourceNodes = await this.dataSource.browseTree();
     const bySourceId = new Map<string, SourceNodeInfo>();
     for (const n of sourceNodes) bySourceId.set(n.sourceNodeId, n);
@@ -125,6 +135,14 @@ export class ModelService {
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
       const mapped = mapNode(srcNode, childIds, browsePath);
+      if (mapped.kind === 'asset') {
+        const typeDef = srcNode.typeDefinition;
+        if (typeDef && typeIdMap.has(typeDef)) {
+          (mapped as any).type = typeIdMap.get(typeDef)!;
+        } else {
+          (mapped as any).type = 'UnknownType';
+        }
+      }
       nodesById.set(mapped.id, mapped);
       childrenById.set(mapped.id, childIds);
 

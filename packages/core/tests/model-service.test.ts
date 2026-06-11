@@ -381,4 +381,45 @@ describe('ModelService – edge cases', () => {
       expect(model.nodesById.has(expectedId)).toBe(true);
     }
   });
+
+  it('resolves asset type to matched Object Type or UnknownType', async () => {
+    const rootNsu = 'nsu=http://test.org/:Root';
+    const nodes = [
+      sourceNode({
+        sourceNodeId: 'ns=2;i=1',
+        nsuQualifiedName: rootNsu,
+        typeDefinition: 'ns=1;i=1001',
+      }),
+      sourceNode({
+        sourceNodeId: 'ns=2;i=2',
+        nsuQualifiedName: 'nsu=http://test.org/:Dangling',
+        typeDefinition: 'ns=1;i=2002',
+        parentSourceNodeId: 'ns=2;i=999',
+      }),
+    ];
+
+    const ds = {
+      ...mockDataSource(nodes),
+      getObjectTypes: async () => [
+        {
+          sourceNodeId: 'ns=1;i=1001',
+          parentSourceNodeId: null,
+          browseName: 'MachineType',
+          displayName: 'MachineType',
+          namespaceUri: 'http://test.org/',
+        },
+      ],
+    };
+
+    const svc = new ModelService(ds, nullLogger);
+    const model = await svc.getOrBuildModel();
+
+    const rootId = stableI3xId(rootNsu, 'asset');
+    const rootNode = model.nodesById.get(rootId);
+    expect(rootNode?.type).toBe(stableI3xId('nsu=http://test.org/:MachineType', 'asset'));
+
+    const danglingId = stableI3xId('ns=2;i=2', 'asset');
+    const danglingNode = model.nodesById.get(danglingId);
+    expect(danglingNode?.type).toBe('UnknownType');
+  });
 });

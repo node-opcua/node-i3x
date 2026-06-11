@@ -15,21 +15,33 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       const types = await deps.dataSource.getObjectTypes();
       const { namespaceUri } = req.query;
 
+      const mapped = types.map((t) => ({
+        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'asset'),
+        displayName: t.displayName,
+        namespaceUri: t.namespaceUri,
+        sourceTypeId: t.sourceNodeId,
+        version: null,
+        schema: {},
+        related: null,
+      }));
+
+      mapped.push({
+        elementId: 'UnknownType',
+        displayName: 'UnknownType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+        sourceTypeId: 'ns=0;i=58',
+        version: null,
+        schema: {},
+        related: null,
+      });
+
       const filtered = namespaceUri
-        ? types.filter((t) => t.namespaceUri === namespaceUri)
-        : types;
+        ? mapped.filter((t) => t.namespaceUri === namespaceUri)
+        : mapped;
 
       return {
         success: true,
-        result: filtered.map((t) => ({
-          elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'asset'),
-          displayName: t.displayName,
-          namespaceUri: t.namespaceUri,
-          sourceTypeId: t.sourceNodeId,
-          version: null,
-          schema: {},
-          related: null,
-        })),
+        result: filtered,
       };
     },
   );
