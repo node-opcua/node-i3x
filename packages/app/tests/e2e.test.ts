@@ -321,7 +321,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(body.result.specVersion).toBe('beta');
+    expect(body.result.specVersion).toBe('1.0');
     expect(body.result.capabilities.query.history).toBe(true);
   });
 

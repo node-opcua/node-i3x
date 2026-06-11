@@ -187,7 +187,11 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
         let closed = false;
 
         const closeStream = () => {
+          if (closed) return;
           closed = true;
+          if (!reply.raw.writableEnded) {
+            reply.raw.end();
+          }
         };
 
         req.raw.on('close', () => {
@@ -227,7 +231,9 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
         }
 
-        reply.raw.end();
+        if (!reply.raw.writableEnded) {
+          reply.raw.end();
+        }
       } catch (err) {
         if (!reply.raw.headersSent) {
           rethrowAsI3x(err);

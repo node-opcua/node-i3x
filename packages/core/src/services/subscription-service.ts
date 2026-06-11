@@ -319,6 +319,9 @@ export class SubscriptionService {
     if (sub.activeStreamClose) {
       // Close the previous stream
       sub.activeStreamClose();
+      // Wake up any blocked waitForUpdates so the old loop exits now
+      for (const w of sub.waiters) w([]);
+      sub.waiters = [];
     }
     sub.activeStreamClose = closeCallback;
   }
