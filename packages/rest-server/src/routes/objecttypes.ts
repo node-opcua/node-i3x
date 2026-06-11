@@ -1,4 +1,4 @@
-import { buildTypeIdMap } from '@node-i3x/core';
+import { buildObjectTypeSchema, buildTypeIdMap } from '@node-i3x/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps } from '../errors.js';
 import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
@@ -24,7 +24,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
         version: null,
-        schema: {},
+        schema: buildObjectTypeSchema(t, types),
         related: null,
       }));
 
@@ -63,7 +63,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
         version: null,
-        schema: {},
+        schema: buildObjectTypeSchema(t, types),
         related: null,
       }));
 

@@ -9,6 +9,7 @@ import type {
   MonitoredSubscriptionOptions,
   NamespaceInfo,
   ObjectTypeInfo,
+  ObjectTypeMemberInfo,
   SourceDataValue,
   SourceHistoricalValue,
   SourceNodeInfo,
@@ -310,7 +311,109 @@ export class OpcUaClient {
       `Browse object types: ${items.length} types in ${ms.toFixed(0)}ms ` +
         `(strategy=${strategy}, transactions=${txCount})`,
     );
-    return items;
+
+    // Enrich each type with its direct members.
+    // Skip standard OPC UA types (ns=0) to avoid timeout.
+    const enriched: ObjectTypeInfo[] = [];
+    for (const type of items) {
+      if (type.sourceNodeId.startsWith('ns=0;')) {
+        enriched.push(type);
+      } else {
+        const members = await this._browseTypeMembers(type.sourceNodeId);
+        enriched.push({ ...type, members });
+      }
+    }
+    return enriched;
+  }
+
+  /**
+   * Browse the direct children of an ObjectType node to discover
+   * its member Variables/Properties (for JSON Schema generation).
+   */
+  private async _browseTypeMembers(typeNodeId: string): Promise<ObjectTypeMemberInfo[]> {
+    const { refs } = await this._browseSingleNode(typeNodeId);
+    const members: ObjectTypeMemberInfo[] = [];
+
+    // Collect Variable member nodeIds for batch DataType read
+    const variableRefs: ReferenceDescription[] = [];
+    for (const ref of refs) {
+      if (
+        ref.nodeClass !== NodeClass.Variable &&
+        ref.nodeClass !== NodeClass.Object &&
+        ref.nodeClass !== NodeClass.Method
+      )
+        continue;
+
+      if (ref.nodeClass === NodeClass.Variable) {
+        variableRefs.push(ref);
+      }
+    }
+
+    // Batch-read DataType for all Variable members
+    const dataTypeMap = new Map<string, string | null>();
+    if (variableRefs.length > 0) {
+      const readItems: ReadValueIdOptions[] = variableRefs.map((ref) => ({
+        nodeId: ref.nodeId,
+        attributeId: AttributeIds.DataType,
+      }));
+      try {
+        const dvs = await this.session.read(readItems);
+        const arr = Array.isArray(dvs) ? dvs : [dvs];
+        for (let i = 0; i < variableRefs.length; i++) {
+          const childId = variableRefs[i]!.nodeId.toString();
+          const dtValue = arr[i]?.value?.value;
+          dataTypeMap.set(childId, dtValue ? dtValue.toString() : null);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Browse ModellingRule for all members
+    const modellingRuleMap = new Map<string, string | null>();
+    const memberRefs = refs.filter(
+      (r) =>
+        r.nodeClass === NodeClass.Variable ||
+        r.nodeClass === NodeClass.Object ||
+        r.nodeClass === NodeClass.Method,
+    );
+    if (memberRefs.length > 0) {
+      const mrDescriptions = memberRefs.map((ref) => ({
+        nodeId: ref.nodeId,
+        browseDirection: BrowseDirection.Forward,
+        includeSubtypes: true,
+        referenceTypeId: resolveNodeId('HasModellingRule'),
+        resultMask: 63,
+        requestedMaxReferencesPerNode: 0,
+      }));
+      try {
+        const mrResults = await browseAll(this.session, mrDescriptions);
+        for (let i = 0; i < memberRefs.length; i++) {
+          const childId = memberRefs[i]!.nodeId.toString();
+          const mrRef = mrResults[i]?.references?.[0];
+          modellingRuleMap.set(childId, mrRef?.displayName?.text ?? null);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    for (const ref of memberRefs) {
+      const childId = ref.nodeId.toString();
+      members.push({
+        browseName: ref.browseName?.name ?? ref.browseName?.toString() ?? '',
+        displayName: ref.displayName?.text ?? '',
+        nodeClass:
+          ref.nodeClass === NodeClass.Variable
+            ? 'Variable'
+            : ref.nodeClass === NodeClass.Object
+              ? 'Object'
+              : 'Method',
+        dataType: dataTypeMap.get(childId) ?? null,
+        modellingRule: modellingRuleMap.get(childId) ?? null,
+      });
+    }
+    return members;
   }
 
   // ── Namespace ──────────────────────────────────────────────

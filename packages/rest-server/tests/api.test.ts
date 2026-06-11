@@ -89,6 +89,15 @@ class MockDataSource implements IDataSourcePort {
         browseName: 'MachineType',
         displayName: 'Machine Type',
         namespaceUri: 'http://example.com/',
+        members: [
+          {
+            browseName: 'Temperature',
+            displayName: 'Temperature',
+            nodeClass: 'Variable',
+            dataType: 'Double',
+            modellingRule: 'Mandatory',
+          },
+        ],
       },
     ];
   }
@@ -185,12 +194,26 @@ describe('REST API', () => {
     expect(body.result).toHaveLength(2);
   });
 
-  it('GET /v1/objecttypes returns object types', async () => {
+  it('GET /v1/objecttypes returns object types with JSON schemas', async () => {
     const res = await app.inject({ method: 'GET', url: '/v1/objecttypes' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
     expect(body.result.length).toBeGreaterThanOrEqual(1);
+
+    // Find the MachineType (not UnknownType)
+    const machineType = body.result.find(
+      (t: Record<string, unknown>) => t.displayName === 'Machine Type',
+    );
+    expect(machineType).toBeDefined();
+    expect(machineType.schema.$schema).toBe(
+      'https://json-schema.org/draft/2020-12/schema',
+    );
+    expect(machineType.schema.type).toBe('object');
+    expect(machineType.schema.properties.Temperature).toEqual({
+      type: 'number',
+    });
+    expect(machineType.schema.required).toContain('Temperature');
   });
 
   it('GET /v1/objects only returns assets (no properties or actions)', async () => {

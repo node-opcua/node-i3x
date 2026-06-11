@@ -10,6 +10,7 @@ import type {
   MonitoredSubscriptionOptions,
   NamespaceInfo,
   ObjectTypeInfo,
+  ObjectTypeMemberInfo,
   SourceDataValue,
   SourceHistoricalValue,
   SourceNodeInfo,
@@ -165,7 +166,99 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       () => true,
     );
     this._logger.info(`PseudoSession getObjectTypes: ${items.length} types`);
-    return items;
+
+    // Enrich each type with its direct members.
+    // Skip standard OPC UA types (ns=0) to avoid timeout.
+    const enriched: ObjectTypeInfo[] = [];
+    for (const type of items) {
+      if (type.sourceNodeId.startsWith('ns=0;')) {
+        enriched.push(type);
+      } else {
+        const members = await this._browseTypeMembers(type.sourceNodeId);
+        enriched.push({ ...type, members });
+      }
+    }
+    return enriched;
+  }
+
+  /**
+   * Browse the direct children of an ObjectType node to discover
+   * its member Variables/Properties (for JSON Schema generation).
+   */
+  private async _browseTypeMembers(typeNodeId: string): Promise<ObjectTypeMemberInfo[]> {
+    const result = await this.session.browse({
+      nodeId: coerceNodeId(typeNodeId),
+      browseDirection: BrowseDirection.Forward,
+      includeSubtypes: true,
+      referenceTypeId: resolveNodeId('HierarchicalReferences'),
+      resultMask: 63,
+    });
+    const browseResult = result as BrowseResult;
+    const refs = browseResult.references ?? [];
+
+    const members: ObjectTypeMemberInfo[] = [];
+    for (const ref of refs) {
+      if (
+        ref.nodeClass !== NodeClass.Variable &&
+        ref.nodeClass !== NodeClass.Object &&
+        ref.nodeClass !== NodeClass.Method
+      )
+        continue;
+
+      let dataType: string | null = null;
+      let modellingRule: string | null = null;
+
+      // Read DataType for Variables
+      if (ref.nodeClass === NodeClass.Variable) {
+        try {
+          const dtResult = await this.session.read({
+            nodeId: ref.nodeId,
+            attributeId: AttributeIds.DataType,
+          });
+          if (dtResult.value?.value) {
+            const dtNode = this._addressSpace.findNode(dtResult.value.value);
+            dataType = dtNode
+              ? ((dtNode as { browseName?: { name?: string } }).browseName?.name ??
+                dtResult.value.value.toString())
+              : dtResult.value.value.toString();
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Read ModellingRule via HasModellingRule reference
+      try {
+        const mrResult = await this.session.browse({
+          nodeId: ref.nodeId,
+          browseDirection: BrowseDirection.Forward,
+          includeSubtypes: true,
+          referenceTypeId: resolveNodeId('HasModellingRule'),
+          resultMask: 63,
+        });
+        const mrBrowse = mrResult as BrowseResult;
+        const mrRef = mrBrowse.references?.[0];
+        if (mrRef) {
+          modellingRule = mrRef.displayName?.text ?? null;
+        }
+      } catch {
+        // ignore
+      }
+
+      members.push({
+        browseName: ref.browseName?.name ?? ref.browseName?.toString() ?? '',
+        displayName: ref.displayName?.text ?? '',
+        nodeClass:
+          ref.nodeClass === NodeClass.Variable
+            ? 'Variable'
+            : ref.nodeClass === NodeClass.Object
+              ? 'Object'
+              : 'Method',
+        dataType,
+        modellingRule,
+      });
+    }
+    return members;
   }
 
   // ── Read / Write ─────────────────────────────────────────

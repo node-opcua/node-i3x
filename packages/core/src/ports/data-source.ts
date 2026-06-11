@@ -40,6 +40,20 @@ export interface ObjectTypeInfo {
   readonly browseName: string;
   readonly displayName: string;
   readonly namespaceUri: string;
+  /** Members (variables, objects, methods) declared by this type. */
+  readonly members?: readonly ObjectTypeMemberInfo[];
+}
+
+/** A member (variable / property / object / method) of an ObjectType. */
+export interface ObjectTypeMemberInfo {
+  readonly browseName: string;
+  readonly displayName: string;
+  /** 'Variable' | 'Object' | 'Method' */
+  readonly nodeClass: string;
+  /** OPC UA data type name, e.g. 'Double', 'Boolean', 'i=11'. */
+  readonly dataType: string | null;
+  /** 'Mandatory' | 'Optional' | null */
+  readonly modellingRule: string | null;
 }
 
 /** A single value read from the source, with quality + timestamp. */
