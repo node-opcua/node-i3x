@@ -98,7 +98,7 @@ export class ValueService {
     await Promise.all(
       composites.map(async ({ idx, elementId, node }) => {
         const components =
-          maxDepth > 1 ? await this._readComponents(model, node, maxDepth, 0) : null;
+          maxDepth !== 1 ? await this._readComponents(model, node, maxDepth, 0) : null;
         results[idx] = {
           success: true,
           elementId,

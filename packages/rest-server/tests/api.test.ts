@@ -308,7 +308,20 @@ describe('REST API', () => {
     expect(body2.results[0].result.components[tempKey].value).toBe(42.5);
     expect(body2.results[0].result.components[tempKey].quality).toBe('Good');
 
-    // 3. Null value quality mapping
+    // 3. maxDepth = 0 (infinite) => components are returned
+    const resDepth0 = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [rootId], maxDepth: 0 },
+    });
+    expect(resDepth0.statusCode).toBe(200);
+    const body0 = resDepth0.json();
+    expect(body0.results[0].result.isComposition).toBe(true);
+    expect(body0.results[0].result.components).not.toBeNull();
+    const tempKey0 = Object.keys(body0.results[0].result.components)[0]!;
+    expect(body0.results[0].result.components[tempKey0].value).toBe(42.5);
+
+    // 4. Null value quality mapping
     // Set Temperature to null
     const ds = (modelService as any).dataSource as MockDataSource;
     ds.values['ns=2;s=Temperature'] = null;
