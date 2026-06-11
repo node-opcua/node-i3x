@@ -416,7 +416,7 @@ describe('ModelService – edge cases', () => {
 
     const rootId = stableI3xId(rootNsu, 'asset');
     const rootNode = model.nodesById.get(rootId);
-    expect(rootNode?.type).toBe(stableI3xId('nsu=http://test.org/:MachineType', 'asset'));
+    expect(rootNode?.type).toBe(stableI3xId('nsu=http://test.org/:MachineType', 'type'));
 
     const danglingId = stableI3xId('ns=2;i=2', 'asset');
     const danglingNode = model.nodesById.get(danglingId);

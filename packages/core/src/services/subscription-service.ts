@@ -63,6 +63,8 @@ interface SubState {
   /** Waiters for the stream / long-poll endpoint. */
   waiters: Array<(updates: SubscriptionUpdate[]) => void>;
   mode: 'polling' | 'native';
+  /** Callback to close the currently active SSE stream (if any). */
+  activeStreamClose: (() => void) | null;
 }
 
 // ── Service ──────────────────────────────────────────────────
@@ -103,6 +105,7 @@ export class SubscriptionService {
       runtime: null,
       waiters: [],
       mode: 'polling',
+      activeStreamClose: null,
     };
     this._subs.set(subscriptionId, state);
     this.logger.info(`Subscription created id=${subscriptionId}`);
@@ -288,6 +291,35 @@ export class SubscriptionService {
     });
   }
 
+  // ── Active stream management ──────────────────────────────
+
+  /**
+   * Register an active SSE stream for the subscription.
+   * If another stream is already active, it is closed first
+   * (enforcing single-stream-per-subscription).
+   */
+  registerActiveStream(subscriptionId: string, closeCallback: () => void): void {
+    const sub = this._subs.get(subscriptionId);
+    if (!sub) return;
+    if (sub.activeStreamClose) {
+      // Close the previous stream
+      sub.activeStreamClose();
+    }
+    sub.activeStreamClose = closeCallback;
+  }
+
+  /**
+   * Clear the active stream reference when a stream closes.
+   * Only clears if the callback matches (prevents stale clears).
+   */
+  clearActiveStream(subscriptionId: string, closeCallback: () => void): void {
+    const sub = this._subs.get(subscriptionId);
+    if (!sub) return;
+    if (sub.activeStreamClose === closeCallback) {
+      sub.activeStreamClose = null;
+    }
+  }
+
   // ── Delete ─────────────────────────────────────────────────
 
   async deleteSubscriptions(
@@ -388,6 +420,7 @@ export class SubscriptionService {
         runtime: null,
         waiters: [],
         mode: 'polling',
+        activeStreamClose: null,
       };
       this._subs.set(id, sub);
     }

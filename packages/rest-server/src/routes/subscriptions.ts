@@ -167,12 +167,26 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           Connection: 'keep-alive',
         });
 
+        // Flush headers immediately with an initial keepalive comment
+        // so the client (and any proxy like ngrok) sees the connection
+        // is established and doesn't time out waiting.
+        reply.raw.write(': keepalive\n\n');
+
         let lastSequence = ackSeq;
         let closed = false;
 
+        const closeStream = () => {
+          closed = true;
+        };
+
         req.raw.on('close', () => {
           closed = true;
+          deps.subscriptionService.clearActiveStream(subscriptionId, closeStream);
         });
+
+        // Register this stream — closes any previously active stream
+        // for this subscription (single-stream enforcement per spec).
+        deps.subscriptionService.registerActiveStream(subscriptionId, closeStream);
 
         while (!closed) {
           const updates = await deps.subscriptionService.waitForUpdates(

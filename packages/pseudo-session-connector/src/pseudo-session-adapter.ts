@@ -277,6 +277,8 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
   ): Promise<{ items: T[] }> {
     const output: T[] = [];
     const visited = new Set<string>();
+    /** Tracks nodes already mapped via onRef to prevent duplicates. */
+    const mapped = new Set<string>();
 
     let frontier: Array<{
       nodeId: string;
@@ -300,6 +302,8 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       const browseResults: BrowseResult[] = await this.session.browse(descriptions);
 
       const nextFrontier: typeof frontier = [];
+      /** Tracks nodes already queued in nextFrontier this wave. */
+      const queued = new Set<string>();
       for (let i = 0; i < wave.length; i++) {
         const item = wave[i];
         if (!item) continue; // Shouldn't happen, but just in case
@@ -311,14 +315,21 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
           const childId = ref.nodeId.toString();
           if (visited.has(childId)) continue;
 
-          const mapped = onRef(ref, item.nodeId);
-          if (mapped !== null) output.push(mapped);
+          // Only map each child once (prevents duplicate elementIds)
+          if (!mapped.has(childId)) {
+            mapped.add(childId);
+            const m = onRef(ref, item.nodeId);
+            if (m !== null) output.push(m);
+          }
 
           if (!shouldRecurse || shouldRecurse(ref)) {
-            nextFrontier.push({
-              nodeId: childId,
-              parentId: item.nodeId,
-            });
+            if (!queued.has(childId)) {
+              queued.add(childId);
+              nextFrontier.push({
+                nodeId: childId,
+                parentId: item.nodeId,
+              });
+            }
           }
         }
       }

@@ -73,10 +73,7 @@ export class ModelService {
     const sourceTypes = await this.dataSource.getObjectTypes();
     const typeIdMap = new Map<string, string>();
     for (const t of sourceTypes) {
-      const typeElementId = stableI3xId(
-        `nsu=${t.namespaceUri}:${t.displayName}`,
-        'asset',
-      );
+      const typeElementId = stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type');
       typeIdMap.set(t.sourceNodeId, typeElementId);
     }
 

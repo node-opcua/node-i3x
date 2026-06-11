@@ -17,7 +17,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       const { namespaceUri } = req.query;
 
       const mapped = types.map((t) => ({
-        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'asset'),
+        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type'),
         displayName: t.displayName,
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
@@ -54,7 +54,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       const types = await deps.dataSource.getObjectTypes();
 
       const mapped = types.map((t) => ({
-        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'asset'),
+        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type'),
         displayName: t.displayName,
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
