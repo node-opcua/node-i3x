@@ -30,19 +30,17 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         name: string;
         type?: string | null;
         children: readonly string[];
+        kind: string;
       }>;
 
       if (root) {
         nodes = model.rootIds
           .map((id) => model.nodesById.get(id))
-          .filter(Boolean) as Array<{
-          id: string;
-          name: string;
-          type?: string | null;
-          children: readonly string[];
-        }>;
+          .filter((n) => n && n.kind === 'asset') as any;
       } else {
-        nodes = Array.from(model.nodesById.values());
+        nodes = Array.from(model.nodesById.values()).filter(
+          (n) => n.kind === 'asset',
+        ) as any;
       }
 
       if (typeElementId) {

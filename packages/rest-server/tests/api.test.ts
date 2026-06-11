@@ -182,6 +182,16 @@ describe('REST API', () => {
     expect(body.result.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('GET /v1/objects only returns assets (no properties or actions)', async () => {
+    await modelService.preloadModel();
+    const res = await app.inject({ method: 'GET', url: '/v1/objects' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.result).toHaveLength(1);
+    expect(body.result[0].elementId).toContain('asset-');
+  });
+
   it('POST /v1/objects/list resolves elements', async () => {
     // Preload model first
     await modelService.preloadModel();
