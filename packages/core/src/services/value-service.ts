@@ -105,7 +105,7 @@ export class ValueService {
           result: {
             isComposition: true,
             value: null,
-            quality: 'Good',
+            quality: 'GoodNoData',
             timestamp: new Date().toISOString(),
             components:
               components && components.size > 0 ? Object.fromEntries(components) : null,

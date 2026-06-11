@@ -577,7 +577,7 @@ export class SubscriptionService {
       compositeValue = {
         isComposition: true,
         value: null,
-        quality: 'Good',
+        quality: 'GoodNoData',
         timestamp: now,
         components,
       };

@@ -291,6 +291,8 @@ describe('REST API', () => {
     const body1 = resDepth1.json();
     expect(body1.success).toBe(true);
     expect(body1.results[0].result.isComposition).toBe(true);
+    expect(body1.results[0].result.value).toBeNull();
+    expect(body1.results[0].result.quality).toBe('GoodNoData');
     expect(body1.results[0].result.components).toBeNull();
 
     // 2. maxDepth = 2 => components contains Temperature property
