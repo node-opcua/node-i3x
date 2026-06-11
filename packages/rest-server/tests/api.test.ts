@@ -14,6 +14,7 @@ import {
   ModelService,
   nullLogger,
   SubscriptionService,
+  stableI3xId,
   ValueService,
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
@@ -365,6 +366,33 @@ describe('REST API', () => {
     expect(unregBody.results).toHaveLength(1);
     expect(unregBody.results[0].success).toBe(true);
     expect(unregBody.results[0].elementId).toBe(propId);
+  });
+
+  it('POST /v1/objecttypes/query returns bulk object types details', async () => {
+    // MachineType elementId
+    const machineTypeId = stableI3xId('nsu=http://example.com/:Machine Type', 'asset');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/objecttypes/query',
+      payload: { elementIds: [machineTypeId, 'UnknownType', 'missing-type-id'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false); // Top level false due to missing-type-id
+    expect(body.results).toHaveLength(3);
+
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[0].elementId).toBe(machineTypeId);
+    expect(body.results[0].result.displayName).toBe('Machine Type');
+
+    expect(body.results[1].success).toBe(true);
+    expect(body.results[1].elementId).toBe('UnknownType');
+    expect(body.results[1].result.displayName).toBe('UnknownType');
+
+    expect(body.results[2].success).toBe(false);
+    expect(body.results[2].elementId).toBe('missing-type-id');
+    expect(body.results[2].error.code).toBe(404);
   });
 
   it('GET /health returns ok', async () => {
