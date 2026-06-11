@@ -314,6 +314,59 @@ describe('REST API', () => {
     ds.values['ns=2;s=Temperature'] = 42.5;
   });
 
+  it('bulk responses set top-level success: false on failure and include responseDetail', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const rootId = model.rootIds[0]!;
+
+    // 1. POST /v1/objects/list with a missing element returns top-level success: false
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/list',
+      payload: { elementIds: [rootId, 'missing-element-id'] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false); // Top level success must be false
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[1].success).toBe(false);
+    expect(body.results[1].responseDetail).toEqual({
+      title: 'Error',
+      status: 404,
+      detail: 'Not found',
+    });
+
+    // 2. POST /v1/subscriptions/unregister returns correct bulk response format
+    // Create subscription first
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { clientId: 'test-unregister', displayName: 'Unreg Sub' },
+    });
+    const subId = createRes.json().result.subscriptionId;
+
+    // Register a property
+    const propId = [...model.propertyToSource.keys()][0]!;
+    await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: { subscriptionId: subId, elementIds: [propId], maxDepth: 1 },
+    });
+
+    // Unregister
+    const unregRes = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/unregister',
+      payload: { subscriptionId: subId, elementIds: [propId] },
+    });
+    expect(unregRes.statusCode).toBe(200);
+    const unregBody = unregRes.json();
+    expect(unregBody.success).toBe(true);
+    expect(unregBody.results).toHaveLength(1);
+    expect(unregBody.results[0].success).toBe(true);
+    expect(unregBody.results[0].elementId).toBe(propId);
+  });
+
   it('GET /health returns ok', async () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);

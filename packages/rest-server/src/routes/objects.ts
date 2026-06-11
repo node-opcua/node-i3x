@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps, i3xError } from '../errors.js';
 import {
   bulkError,
+  bulkResponse,
   bulkSuccess,
   successResponse,
   toObjectInstance,
@@ -68,7 +69,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           toObjectInstance(node, deps.modelService.parentIdOf(model, node.id)),
         );
       });
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 
@@ -122,7 +123,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         return bulkSuccess(eid, relatedObjects);
       });
 
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 
@@ -134,7 +135,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     ) => {
       const { elementIds, maxDepth } = req.body;
       const results = await deps.valueService.readValues(elementIds, maxDepth ?? 1);
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 
@@ -157,7 +158,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         startTime ? new Date(startTime) : null,
         endTime ? new Date(endTime) : null,
       );
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 

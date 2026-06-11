@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps, rethrowAsI3x } from '../errors.js';
+import { bulkResponse } from '../helpers/response.js';
 
 export default async function subscriptionRoutes(app: FastifyInstance): Promise<void> {
   const deps = getDeps(app);
@@ -39,9 +40,10 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
             success: false,
             elementId: e.elementId,
             error: { code: 404, message: e.error },
+            responseDetail: { title: 'Not Found', status: 404, detail: e.error },
           })),
         ];
-        return { success: true, results };
+        return bulkResponse(results);
       } catch (err) {
         rethrowAsI3x(err);
       }
@@ -57,7 +59,12 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       const { subscriptionId, elementIds } = req.body;
       try {
         await deps.subscriptionService.unregister(subscriptionId, elementIds);
-        return { success: true, result: null };
+        const results = elementIds.map((eid) => ({
+          success: true,
+          elementId: eid,
+          result: null,
+        }));
+        return bulkResponse(results);
       } catch (err) {
         rethrowAsI3x(err);
       }
@@ -182,7 +189,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       const results = await deps.subscriptionService.deleteSubscriptions(
         req.body.subscriptionIds,
       );
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 
@@ -196,7 +203,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
         subscriptionId: d.subscriptionId,
         result: d,
       }));
-      return { success: true, results };
+      return bulkResponse(results);
     },
   );
 }

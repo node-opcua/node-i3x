@@ -24,11 +24,16 @@ export interface BulkResultItem<T> {
   readonly subscriptionId?: string | null;
   readonly result?: T | null;
   readonly error?: ErrorDetail | null;
+  readonly responseDetail?: {
+    readonly title: string;
+    readonly status: number;
+    readonly detail: string;
+  } | null;
 }
 
 /** BulkResponse<T> -- wraps multiple bulk result items. */
 export interface BulkResponse<T> {
-  readonly success: true;
+  readonly success: boolean;
   readonly results: BulkResultItem<T>[];
 }
 
@@ -66,7 +71,8 @@ export function successResponse<T>(result: T): SuccessResponse<T> {
 }
 
 export function bulkResponse<T>(results: BulkResultItem<T>[]): BulkResponse<T> {
-  return { success: true, results };
+  const success = results.every((r) => r.success);
+  return { success, results };
 }
 
 export function bulkSuccess<T>(elementId: string, result: T): BulkResultItem<T> {
@@ -77,8 +83,18 @@ export function bulkError<T>(
   elementId: string,
   code: number,
   message: string,
+  title?: string,
 ): BulkResultItem<T> {
-  return { success: false, elementId, error: { code, message } };
+  return {
+    success: false,
+    elementId,
+    error: { code, message },
+    responseDetail: {
+      title: title ?? 'Error',
+      status: code,
+      detail: message,
+    },
+  };
 }
 
 /**
