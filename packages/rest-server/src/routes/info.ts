@@ -4,7 +4,7 @@ export default async function infoRoutes(app: FastifyInstance): Promise<void> {
   app.get('/v1/info', async () => ({
     success: true,
     result: {
-      specVersion: 'beta',
+      specVersion: '1.0',
       serverVersion: '0.1.0',
       serverName: 'node-i3x',
       vendor: {
