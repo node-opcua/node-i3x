@@ -268,6 +268,12 @@ describe('REST API', () => {
       payload: { subscriptionId: 'missing', clientId: 'test' },
     });
     expect(res.statusCode).toBe(404);
+    const body = res.json();
+    expect(body.responseDetail).toEqual({
+      title: 'Not Found',
+      status: 404,
+      detail: expect.any(String),
+    });
   });
 
   it('POST /v1/objects/value obeys maxDepth semantics and maps null quality', async () => {

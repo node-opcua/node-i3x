@@ -40,9 +40,18 @@ export function registerErrorHandler(app: FastifyInstance): void {
     ) => {
       const statusCode = error.statusCode ?? 500;
       const code = typeof error.code === 'number' ? error.code : statusCode;
+      const title =
+        statusCode === 400
+          ? 'Bad Request'
+          : statusCode === 404
+            ? 'Not Found'
+            : statusCode === 501
+              ? 'Not Implemented'
+              : 'Internal Server Error';
       reply.status(statusCode).send({
         success: false,
         error: { code, message: error.message },
+        responseDetail: { title, status: statusCode, detail: error.message },
       });
     },
   );
