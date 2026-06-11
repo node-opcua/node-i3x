@@ -174,6 +174,12 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     return { success: false, error: { code: 501, message: 'Not implemented' } };
   });
 
+  // ── PUT /v1/objects/history ────────────────────────────────
+  app.put('/v1/objects/history', async (_req, reply) => {
+    reply.status(501);
+    return { success: false, error: { code: 501, message: 'Not implemented' } };
+  });
+
   // ── PUT /v1/objects/:elementId/value ───────────────────────
   app.put(
     '/v1/objects/:elementId/value',
@@ -188,6 +194,40 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       } catch (err) {
         throw i3xError(404, 404, (err as Error).message);
       }
+    },
+  );
+
+  // ── PUT /v1/objects/value ──────────────────────────────────
+  app.put(
+    '/v1/objects/value',
+    async (
+      req: FastifyRequest<{
+        Body: { elementId: string; value: unknown }[] | Record<string, unknown>;
+      }>,
+    ) => {
+      const body = req.body;
+      let items: { elementId: string; value: unknown }[] = [];
+      if (Array.isArray(body)) {
+        items = body;
+      } else if (body && typeof body === 'object') {
+        items = Object.entries(body).map(([elementId, value]) => ({
+          elementId,
+          value,
+        }));
+      }
+
+      const results = await Promise.all(
+        items.map(async ({ elementId, value }) => {
+          try {
+            await deps.valueService.writeValue(elementId, value);
+            return bulkSuccess(elementId, null);
+          } catch (err) {
+            return bulkError(elementId, 404, (err as Error).message);
+          }
+        }),
+      );
+
+      return bulkResponse(results);
     },
   );
 }

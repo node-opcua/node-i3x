@@ -422,6 +422,62 @@ describe('REST API', () => {
     expect(body.results[1].error.code).toBe(404);
   });
 
+  it('PUT /v1/objects/value handles bulk updates in array and object formats', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+
+    // 1. Array format update
+    const resArray = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: [{ elementId: propId, value: 50.0 }],
+    });
+    expect(resArray.statusCode).toBe(200);
+    const bodyArray = resArray.json();
+    expect(bodyArray.success).toBe(true);
+    expect(bodyArray.results[0].success).toBe(true);
+    expect(bodyArray.results[0].elementId).toBe(propId);
+
+    // Verify change
+    const valRes1 = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [propId] },
+    });
+    expect(valRes1.json().results[0].result.value).toBe(50.0);
+
+    // 2. Object format update
+    const resObj = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: { [propId]: 60.0, 'missing-prop': 10 },
+    });
+    expect(resObj.statusCode).toBe(200);
+    const bodyObj = resObj.json();
+    expect(bodyObj.success).toBe(false); // Top level success false due to missing-prop
+    expect(bodyObj.results).toHaveLength(2);
+    expect(bodyObj.results.find((r: any) => r.elementId === propId).success).toBe(true);
+    expect(bodyObj.results.find((r: any) => r.elementId === 'missing-prop').success).toBe(
+      false,
+    );
+
+    // Verify change
+    const valRes2 = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [propId] },
+    });
+    expect(valRes2.json().results[0].result.value).toBe(60.0);
+
+    // 3. PUT /v1/objects/history returns 501
+    const resHist = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/history',
+    });
+    expect(resHist.statusCode).toBe(501);
+  });
+
   it('GET /health returns ok', async () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
     expect(res.statusCode).toBe(200);
