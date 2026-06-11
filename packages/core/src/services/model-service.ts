@@ -3,7 +3,11 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { BuildResult, ModelNode } from '../domain/model-node.js';
-import type { IDataSourcePort, SourceNodeInfo } from '../ports/data-source.js';
+import type {
+  IDataSourcePort,
+  ObjectTypeInfo,
+  SourceNodeInfo,
+} from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import { inferKind, mapNode, stableI3xId } from './mapper.js';
 
@@ -71,11 +75,7 @@ export class ModelService {
 
   private async _build(): Promise<BuildResult> {
     const sourceTypes = await this.dataSource.getObjectTypes();
-    const typeIdMap = new Map<string, string>();
-    for (const t of sourceTypes) {
-      const typeElementId = stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type');
-      typeIdMap.set(t.sourceNodeId, typeElementId);
-    }
+    const typeIdMap = this._buildTypeIdMap(sourceTypes);
 
     const sourceNodes = await this.dataSource.browseTree();
     const bySourceId = new Map<string, SourceNodeInfo>();
@@ -153,6 +153,50 @@ export class ModelService {
 
     return { nodesById, rootIds, childrenById, propertyToSource, actionToMethod };
   }
+
+  private _buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
+    return buildTypeIdMap(types);
+  }
+}
+
+/**
+ * Build a map of OPC UA sourceNodeId → i3X type elementId.
+ *
+ * Constructs a full nsu-qualified browse path for each type
+ * by walking the parent chain up to the hierarchy root.
+ * This guarantees unique elementIds even when multiple types
+ * share the same browseName (siblings are always unique).
+ */
+export function buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
+  // Index types by sourceNodeId for fast parent lookups
+  const bySourceId = new Map<string, ObjectTypeInfo>();
+  for (const t of types) bySourceId.set(t.sourceNodeId, t);
+
+  // Cache resolved browse paths to avoid repeated walks
+  const pathCache = new Map<string, string>();
+
+  const resolvePath = (t: ObjectTypeInfo): string => {
+    const cached = pathCache.get(t.sourceNodeId);
+    if (cached) return cached;
+
+    const segment = `nsu=${t.namespaceUri}:${t.browseName}`;
+    let path: string;
+    if (t.parentSourceNodeId == null) {
+      // Root type (e.g. BaseObjectType)
+      path = segment;
+    } else {
+      const parent = bySourceId.get(t.parentSourceNodeId);
+      path = parent ? `${resolvePath(parent)}/${segment}` : segment;
+    }
+    pathCache.set(t.sourceNodeId, path);
+    return path;
+  };
+
+  const map = new Map<string, string>();
+  for (const t of types) {
+    map.set(t.sourceNodeId, stableI3xId(resolvePath(t), 'type'));
+  }
+  return map;
 }
 
 export function emptyBuildResult(): BuildResult {

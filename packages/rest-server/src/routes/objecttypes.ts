@@ -1,4 +1,4 @@
-import { stableI3xId } from '@node-i3x/core';
+import { buildTypeIdMap } from '@node-i3x/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps } from '../errors.js';
 import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
@@ -16,8 +16,10 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       const types = await deps.dataSource.getObjectTypes();
       const { namespaceUri } = req.query;
 
+      const idMap = buildTypeIdMap(types);
+
       const mapped = types.map((t) => ({
-        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type'),
+        elementId: idMap.get(t.sourceNodeId)!,
         displayName: t.displayName,
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,
@@ -53,8 +55,10 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
       const { elementIds } = req.body;
       const types = await deps.dataSource.getObjectTypes();
 
+      const idMap = buildTypeIdMap(types);
+
       const mapped = types.map((t) => ({
-        elementId: stableI3xId(`nsu=${t.namespaceUri}:${t.displayName}`, 'type'),
+        elementId: idMap.get(t.sourceNodeId)!,
         displayName: t.displayName,
         namespaceUri: t.namespaceUri,
         sourceTypeId: t.sourceNodeId,

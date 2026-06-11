@@ -39,7 +39,11 @@ export { consoleLogger, nullLogger } from './ports/logger.js';
 export { HistoryService } from './services/history-service.js';
 export { inferKind, mapNode, mapType, stableI3xId } from './services/mapper.js';
 // Services
-export { emptyBuildResult, ModelService } from './services/model-service.js';
+export {
+  buildTypeIdMap,
+  emptyBuildResult,
+  ModelService,
+} from './services/model-service.js';
 export { SubscriptionService } from './services/subscription-service.js';
 export { ValueService } from './services/value-service.js';
 
