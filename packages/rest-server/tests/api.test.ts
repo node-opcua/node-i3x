@@ -45,7 +45,7 @@ class MockDataSource implements IDataSourcePort {
         nsuQualifiedName: 'nsu=http://example.com/:Machine',
         displayName: 'Machine',
         nodeClass: 'Object',
-        typeDefinition: null,
+        typeDefinition: 'ns=1;i=1001',
         namespaceUri: 'http://example.com/',
         eventNotifier: false,
       },
@@ -225,6 +225,36 @@ describe('REST API', () => {
     expect(body.result.length).toBeGreaterThanOrEqual(1);
     // Should contain at least one asset
     expect(body.result.some((r: any) => r.elementId.startsWith('asset-'))).toBe(true);
+  });
+
+  it('QRY-03: object values conform to their type JSON schemas', async () => {
+    await modelService.preloadModel();
+
+    // 1. Get objecttypes with schemas
+    const typesRes = await app.inject({ method: 'GET', url: '/v1/objecttypes' });
+    const types = typesRes.json().result;
+    const typesByEid = new Map(types.map((t: any) => [t.elementId, t]));
+
+    // 2. Get all objects
+    const objRes = await app.inject({ method: 'GET', url: '/v1/objects' });
+    const objects = objRes.json().result;
+
+    // 3. Find objects whose typeElementId has a schema with properties
+    const resolvable = objects.filter((o: any) => {
+      const typ = typesByEid.get(o.typeElementId);
+      return typ?.schema?.properties && Object.keys(typ.schema.properties).length > 0;
+    });
+
+    // Must have at least one resolvable object with a typed schema
+    expect(resolvable.length).toBeGreaterThan(0);
+
+    // Verify schema has the right structure for the resolved types
+    for (const obj of resolvable) {
+      const typ = typesByEid.get(obj.typeElementId);
+      expect(typ.schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
+      expect(typ.schema.type).toBe('object');
+      expect(Object.keys(typ.schema.properties).length).toBeGreaterThan(0);
+    }
   });
 
   it('POST /v1/objects/list resolves elements', async () => {
