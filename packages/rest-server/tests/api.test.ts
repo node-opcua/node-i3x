@@ -388,6 +388,40 @@ describe('REST API', () => {
     expect(unregBody.results[0].elementId).toBe(propId);
   });
 
+  it('POST /v1/subscriptions/unregister reports failure for unknown elementId', async () => {
+    await modelService.preloadModel();
+
+    // Create subscription
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { clientId: 'test-unreg-unknown', displayName: 'Unreg Unknown' },
+    });
+    const subId = createRes.json().result.subscriptionId;
+
+    // Unregister an elementId that was never registered
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/unregister',
+      payload: {
+        subscriptionId: subId,
+        elementIds: ['never-registered-element'],
+        clientId: 'test-unreg-unknown',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false);
+    expect(body.results).toHaveLength(1);
+    expect(body.results[0].success).toBe(false);
+    expect(body.results[0].elementId).toBe('never-registered-element');
+    expect(body.results[0].responseDetail).toEqual({
+      title: 'Not Found',
+      status: 404,
+      detail: 'Element not monitored',
+    });
+  });
+
   it('POST /v1/objecttypes/query returns bulk object types details', async () => {
     // MachineType elementId
     const machineTypeId = stableI3xId('nsu=http://example.com/:Machine Type', 'type');

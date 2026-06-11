@@ -83,12 +83,23 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
         throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
       }
       try {
-        await deps.subscriptionService.unregister(subscriptionId, elementIds);
-        const results = elementIds.map((eid) => ({
-          success: true,
-          elementId: eid,
-          result: null,
-        }));
+        const { registered, errors } = await deps.subscriptionService.unregister(
+          subscriptionId,
+          elementIds,
+        );
+        const results = [
+          ...registered.map((eid) => ({
+            success: true as const,
+            elementId: eid,
+            result: null,
+          })),
+          ...errors.map((e) => ({
+            success: false as const,
+            elementId: e.elementId,
+            error: { code: 404, message: e.error },
+            responseDetail: { title: 'Not Found', status: 404, detail: e.error },
+          })),
+        ];
         return bulkResponse(results);
       } catch (err) {
         rethrowAsI3x(err);

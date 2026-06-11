@@ -200,33 +200,46 @@ export class SubscriptionService {
 
   // ── Unregister items ───────────────────────────────────────
 
-  async unregister(subscriptionId: string, elementIds: string[]): Promise<void> {
+  async unregister(
+    subscriptionId: string,
+    elementIds: string[],
+  ): Promise<{
+    registered: string[];
+    errors: Array<{ elementId: string; error: string }>;
+  }> {
     const sub = this._requireSub(subscriptionId);
     const sourceIdsToRemove: string[] = [];
 
+    const registered: string[] = [];
+    const errors: Array<{ elementId: string; error: string }> = [];
+
     for (const elementId of elementIds) {
+      const asset = sub.assets.get(elementId);
+      if (!asset) {
+        errors.push({ elementId, error: 'Element not monitored' });
+        continue;
+      }
+
       sub.monitoredObjects = sub.monitoredObjects.filter(
         (m) => m.elementId !== elementId,
       );
 
-      const asset = sub.assets.get(elementId);
-      if (asset) {
-        // Clear debounce timer
-        if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
-        // Remove reverse lookups
-        for (const sourceId of asset.sourceNodeIds) {
-          const set = sub.sourceToAsset.get(sourceId);
-          if (set) {
-            set.delete(elementId);
-            if (set.size === 0) {
-              sub.sourceToAsset.delete(sourceId);
-              sourceIdsToRemove.push(sourceId);
-            }
-            // else: still used by another asset, don't remove from OPC UA
+      // Clear debounce timer
+      if (asset.debounceTimer) clearTimeout(asset.debounceTimer);
+      // Remove reverse lookups
+      for (const sourceId of asset.sourceNodeIds) {
+        const set = sub.sourceToAsset.get(sourceId);
+        if (set) {
+          set.delete(elementId);
+          if (set.size === 0) {
+            sub.sourceToAsset.delete(sourceId);
+            sourceIdsToRemove.push(sourceId);
           }
+          // else: still used by another asset, don't remove from OPC UA
         }
-        sub.assets.delete(elementId);
       }
+      sub.assets.delete(elementId);
+      registered.push(elementId);
     }
 
     // Remove monitored items from the OPC UA subscription
@@ -242,6 +255,8 @@ export class SubscriptionService {
       await sub.runtime.close();
       sub.runtime = null;
     }
+
+    return { registered, errors };
   }
 
   // ── Sync ───────────────────────────────────────────────────
