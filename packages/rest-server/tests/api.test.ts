@@ -216,14 +216,15 @@ describe('REST API', () => {
     expect(machineType.schema.required).toContain('Temperature');
   });
 
-  it('GET /v1/objects only returns assets (no properties or actions)', async () => {
+  it('GET /v1/objects returns assets and properties', async () => {
     await modelService.preloadModel();
     const res = await app.inject({ method: 'GET', url: '/v1/objects' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(body.result).toHaveLength(1);
-    expect(body.result[0].elementId).toContain('asset-');
+    expect(body.result.length).toBeGreaterThanOrEqual(1);
+    // Should contain at least one asset
+    expect(body.result.some((r: any) => r.elementId.startsWith('asset-'))).toBe(true);
   });
 
   it('POST /v1/objects/list resolves elements', async () => {

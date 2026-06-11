@@ -40,7 +40,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           .filter((n) => n && n.kind === 'asset') as any;
       } else {
         nodes = Array.from(model.nodesById.values()).filter(
-          (n) => n.kind === 'asset',
+          (n) => n.kind === 'asset' || n.kind === 'property',
         ) as any;
       }
 
