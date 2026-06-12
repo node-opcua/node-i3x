@@ -210,10 +210,17 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       if (Array.isArray(body)) {
         items = body;
       } else if (body && typeof body === 'object') {
-        items = Object.entries(body).map(([elementId, value]) => ({
-          elementId,
-          value,
-        }));
+        // Spec format: { updates: [{ elementId, value }] }
+        const maybeUpdates = (body as Record<string, unknown>).updates;
+        if (Array.isArray(maybeUpdates)) {
+          items = maybeUpdates as { elementId: string; value: unknown }[];
+        } else {
+          // Legacy object-as-map format: { elementId: value, ... }
+          items = Object.entries(body).map(([elementId, value]) => ({
+            elementId,
+            value,
+          }));
+        }
       }
 
       const results = await Promise.all(

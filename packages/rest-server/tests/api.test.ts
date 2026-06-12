@@ -612,6 +612,59 @@ describe('REST API', () => {
     expect(resHist.statusCode).toBe(501);
   });
 
+  it('UPD-01: PUT /objects/value accepts { updates: [...] } format', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+
+    // Spec format: { updates: [{ elementId, value }] }
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: { updates: [{ elementId: propId, value: 77.7 }] },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.results).toHaveLength(1);
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[0].elementId).toBe(propId);
+
+    // Verify the write actually happened
+    const valRes = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [propId] },
+    });
+    expect(valRes.json().results[0].result.value).toBe(77.7);
+  });
+
+  it('UPD-03: PUT /objects/value partial failure for unknown elementIds', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+
+    // Mix of valid and invalid elementIds
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: {
+        updates: [
+          { elementId: propId, value: 88.8 },
+          { elementId: 'does-not-exist', value: 0 },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(false); // top-level false due to partial failure
+    expect(body.results).toHaveLength(2);
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[0].elementId).toBe(propId);
+    expect(body.results[1].success).toBe(false);
+    expect(body.results[1].elementId).toBe('does-not-exist');
+  });
+
   it('enforces clientId checks and returns 400/404 appropriately', async () => {
     // 1. Create subscription with missing clientId -> 400 Bad Request
     const resCreateMissing = await app.inject({
