@@ -782,6 +782,136 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  // ── SUB-07 / SUB-13 conformance (sync acknowledgement) ───
+
+  it('SUB-07: lastSequenceNumber removes acknowledged batches', async () => {
+    const model = await modelService.getOrBuildModel();
+    // Pick a CoffeeMachine property that changes every 200ms
+    const brewTempNode = [...model.nodesById.values()].find(
+      (n) => n.name.includes('Brew Temperature') && n.kind === 'property',
+    );
+    expect(brewTempNode).toBeDefined();
+    const brewTempId = brewTempNode!.id;
+
+    // Create subscription
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { clientId: 'sub07', displayName: 'SUB-07 Test' },
+    });
+    const subId = createRes.json().result.subscriptionId;
+
+    // Register monitored item
+    await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: {
+        subscriptionId: subId,
+        elementIds: [brewTempId],
+        maxDepth: 1,
+        clientId: 'sub07',
+      },
+    });
+
+    // Wait for updates to accumulate
+    await new Promise((r) => setTimeout(r, 2500));
+
+    // Sync with ack=0 — should get all accumulated updates
+    const sync1 = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'sub07' },
+    });
+    const updates1 = sync1.json().result;
+    expect(updates1.length).toBeGreaterThan(0);
+    const lastSeq = updates1[updates1.length - 1].sequenceNumber;
+
+    // Wait for more updates
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // Sync acknowledging the first batch — should only get newer updates
+    const sync2 = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, lastSequenceNumber: lastSeq, clientId: 'sub07' },
+    });
+    const updates2 = sync2.json().result;
+    // All returned updates must have sequenceNumber > lastSeq
+    for (const u of updates2) {
+      expect(u.sequenceNumber).toBeGreaterThan(lastSeq);
+    }
+
+    // Cleanup
+    await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
+      payload: { subscriptionIds: [subId], clientId: 'sub07' },
+    });
+  }, 15_000);
+
+  it('SUB-13: lastSequenceNumber = -1 clears all pending updates', async () => {
+    const model = await modelService.getOrBuildModel();
+    const brewTempNode = [...model.nodesById.values()].find(
+      (n) => n.name.includes('Brew Temperature') && n.kind === 'property',
+    );
+    expect(brewTempNode).toBeDefined();
+    const brewTempId = brewTempNode!.id;
+
+    // Create subscription
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions',
+      payload: { clientId: 'sub13', displayName: 'SUB-13 Test' },
+    });
+    const subId = createRes.json().result.subscriptionId;
+
+    // Register monitored item
+    await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/register',
+      payload: {
+        subscriptionId: subId,
+        elementIds: [brewTempId],
+        maxDepth: 1,
+        clientId: 'sub13',
+      },
+    });
+
+    // Wait for updates to accumulate
+    await new Promise((r) => setTimeout(r, 2500));
+
+    // Verify we have pending updates
+    const sync1 = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'sub13' },
+    });
+    expect(sync1.json().result.length).toBeGreaterThan(0);
+
+    // Sync with lastSequenceNumber = -1 — should clear everything
+    const sync2 = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, lastSequenceNumber: -1, clientId: 'sub13' },
+    });
+    expect(sync2.json().result).toEqual([]);
+
+    // Subsequent sync should also be empty (queue was drained)
+    const sync3 = await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/sync',
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'sub13' },
+    });
+    expect(sync3.json().result).toEqual([]);
+
+    // Cleanup
+    await app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/delete',
+      payload: { subscriptionIds: [subId], clientId: 'sub13' },
+    });
+  }, 15_000);
+
   // ── UPD conformance (E2E) ──────────────────────────────────
 
   it('UPD-01 E2E: PUT /objects/value writes and reads back via real OPC UA', async () => {

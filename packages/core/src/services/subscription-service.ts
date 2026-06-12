@@ -263,6 +263,11 @@ export class SubscriptionService {
 
   sync(subscriptionId: string, acknowledgeSequence: number = 0): SubscriptionUpdate[] {
     const sub = this._requireSub(subscriptionId);
+    // -1 is a sentinel: clear ALL pending updates (i3X spec §Sync)
+    if (acknowledgeSequence === -1) {
+      sub.updates = [];
+      return [];
+    }
     // Trim acknowledged updates (matches Python behaviour)
     sub.updates = sub.updates.filter((u) => u.sequenceNumber > acknowledgeSequence);
     return [...sub.updates];
