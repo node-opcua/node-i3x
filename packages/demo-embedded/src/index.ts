@@ -16,7 +16,14 @@ import {
 } from '@node-i3x/core';
 import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
 import { createApp } from '@node-i3x/rest-server';
-import { DataType, nodesets, OPCUAServer, type UAVariable, Variant } from 'node-opcua';
+import {
+  AccessLevelFlag,
+  DataType,
+  nodesets,
+  OPCUAServer,
+  type UAVariable,
+  Variant,
+} from 'node-opcua';
 
 const { values: args } = parseArgs({
   options: {
@@ -82,6 +89,8 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 35.0,
@@ -93,6 +102,8 @@ async function createSampleServer() {
     browseName: 'Pressure',
     displayName: 'Pressure (bar)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 4.2,
@@ -104,6 +115,8 @@ async function createSampleServer() {
     browseName: 'FlowRate',
     displayName: 'Flow Rate (L/min)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 120.5,
@@ -115,6 +128,8 @@ async function createSampleServer() {
     browseName: 'Running',
     displayName: 'Running',
     dataType: DataType.Boolean,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Boolean,
       value: true,
@@ -133,6 +148,8 @@ async function createSampleServer() {
     browseName: 'HeaterOn',
     displayName: 'Heater On/Off',
     dataType: DataType.Boolean,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Boolean,
       value: true,
@@ -144,6 +161,8 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 180.0,
@@ -155,6 +174,8 @@ async function createSampleServer() {
     browseName: 'Setpoint',
     displayName: 'Setpoint (°C)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 200.0,
@@ -166,6 +187,8 @@ async function createSampleServer() {
     browseName: 'Power',
     displayName: 'Power (%)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 85.0,
@@ -184,6 +207,8 @@ async function createSampleServer() {
     browseName: 'Speed',
     displayName: 'Speed (m/s)',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.Double,
       value: 2.3,
@@ -195,11 +220,37 @@ async function createSampleServer() {
     browseName: 'ItemCount',
     displayName: 'Items Processed',
     dataType: DataType.UInt32,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
       dataType: DataType.UInt32,
       value: 8452,
     }),
   });
+
+  // ── Install in-memory historization on all process variables ──
+  const historizedVars = [
+    pumpTempVar,
+    pumpPressVar,
+    pumpFlowVar,
+    heaterTempVar,
+    heaterPowerVar,
+    convSpeedVar,
+    itemCountVar,
+  ];
+  for (const v of historizedVars) {
+    v.accessLevel =
+      AccessLevelFlag.CurrentRead |
+      AccessLevelFlag.CurrentWrite |
+      AccessLevelFlag.HistoryRead;
+    v.userAccessLevel =
+      AccessLevelFlag.CurrentRead |
+      AccessLevelFlag.CurrentWrite |
+      AccessLevelFlag.HistoryRead;
+    addressSpace.installHistoricalDataNode(v, {
+      maxOnlineValues: 1000,
+    });
+  }
 
   // ── Simulation (setValueFromSource → fires events) ───
 

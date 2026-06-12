@@ -230,8 +230,11 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
             return bulkSuccess(elementId, null);
           } catch (err) {
             const message =
-              err instanceof Error ? err.message : String(err) || 'Element not found';
-            return bulkError(elementId, 404, message);
+              err instanceof Error ? err.message : String(err) || 'Write failed';
+            // Distinguish "not found" from "not writable / write error"
+            const isNotFound = message.includes('not found');
+            const code = isNotFound ? 404 : 403;
+            return bulkError(elementId, code, message);
           }
         }),
       );

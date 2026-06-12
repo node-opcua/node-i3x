@@ -22,6 +22,7 @@ import {
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import {
+  AccessLevelFlag,
   DataType,
   type Namespace,
   nodesets,
@@ -80,8 +81,14 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'Temperature',
     displayName: 'Temperature',
     dataType: DataType.Double,
+    accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
+    userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: {
       get: () => new Variant({ dataType: DataType.Double, value: temperatureA }),
+      set: (variant: Variant) => {
+        temperatureA = variant.value as number;
+        return StatusCodes.Good;
+      },
     },
   });
 
@@ -773,5 +780,51 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionId: 'does-not-exist', clientId: 'some-client' },
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  // ── UPD conformance (E2E) ──────────────────────────────────
+
+  it('UPD-01 E2E: PUT /objects/value writes and reads back via real OPC UA', async () => {
+    // Step 1: GET /objects — find the "Temperature" property from Machine A (known writable)
+    const objRes = await app.inject({ method: 'GET', url: '/v1/objects' });
+    expect(objRes.statusCode).toBe(200);
+    const objects = objRes.json().result;
+
+    // Pick a Temperature property (from our test namespace, known writable)
+    const tempObj = objects.find((o: any) => o.displayName === 'Temperature');
+    expect(tempObj).toBeDefined();
+    const eid = tempObj.elementId;
+
+    // Step 2: POST /objects/value — read current value
+    const valRes = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [eid] },
+    });
+    expect(valRes.statusCode).toBe(200);
+    const valResult = valRes.json().results[0];
+    expect(valResult.success).toBe(true);
+    expect(valResult.result.isComposition).toBe(false);
+    const currentValue = valResult.result.value;
+
+    // Step 3: PUT /objects/value — write the value back (spec format)
+    const writeRes = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: { updates: [{ elementId: eid, value: currentValue }] },
+    });
+
+    expect(writeRes.statusCode).toBe(200);
+    const writeBody = writeRes.json();
+
+    // Debug: print the write response if it fails
+    if (!writeBody.success) {
+      console.log('UPD-01 E2E write failed:', JSON.stringify(writeBody, null, 2));
+      console.log('elementId:', eid, 'value:', currentValue);
+    }
+
+    expect(writeBody.success).toBe(true);
+    expect(writeBody.results).toHaveLength(1);
+    expect(writeBody.results[0].success).toBe(true);
   });
 });

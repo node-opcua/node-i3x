@@ -447,11 +447,26 @@ export class OpcUaClient {
   }
 
   async writeValue(nodeId: string, value: unknown): Promise<void> {
+    // Infer a reasonable OPC UA DataType from the JS value.
+    // DataType.Null would rely on server auto-coercion which
+    // is not always reliable (e.g. integer → Double mismatch).
+    let dataType = DataType.Null;
+    if (typeof value === 'number') {
+      dataType = Number.isInteger(value) ? DataType.Double : DataType.Double;
+    } else if (typeof value === 'boolean') {
+      dataType = DataType.Boolean;
+    } else if (typeof value === 'string') {
+      dataType = DataType.String;
+    }
+
     const writeValue: WriteValue = {
       nodeId: coerceNodeId(nodeId),
       attributeId: AttributeIds.Value,
       value: {
-        value: new Variant({ dataType: DataType.Null, value }),
+        value: new Variant({
+          dataType,
+          value: dataType === DataType.Double ? Number(value) : value,
+        }),
       },
     } as WriteValue;
     const result = await this.session.write(writeValue);
