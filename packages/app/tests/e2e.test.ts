@@ -186,6 +186,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'BrewTemperature',
     displayName: 'Brew Temperature',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     value: {
       get: () => new Variant({ dataType: DataType.Double, value: brewTemperature }),
     },
@@ -197,6 +198,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'PumpPressure',
     displayName: 'Pump Pressure',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     value: {
       get: () => new Variant({ dataType: DataType.Double, value: pumpPressure }),
     },
@@ -208,6 +210,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'WaterLevel',
     displayName: 'Water Level',
     dataType: DataType.Float,
+    minimumSamplingInterval: 250,
     value: {
       get: () => new Variant({ dataType: DataType.Float, value: waterLevel }),
     },
@@ -226,6 +229,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'RPM',
     displayName: 'Grinder RPM',
     dataType: DataType.Int32,
+    minimumSamplingInterval: 250,
     value: {
       get: () => new Variant({ dataType: DataType.Int32, value: grinderRPM }),
     },
@@ -238,6 +242,7 @@ async function startTestOpcUaServer(): Promise<OPCUAServer> {
     browseName: 'GrindSize',
     displayName: 'Grind Size',
     dataType: DataType.String,
+    minimumSamplingInterval: 250,
     value: {
       get: () =>
         new Variant({

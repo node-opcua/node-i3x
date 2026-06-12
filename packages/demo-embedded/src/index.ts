@@ -89,6 +89,7 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -102,6 +103,7 @@ async function createSampleServer() {
     browseName: 'Pressure',
     displayName: 'Pressure (bar)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -115,6 +117,7 @@ async function createSampleServer() {
     browseName: 'FlowRate',
     displayName: 'Flow Rate (L/min)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -128,6 +131,7 @@ async function createSampleServer() {
     browseName: 'Running',
     displayName: 'Running',
     dataType: DataType.Boolean,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -148,6 +152,7 @@ async function createSampleServer() {
     browseName: 'HeaterOn',
     displayName: 'Heater On/Off',
     dataType: DataType.Boolean,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -161,6 +166,7 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -174,6 +180,7 @@ async function createSampleServer() {
     browseName: 'Setpoint',
     displayName: 'Setpoint (°C)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -187,6 +194,7 @@ async function createSampleServer() {
     browseName: 'Power',
     displayName: 'Power (%)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -207,6 +215,7 @@ async function createSampleServer() {
     browseName: 'Speed',
     displayName: 'Speed (m/s)',
     dataType: DataType.Double,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -220,6 +229,7 @@ async function createSampleServer() {
     browseName: 'ItemCount',
     displayName: 'Items Processed',
     dataType: DataType.UInt32,
+    minimumSamplingInterval: 250,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
