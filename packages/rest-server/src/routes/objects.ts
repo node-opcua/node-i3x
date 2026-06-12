@@ -229,7 +229,9 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
             await deps.valueService.writeValue(elementId, value);
             return bulkSuccess(elementId, null);
           } catch (err) {
-            return bulkError(elementId, 404, (err as Error).message);
+            const message =
+              err instanceof Error ? err.message : String(err) || 'Element not found';
+            return bulkError(elementId, 404, message);
           }
         }),
       );
