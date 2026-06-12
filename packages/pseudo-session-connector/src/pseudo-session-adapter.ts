@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type {
+  BrowseFilter,
   IDataSourcePort,
   ILogger,
   IMonitoredSubscription,
@@ -80,11 +81,15 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
   private _connected = false;
   private _session: IBasicSession | null = null;
   private _namespaceArray: string[] = [];
+  private readonly _browseFilter: BrowseFilter;
 
   constructor(
     private readonly _addressSpace: IAddressSpace,
     private readonly _logger: ILogger,
-  ) {}
+    browseFilter: BrowseFilter = 'application-only',
+  ) {
+    this._browseFilter = browseFilter;
+  }
 
   // ── Lifecycle ────────────────────────────────────────────
 
@@ -136,6 +141,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
 
   async browseTree(): Promise<SourceNodeInfo[]> {
     const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
+    const filter = this._browseFilter;
 
     const { items } = await this._bfsBrowse<SourceNodeInfo>(
       objectsFolderId,
@@ -143,7 +149,24 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
         return this._refToSourceNode(ref, effectiveParent);
       },
-      (ref) => ref.nodeClass === NodeClass.Object || ref.nodeClass === NodeClass.Variable,
+      (ref, parentNodeId) => {
+        // Include only Objects and Variables
+        if (ref.nodeClass !== NodeClass.Object && ref.nodeClass !== NodeClass.Variable) {
+          return false;
+        }
+        // Apply browse filter for top-level children of ObjectsFolder
+        if (parentNodeId === objectsFolderId) {
+          if (filter === 'all') return true;
+          if (filter === 'application-only') {
+            return (ref.browseName?.namespaceIndex ?? 0) !== 0;
+          }
+          // Explicit list: match by NodeId or BrowseName
+          const nodeId = ref.nodeId.toString();
+          const name = ref.browseName?.name ?? '';
+          return filter.some((f) => f === nodeId || f === name);
+        }
+        return true;
+      },
     );
     this._logger.info(`PseudoSession browseTree: ${items.length} nodes`);
     return items;
@@ -309,15 +332,64 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
     }
   }
 
-  // ── History (stub) ───────────────────────────────────────
+  // ── History ──────────────────────────────────────────────
 
   async readHistory(
-    _sourceNodeId: string,
-    _startTime: Date,
-    _endTime: Date,
+    sourceNodeId: string,
+    startTime: Date,
+    endTime: Date,
   ): Promise<SourceHistoricalValue[]> {
-    this._logger.warn('readHistory not yet implemented for PseudoSession');
-    return [];
+    const node = this._addressSpace.findNode(coerceNodeId(sourceNodeId));
+    if (!node || node.nodeClass !== NodeClass.Variable) {
+      return [];
+    }
+    const variable = node as UAVariable;
+
+    // If the variable has an in-memory historian (installed via
+    // addressSpace.installHistoricalDataNode), read from it.
+    const varHistorian = (variable as unknown as Record<string, unknown>).varHistorian as
+      | {
+          extractDataValues: (
+            details: { startTime: Date; endTime: Date },
+            max: number,
+            isReversed: boolean,
+            reverse: boolean,
+            cb: (err: Error | null, dvs: DataValue[]) => void,
+          ) => void;
+        }
+      | undefined;
+
+    if (varHistorian) {
+      const dataValues = await new Promise<DataValue[]>((resolve, reject) => {
+        varHistorian.extractDataValues(
+          { startTime, endTime },
+          0, // 0 = all values
+          false,
+          false,
+          (err: Error | null, dvs: DataValue[]) => {
+            if (err) reject(err);
+            else resolve(dvs ?? []);
+          },
+        );
+      });
+
+      return dataValues.map((dv) => ({
+        value: dv.value?.value ?? null,
+        quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
+        timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
+      }));
+    }
+
+    // Fallback: no historian — return the current value as a
+    // single data point so history reads never come back empty.
+    const dv = variable.readValue();
+    return [
+      {
+        value: dv.value?.value ?? null,
+        quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
+        timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
+      },
+    ];
   }
 
   // ── Subscriptions ────────────────────────────────────────
@@ -366,7 +438,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
   private async _bfsBrowse<T>(
     seedNodeId: string,
     onRef: (ref: ReferenceDescription, parentNodeId: string | null) => T | null,
-    shouldRecurse?: (ref: ReferenceDescription) => boolean,
+    shouldRecurse?: (ref: ReferenceDescription, parentNodeId: string) => boolean,
   ): Promise<{ items: T[] }> {
     const output: T[] = [];
     const visited = new Set<string>();
@@ -415,7 +487,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
             if (m !== null) output.push(m);
           }
 
-          if (!shouldRecurse || shouldRecurse(ref)) {
+          if (!shouldRecurse || shouldRecurse(ref, item.nodeId)) {
             if (!queued.has(childId)) {
               queued.add(childId);
               nextFrontier.push({

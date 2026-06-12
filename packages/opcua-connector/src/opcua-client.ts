@@ -65,6 +65,7 @@ export class OpcUaClient {
       applicationName: opts.applicationName ?? 'node-i3x',
       optimizedClient: opts.optimizedClient ?? 'auto',
       browseStrategy: opts.browseStrategy ?? 'parallel',
+      browseFilter: opts.browseFilter ?? 'application-only',
     };
   }
 
@@ -199,7 +200,7 @@ export class OpcUaClient {
   private async _bfsBrowse<T>(
     seedNodeId: string,
     onRef: (ref: ReferenceDescription, parentNodeId: string | null) => T | null,
-    shouldRecurse?: (ref: ReferenceDescription) => boolean,
+    shouldRecurse?: (ref: ReferenceDescription, parentNodeId: string) => boolean,
   ): Promise<{ items: T[]; txCount: number; ms: number }> {
     const started = performance.now();
     const output: T[] = [];
@@ -254,7 +255,7 @@ export class OpcUaClient {
             if (m !== null) output.push(m);
           }
 
-          if (!shouldRecurse || shouldRecurse(ref)) {
+          if (!shouldRecurse || shouldRecurse(ref, item.nodeId)) {
             if (!queued.has(childId)) {
               queued.add(childId);
               nextFrontier.push({ nodeId: childId, parentId: item.nodeId });
@@ -270,6 +271,7 @@ export class OpcUaClient {
 
   async browseTree(): Promise<SourceNodeInfo[]> {
     const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
+    const filter = this._opts.browseFilter ?? 'application-only';
 
     const { items, txCount, ms } = await this._bfsBrowse<SourceNodeInfo>(
       objectsFolderId,
@@ -278,7 +280,23 @@ export class OpcUaClient {
         const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
         return refToSourceNode(ref, effectiveParent, this._namespaceArray);
       },
-      (ref) => ref.nodeClass === NodeClass.Object || ref.nodeClass === NodeClass.Variable,
+      (ref, parentNodeId) => {
+        if (ref.nodeClass !== NodeClass.Object && ref.nodeClass !== NodeClass.Variable) {
+          return false;
+        }
+        // Apply browse filter for top-level children of ObjectsFolder
+        if (parentNodeId === objectsFolderId) {
+          if (filter === 'all') return true;
+          if (filter === 'application-only') {
+            return (ref.browseName?.namespaceIndex ?? 0) !== 0;
+          }
+          // Explicit list: match by NodeId or BrowseName
+          const nodeId = ref.nodeId.toString();
+          const name = ref.browseName?.name ?? '';
+          return filter.some((f) => f === nodeId || f === name);
+        }
+        return true;
+      },
     );
 
     const strategy = this._opts.browseStrategy !== 'browseAll' ? 'parallel' : 'browseAll';

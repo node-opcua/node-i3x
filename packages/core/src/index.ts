@@ -23,6 +23,7 @@ export type { CurrentValueResult, HistoricalValueResult, VQT } from './domain/vq
 
 // Ports
 export type {
+  BrowseFilter,
   DataChangeCallback,
   DataSourceFactory,
   IDataSourcePort,

@@ -27,6 +27,18 @@ export interface SourceNodeInfo {
   readonly eventNotifier: boolean;
 }
 
+/**
+ * Controls which subtrees under the OPC UA Objects folder
+ * are exposed via the i3X REST API.
+ *
+ * - `'application-only'` — skip standard OPC UA nodes (ns=0)
+ *   such as `Server`, `Aliases`, etc. **This is the default.**
+ * - `'all'` — expose every node under ObjectsFolder.
+ * - `string[]` — explicit list of NodeIds or BrowseNames
+ *   of top-level objects to include (e.g. `['ns=1;s=SmartFactory']`).
+ */
+export type BrowseFilter = 'application-only' | 'all' | string[];
+
 /** Namespace metadata from the source system. */
 export interface NamespaceInfo {
   readonly uri: string;

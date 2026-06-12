@@ -2,6 +2,8 @@
 // @node-i3x/opcua-connector — OPC UA-specific internal types
 // ─────────────────────────────────────────────────────────────
 
+import type { BrowseFilter } from '@node-i3x/core';
+
 /** Configuration for the OPC UA client connection. */
 export interface OpcUaClientOptions {
   endpointUrl: string;
@@ -16,4 +18,15 @@ export interface OpcUaClientOptions {
    *   continuation points internally but serializes.
    */
   browseStrategy?: 'parallel' | 'browseAll';
+  /**
+   * Controls which top-level objects under the ObjectsFolder
+   * are exposed by browseTree().
+   *
+   * - `'application-only'` — skip ns=0 infrastructure nodes
+   *   (`Server`, `Aliases`, …).  **Default.**
+   * - `'all'` — expose every child of ObjectsFolder.
+   * - `string[]` — explicit list of NodeIds or BrowseNames
+   *   to include (e.g. `['ns=1;s=SmartFactory']`).
+   */
+  browseFilter?: BrowseFilter;
 }
