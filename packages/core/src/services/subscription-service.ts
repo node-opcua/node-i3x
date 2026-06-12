@@ -195,6 +195,31 @@ export class SubscriptionService {
 
     // Start or update the data-source subscription
     await this._ensureRuntime(sub, allSourceNodeIds);
+
+    // Seed initial values so the first /sync has data immediately.
+    // The conformance suite calls /sync within ~150ms of registering;
+    // without this, no OPC UA publish cycle has fired yet.
+    if (allSourceNodeIds.length > 0) {
+      try {
+        const initialValues = await this.dataSource.readValues(allSourceNodeIds);
+        const now = new Date().toISOString();
+        for (let i = 0; i < allSourceNodeIds.length; i++) {
+          const dv = initialValues[i];
+          if (dv) {
+            this._onDataChange(
+              sub,
+              allSourceNodeIds[i]!,
+              dv.value,
+              dv.quality ?? 'Good',
+              dv.timestamp ?? now,
+            );
+          }
+        }
+      } catch (err) {
+        this.logger.warn(`Initial value seed failed: ${err}`);
+      }
+    }
+
     return { registered, errors };
   }
 
