@@ -132,13 +132,12 @@ export class ModelService {
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
       const mapped = mapNode(srcNode, childIds, browsePath);
-      if (mapped.kind === 'asset') {
-        const typeDef = srcNode.typeDefinition;
-        if (typeDef && typeIdMap.has(typeDef)) {
-          (mapped as any).type = typeIdMap.get(typeDef)!;
-        } else {
-          (mapped as any).type = 'UnknownType';
-        }
+      // Assign typeElementId: resolve via typeIdMap for assets, fallback to UnknownType
+      const typeDef = srcNode.typeDefinition;
+      if (typeDef && typeIdMap.has(typeDef)) {
+        (mapped as any).type = typeIdMap.get(typeDef)!;
+      } else {
+        (mapped as any).type = 'UnknownType';
       }
       nodesById.set(mapped.id, mapped);
       childrenById.set(mapped.id, childIds);

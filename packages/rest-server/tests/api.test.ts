@@ -690,6 +690,30 @@ describe('REST API', () => {
     });
   });
 
+  it('EXP-13: every object typeElementId resolves to a registered object type', async () => {
+    await modelService.preloadModel();
+
+    // 1. Collect all registered objecttype elementIds
+    const typesRes = await app.inject({ method: 'GET', url: '/v1/objecttypes' });
+    const types = typesRes.json().result;
+    const registeredTypeIds = new Set(types.map((t: any) => t.elementId));
+
+    // 2. Get all objects
+    const objRes = await app.inject({ method: 'GET', url: '/v1/objects' });
+    const objects = objRes.json().result;
+    expect(objects.length).toBeGreaterThan(0);
+
+    // 3. Every object's typeElementId must exist in the registered types
+    for (const obj of objects) {
+      expect(
+        registeredTypeIds.has(obj.typeElementId),
+        `Object "${obj.displayName}" (${obj.elementId}) has typeElementId ` +
+          `"${obj.typeElementId}" which is not a registered object type. ` +
+          `Registered types: ${[...registeredTypeIds].join(', ')}`,
+      ).toBe(true);
+    }
+  });
+
   it('POST /v1/objects/history failed items include responseDetail', async () => {
     await modelService.preloadModel();
 
