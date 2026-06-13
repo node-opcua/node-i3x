@@ -354,15 +354,39 @@ export class OpcUaClient {
 
     // Enrich each type with its direct members.
     // Skip standard OPC UA types (ns=0) to avoid timeout.
-    const enriched: ObjectTypeInfo[] = [];
+    // Run all enrichments in parallel — the optimized client
+    // coalesces concurrent requests into batched OPC UA calls.
+    // Use a visited set to guard against cycles / duplicates.
+    const enrichStart = performance.now();
+    const visited = new Set<string>();
+    const stdTypes: ObjectTypeInfo[] = [];
+    const nonStdTypes: ObjectTypeInfo[] = [];
+
     for (const type of items) {
+      if (visited.has(type.sourceNodeId)) continue;
+      visited.add(type.sourceNodeId);
       if (type.sourceNodeId.startsWith('ns=0;')) {
-        enriched.push(type);
+        stdTypes.push(type);
       } else {
-        const members = await this._browseTypeMembers(type.sourceNodeId);
-        enriched.push({ ...type, members });
+        nonStdTypes.push(type);
       }
     }
+
+    const memberResults = await Promise.all(
+      nonStdTypes.map((type) =>
+        this._browseTypeMembers(type.sourceNodeId).then(
+          (members) => ({ ...type, members }),
+          () => type, // on error, keep type without members
+        ),
+      ),
+    );
+
+    const enriched = [...stdTypes, ...memberResults];
+    const enrichMs = performance.now() - enrichStart;
+    this.logger.info(
+      `Enriched ${nonStdTypes.length} types with members in ` +
+        `${enrichMs.toFixed(0)}ms`,
+    );
     return enriched;
   }
 
