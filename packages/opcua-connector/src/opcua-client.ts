@@ -177,12 +177,15 @@ export class OpcUaClient {
   //   'browseAll' — node-opcua browseAll() handles continuation
   //                 points but serializes all operations.
 
-  private _makeBrowseDescriptions(nodeIds: string[]) {
+  private _makeBrowseDescriptions(
+    nodeIds: string[],
+    referenceTypeId = resolveNodeId('HierarchicalReferences'),
+  ) {
     return nodeIds.map((nodeId) => ({
       nodeId: coerceNodeId(nodeId),
       browseDirection: BrowseDirection.Forward,
       includeSubtypes: true,
-      referenceTypeId: resolveNodeId('HierarchicalReferences'),
+      referenceTypeId,
       resultMask: 63,
       requestedMaxReferencesPerNode: 0,
     }));
@@ -195,8 +198,9 @@ export class OpcUaClient {
    */
   private async _browseSingleNode(
     nodeId: string,
+    referenceTypeId?: ReturnType<typeof resolveNodeId>,
   ): Promise<{ refs: ReferenceDescription[]; txCount: number }> {
-    const desc = this._makeBrowseDescriptions([nodeId])[0]!;
+    const desc = this._makeBrowseDescriptions([nodeId], referenceTypeId)[0]!;
     const result = await this.session.browse(desc);
     const refs: ReferenceDescription[] = [...(result.references ?? [])];
     let txCount = 1;
@@ -223,6 +227,7 @@ export class OpcUaClient {
     seedNodeId: string,
     onRef: (ref: ReferenceDescription, parentNodeId: string | null) => T | null,
     shouldRecurse?: (ref: ReferenceDescription, parentNodeId: string) => boolean,
+    referenceTypeId?: ReturnType<typeof resolveNodeId>,
   ): Promise<{ items: T[]; txCount: number; ms: number }> {
     const started = performance.now();
     const output: T[] = [];
@@ -246,10 +251,13 @@ export class OpcUaClient {
 
       if (useParallel) {
         waveResults = await Promise.all(
-          wave.map((w) => this._browseSingleNode(w.nodeId)),
+          wave.map((w) => this._browseSingleNode(w.nodeId, referenceTypeId)),
         );
       } else {
-        const descriptions = this._makeBrowseDescriptions(wave.map((w) => w.nodeId));
+        const descriptions = this._makeBrowseDescriptions(
+          wave.map((w) => w.nodeId),
+          referenceTypeId,
+        );
         const browseResults = await browseAll(this.session, descriptions);
         totalTx += 1;
         waveResults = browseResults.map((r) => ({
@@ -330,9 +338,16 @@ export class OpcUaClient {
   }
 
   async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+    // Use HierarchicalReferences to navigate folders (Organizes)
+    // and the subtype hierarchy (HasSubtype), but only collect
+    // and recurse into ObjectType nodes. This prevents recursing
+    // into type members (HasComponent → Variables/Objects) which
+    // would explode the graph to 7000+ false "types".
     const { items, txCount, ms } = await this._bfsBrowse<ObjectTypeInfo>(
       resolveNodeId('ObjectTypesFolder').toString(),
       (ref, parentNodeId) => {
+        // Only collect actual ObjectType nodes
+        if (ref.nodeClass !== NodeClass.ObjectType) return null;
         const nsIdx = ref.browseName?.namespaceIndex ?? 0;
         const nsUri = this._namespaceArray[nsIdx] ?? '';
         return {
@@ -343,7 +358,10 @@ export class OpcUaClient {
           namespaceUri: nsUri,
         };
       },
-      () => true,
+      (ref) => {
+        // Only recurse into ObjectType nodes — skip members
+        return ref.nodeClass === NodeClass.ObjectType;
+      },
     );
 
     const strategy = this._opts.browseStrategy !== 'browseAll' ? 'parallel' : 'browseAll';
@@ -354,8 +372,9 @@ export class OpcUaClient {
 
     // Enrich each type with its direct members.
     // Skip standard OPC UA types (ns=0) to avoid timeout.
-    // Run all enrichments in parallel — the optimized client
-    // coalesces concurrent requests into batched OPC UA calls.
+    // Process in chunks to balance parallelism vs server load.
+    // The optimized client batches concurrent calls within each
+    // chunk into fewer wire-level OPC UA requests.
     // Use a visited set to guard against cycles / duplicates.
     const enrichStart = performance.now();
     const visited = new Set<string>();
@@ -372,14 +391,31 @@ export class OpcUaClient {
       }
     }
 
-    const memberResults = await Promise.all(
-      nonStdTypes.map((type) =>
-        this._browseTypeMembers(type.sourceNodeId).then(
-          (members) => ({ ...type, members }),
-          () => type, // on error, keep type without members
+    // Process in chunks of ENRICH_CHUNK_SIZE for controlled
+    // concurrency. Each chunk fires N concurrent
+    // _browseTypeMembers calls that the optimized client
+    // coalesces into batched OPC UA operations.
+    const ENRICH_CHUNK_SIZE = 200;
+    const memberResults: ObjectTypeInfo[] = [];
+
+    for (let i = 0; i < nonStdTypes.length; i += ENRICH_CHUNK_SIZE) {
+      const chunk = nonStdTypes.slice(i, i + ENRICH_CHUNK_SIZE);
+      const chunkResults = await Promise.all(
+        chunk.map((type) =>
+          this._browseTypeMembers(type.sourceNodeId).then(
+            (members) => ({ ...type, members }),
+            () => type, // on error, keep type without members
+          ),
         ),
-      ),
-    );
+      );
+      memberResults.push(...chunkResults);
+      if (nonStdTypes.length > ENRICH_CHUNK_SIZE) {
+        this.logger.info(
+          `Enriching types: ${Math.min(i + ENRICH_CHUNK_SIZE, nonStdTypes.length)}` +
+            `/${nonStdTypes.length} done`,
+        );
+      }
+    }
 
     const enriched = [...stdTypes, ...memberResults];
     const enrichMs = performance.now() - enrichStart;
