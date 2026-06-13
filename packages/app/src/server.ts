@@ -48,6 +48,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     historyService,
     subscriptionService,
     logger,
+    readOnly: config.readOnly,
   });
 
   // 4. Connect to OPC UA

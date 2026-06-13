@@ -40,6 +40,7 @@ export interface RestServerDeps {
   historyService: HistoryService;
   subscriptionService: SubscriptionService;
   logger: ILogger;
+  readOnly?: boolean;
 }
 
 export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> {

@@ -11,6 +11,7 @@ export interface I3xConfig {
   logLevel: string;
   modelPreload: boolean;
   failOnPreloadError: boolean;
+  readOnly: boolean;
   username?: string;
   password?: string;
 }
@@ -25,6 +26,7 @@ const DEFAULTS: I3xConfig = {
   logLevel: 'info',
   modelPreload: true,
   failOnPreloadError: false,
+  readOnly: false,
 };
 
 // ── Environment variable helpers ───────────────────────────
@@ -76,6 +78,9 @@ function fromEnv(): Partial<I3xConfig> {
 
   const password = envStr('NODE_I3X_OPCUA_PASSWORD');
   if (password) result.password = password;
+
+  const readOnly = envBool('NODE_I3X_READ_ONLY');
+  if (readOnly !== undefined) result.readOnly = readOnly;
 
   return result;
 }

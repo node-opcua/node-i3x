@@ -170,12 +170,32 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
 
   // ── PUT /v1/objects/:elementId/history ─────────────────────
   app.put('/v1/objects/:elementId/history', async (_req, reply) => {
+    if (app.deps.readOnly) {
+      reply.status(501);
+      return {
+        success: false,
+        error: {
+          code: 501,
+          message: 'Write operations are disabled (read-only mode)',
+        },
+      };
+    }
     reply.status(501);
     return { success: false, error: { code: 501, message: 'Not implemented' } };
   });
 
   // ── PUT /v1/objects/history ────────────────────────────────
   app.put('/v1/objects/history', async (_req, reply) => {
+    if (app.deps.readOnly) {
+      reply.status(501);
+      return {
+        success: false,
+        error: {
+          code: 501,
+          message: 'Write operations are disabled (read-only mode)',
+        },
+      };
+    }
     reply.status(501);
     return { success: false, error: { code: 501, message: 'Not implemented' } };
   });
@@ -185,7 +205,18 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     '/v1/objects/:elementId/value',
     async (
       req: FastifyRequest<{ Params: { elementId: string }; Body: { value: unknown } }>,
+      reply,
     ) => {
+      if (app.deps.readOnly) {
+        reply.status(501);
+        return {
+          success: false,
+          error: {
+            code: 501,
+            message: 'Write operations are disabled (read-only mode)',
+          },
+        };
+      }
       const { elementId } = req.params;
       const { value } = req.body;
       try {
@@ -204,7 +235,18 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       req: FastifyRequest<{
         Body: { elementId: string; value: unknown }[] | Record<string, unknown>;
       }>,
+      reply,
     ) => {
+      if (app.deps.readOnly) {
+        reply.status(501);
+        return {
+          success: false,
+          error: {
+            code: 501,
+            message: 'Write operations are disabled (read-only mode)',
+          },
+        };
+      }
       const body = req.body;
       let items: { elementId: string; value: unknown }[] = [];
       if (Array.isArray(body)) {
