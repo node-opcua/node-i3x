@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/pseudo-session-connector",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "i3X data-source adapter using node-opcua PseudoSession — connects directly to an AddressSpace without binary OPC UA transport",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -56,7 +56,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@node-i3x/core": "0.3.3",
+    "@node-i3x/core": "0.4.0",
     "node-opcua-address-space": "^2.173.1",
     "node-opcua-address-space-base": "^2.173.0",
     "node-opcua-data-model": "^2.173.0",

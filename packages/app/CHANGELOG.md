@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.4.0 (2026-06-13)
+
+- feat(app,rest-server): add read-only mode command line option and env var
+
 ## 0.3.3 (2026-06-13)
 
 - fix(core): Bad quality value MUST be null per i3X spec

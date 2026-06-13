@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.4.0 (2026-06-13)
+
+- Version bump
+
 ## 0.3.3 (2026-06-13)
 
 - fix(core): Bad quality value MUST be null per i3X spec
