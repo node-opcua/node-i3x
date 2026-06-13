@@ -50,10 +50,35 @@ const SECURITY_MODES: Record<string, MessageSecurityMode> = {
   SignAndEncrypt: MessageSecurityMode.SignAndEncrypt,
 };
 
+/** OPC UA session-level traffic statistics */
+export interface OpcuaStats {
+  transactionsPerformed: number;
+  bytesRead: number;
+  bytesWritten: number;
+  services: {
+    browse: number;
+    read: number;
+    write: number;
+    translate: number;
+    subscribe: number;
+    call: number;
+    readHistory: number;
+  };
+}
+
 export class OpcUaClient {
   private _client: OPCUAClient | null = null;
   private _session: ClientSession | null = null;
   private _namespaceArray: string[] = [];
+  private _serviceCounters = {
+    browse: 0,
+    read: 0,
+    write: 0,
+    translate: 0,
+    subscribe: 0,
+    call: 0,
+    readHistory: 0,
+  };
   private readonly _opts: Required<
     Pick<
       OpcUaClientOptions,
@@ -80,6 +105,15 @@ export class OpcUaClient {
       browseFilter: opts.browseFilter ?? 'application-only',
       username: opts.username,
       password: opts.password,
+    };
+  }
+
+  getStats(): OpcuaStats {
+    return {
+      transactionsPerformed: this._client?.transactionsPerformed ?? 0,
+      bytesRead: this._client?.bytesRead ?? 0,
+      bytesWritten: this._client?.bytesWritten ?? 0,
+      services: { ...this._serviceCounters },
     };
   }
 
@@ -300,6 +334,7 @@ export class OpcUaClient {
   }
 
   async browseTree(): Promise<SourceNodeInfo[]> {
+    this._serviceCounters.browse++;
     const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
     const filter = this._opts.browseFilter ?? 'application-only';
 
@@ -338,6 +373,7 @@ export class OpcUaClient {
   }
 
   async getObjectTypes(): Promise<ObjectTypeInfo[]> {
+    this._serviceCounters.browse++;
     // Use HierarchicalReferences to navigate folders (Organizes)
     // and the subtype hierarchy (HasSubtype), but only collect
     // and recurse into ObjectType nodes. This prevents recursing
@@ -528,6 +564,7 @@ export class OpcUaClient {
   // ── Read / Write ───────────────────────────────────────────
 
   async readValue(nodeId: string): Promise<SourceDataValue> {
+    this._serviceCounters.read++;
     const dv = await this.session.read({
       nodeId: coerceNodeId(nodeId),
       attributeId: AttributeIds.Value,
@@ -536,6 +573,7 @@ export class OpcUaClient {
   }
 
   async readValues(nodeIds: string[]): Promise<SourceDataValue[]> {
+    this._serviceCounters.read++;
     if (nodeIds.length === 0) return [];
     const items: ReadValueIdOptions[] = nodeIds.map((id) => ({
       nodeId: coerceNodeId(id),
@@ -547,6 +585,7 @@ export class OpcUaClient {
   }
 
   async writeValue(nodeId: string, value: unknown): Promise<void> {
+    this._serviceCounters.write++;
     const nid = coerceNodeId(nodeId);
 
     // ── Step 1: Read the variable's declared DataType ──────────
@@ -701,6 +740,7 @@ export class OpcUaClient {
     startTime: Date,
     endTime: Date,
   ): Promise<SourceHistoricalValue[]> {
+    this._serviceCounters.readHistory++;
     const result = await this.session.readHistoryValue(
       coerceNodeId(nodeId),
       startTime,
@@ -720,6 +760,7 @@ export class OpcUaClient {
     methodNodeId: string,
     args: unknown[],
   ): Promise<unknown> {
+    this._serviceCounters.call++;
     const request: CallMethodRequest = {
       objectId: coerceNodeId(objectNodeId),
       methodId: coerceNodeId(methodNodeId),
@@ -734,6 +775,7 @@ export class OpcUaClient {
   async createMonitoredSubscription(
     options: MonitoredSubscriptionOptions,
   ): Promise<IMonitoredSubscription> {
+    this._serviceCounters.subscribe++;
     // createSubscription2 works on both the standard session
     // and ClientSessionOptimized (which returns ClientSubscription2).
     const sub = await this.session.createSubscription2({

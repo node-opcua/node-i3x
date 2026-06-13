@@ -147,6 +147,14 @@ export interface IDataSourcePort {
   createMonitoredSubscription(
     options: MonitoredSubscriptionOptions,
   ): Promise<IMonitoredSubscription>;
+
+  // ── Stats (optional) ──
+  getStats?(): {
+    transactionsPerformed: number;
+    bytesRead: number;
+    bytesWritten: number;
+    services: Record<string, number>;
+  };
 }
 
 /**

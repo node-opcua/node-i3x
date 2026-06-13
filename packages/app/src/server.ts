@@ -86,6 +86,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     logger,
     readOnly: config.readOnly,
     apiKey,
+    getOpcuaStats: () => opcuaClient.getStats(),
   });
 
   // 4. Connect to OPC UA
@@ -119,6 +120,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     port: config.port,
     host: config.host,
     apiKey,
+    opcuaStartupStats: opcuaClient.getStats(),
   });
 
   // 7. Banner

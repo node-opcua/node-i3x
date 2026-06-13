@@ -43,6 +43,12 @@ export interface RestServerDeps {
   logger: ILogger;
   readOnly?: boolean;
   apiKey?: string;
+  getOpcuaStats?: () => {
+    transactionsPerformed: number;
+    bytesRead: number;
+    bytesWritten: number;
+    services: Record<string, number>;
+  };
 }
 
 export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> {
