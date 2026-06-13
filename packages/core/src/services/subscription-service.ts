@@ -215,6 +215,17 @@ export class SubscriptionService {
             );
           }
         }
+        // Flush immediately — don't wait for the 200ms debounce.
+        // Cancel pending debounce timers and push updates now.
+        for (const asset of sub.assets.values()) {
+          if (asset.dirty) {
+            if (asset.debounceTimer) {
+              clearTimeout(asset.debounceTimer);
+              asset.debounceTimer = null;
+            }
+            this._flushAsset(sub, asset);
+          }
+        }
       } catch (err) {
         this.logger.warn(`Initial value seed failed: ${err}`);
       }

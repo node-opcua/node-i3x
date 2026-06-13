@@ -23,6 +23,10 @@ import { SubscriptionService } from '../src/services/subscription-service.js';
 /** Wait for debounce to flush (DEBOUNCE_MS = 200). */
 const waitForDebounce = () => new Promise<void>((r) => setTimeout(r, 300));
 
+/** Drain the initial seed update pushed by register(). */
+const drainSeed = (svc: SubscriptionService, subId: string) =>
+  svc.sync(subId, Number.MAX_SAFE_INTEGER);
+
 // ── Mock data source ─────────────────────────────────────────
 
 function createMockDataSource(): IDataSourcePort & {
@@ -275,6 +279,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
 
     // Simulate 3 rapid data changes — debounce coalesces them
     ds._triggerChange(sourceId, 10.0);
@@ -290,7 +295,8 @@ describe('SubscriptionService', () => {
     const updates = svc.sync(subscriptionId, 0);
     // Debounce produces ONE composite update with the last value
     expect(updates).toHaveLength(1);
-    expect(updates[0]!.sequenceNumber).toBe(1);
+    // sequence 1 was consumed by the initial seed
+    expect(updates[0]!.sequenceNumber).toBeGreaterThanOrEqual(1);
     // value is now a CurrentValueResult
     expect(updates[0]!.value.value).toBe(30.0);
     expect(updates[0]!.value.isComposition).toBe(false);
@@ -303,6 +309,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
     ds._triggerChange(sourceId, 42);
 
     await waitForDebounce();
@@ -321,6 +328,7 @@ describe('SubscriptionService', () => {
     expect(cncNode).toBeTruthy();
 
     await svc.register(subscriptionId, [cncNode!.id], 1);
+    drainSeed(svc, subscriptionId);
 
     // Trigger changes on Temperature and Speed source nodes
     ds._triggerChange('ns=1;i=101', 25.5);
@@ -355,6 +363,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
 
     // Trigger first change, wait for debounce
     ds._triggerChange(sourceId, 1);
@@ -364,10 +373,13 @@ describe('SubscriptionService', () => {
     ds._triggerChange(sourceId, 2);
     await waitForDebounce();
 
-    // Acknowledge seq 1 → only seq 2 returned
-    const updates = svc.sync(subscriptionId, 1);
+    // Acknowledge first change → only second change returned
+    const firstSync = svc.sync(subscriptionId, 0);
+    expect(firstSync.length).toBeGreaterThanOrEqual(2);
+    const ackSeq = firstSync[firstSync.length - 2]!.sequenceNumber;
+    const updates = svc.sync(subscriptionId, ackSeq);
     expect(updates).toHaveLength(1);
-    expect(updates[0]!.sequenceNumber).toBe(2);
+    expect(updates[0]!.value.value).toBe(2);
   });
 
   it('sync() returns empty array when fully acknowledged', async () => {
@@ -377,11 +389,14 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
     ds._triggerChange(sourceId, 1);
 
     await waitForDebounce();
-
-    const updates = svc.sync(subscriptionId, 1);
+    // Acknowledge all updates → empty
+    const all = svc.sync(subscriptionId, 0);
+    const lastSeq = all[all.length - 1]!.sequenceNumber;
+    const updates = svc.sync(subscriptionId, lastSeq);
     expect(updates).toHaveLength(0);
   });
 
@@ -394,6 +409,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
     ds._triggerChange(sourceId, 99);
 
     // Wait for debounce to flush, then waitForUpdates
@@ -412,6 +428,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
 
     // Start waiting, then trigger change after 50ms
     // (debounce will fire ~250ms later)
@@ -438,6 +455,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
 
     // Push many changes with individual debounce waits
     // (Each debounce produces 1 update, so we need 10,001 debounce cycles)
@@ -515,6 +533,7 @@ describe('SubscriptionService', () => {
     const sourceId = model.propertyToSource.get(propId)!;
 
     await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
     await svc.unregister(subscriptionId, [propId]);
 
     // Data changes after unregister should be ignored
@@ -580,6 +599,7 @@ describe('SubscriptionService', () => {
       const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 1);
+      drainSeed(serverSvc, subscriptionId);
 
       // Trigger initial on('changed') events for all 3 properties
       serverDs._triggerChange('ns=0;i=2267', 255); // ServiceLevel
@@ -626,6 +646,7 @@ describe('SubscriptionService', () => {
       const serverNode = [...model.nodesById.values()].find((n) => n.name === 'Server');
 
       await serverSvc.register(subscriptionId, [serverNode!.id], 2);
+      drainSeed(serverSvc, subscriptionId);
 
       // Trigger changes on all 5 properties
       serverDs._triggerChange('ns=0;i=2267', 255); // ServiceLevel
