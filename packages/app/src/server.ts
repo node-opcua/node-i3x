@@ -20,6 +20,8 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
       endpointUrl: config.endpoint,
       securityMode: config.securityMode,
       optimizedClient: config.optimizedClient,
+      username: config.username,
+      password: config.password,
     },
     logger,
   );

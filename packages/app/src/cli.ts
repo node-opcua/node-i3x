@@ -25,6 +25,8 @@ program
   )
   .option('--log-level <level>', 'Log level: debug | info | warn | error')
   .option('--no-model-preload', 'Skip model preload on startup')
+  .option('--username <user>', 'OPC UA username for UserName identity token')
+  .option('--password <pass>', 'OPC UA password for UserName identity token')
   .option('-c, --config <path>', 'Path to config file')
   .action(async (opts) => {
     // Build partial config from CLI args
@@ -38,6 +40,8 @@ program
       cliArgs.subscriptionInterval = opts.subscriptionInterval;
     if (opts.logLevel) cliArgs.logLevel = opts.logLevel;
     if (opts.modelPreload === false) cliArgs.modelPreload = false;
+    if (opts.username) cliArgs.username = opts.username;
+    if (opts.password) cliArgs.password = opts.password;
 
     const config = await resolveConfig(cliArgs, opts.config);
     await startServer(config, pkg.version);

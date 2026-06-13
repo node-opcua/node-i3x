@@ -32,6 +32,7 @@ import {
   resolveNodeId,
   StatusCodes,
   TimestampsToReturn,
+  UserTokenType,
   Variant,
   type WriteValue,
 } from 'node-opcua';
@@ -53,7 +54,18 @@ export class OpcUaClient {
   private _client: OPCUAClient | null = null;
   private _session: ClientSession | null = null;
   private _namespaceArray: string[] = [];
-  private readonly _opts: Required<OpcUaClientOptions>;
+  private readonly _opts: Required<
+    Pick<
+      OpcUaClientOptions,
+      | 'endpointUrl'
+      | 'securityMode'
+      | 'applicationName'
+      | 'optimizedClient'
+      | 'browseStrategy'
+      | 'browseFilter'
+    >
+  > &
+    Pick<OpcUaClientOptions, 'username' | 'password'>;
 
   constructor(
     opts: OpcUaClientOptions,
@@ -66,6 +78,8 @@ export class OpcUaClient {
       optimizedClient: opts.optimizedClient ?? 'auto',
       browseStrategy: opts.browseStrategy ?? 'parallel',
       browseFilter: opts.browseFilter ?? 'application-only',
+      username: opts.username,
+      password: opts.password,
     };
   }
 
@@ -97,7 +111,15 @@ export class OpcUaClient {
     this.logger.info(`Connecting to ${this._opts.endpointUrl}...`);
     await this._client.connect(this._opts.endpointUrl);
 
-    let session = await this._client.createSession();
+    const userIdentity =
+      this._opts.username && this._opts.password
+        ? {
+            type: UserTokenType.UserName as const,
+            userName: this._opts.username,
+            password: this._opts.password,
+          }
+        : undefined;
+    let session = await this._client.createSession(userIdentity);
 
     // ━━━ @sterfive/opcua-optimized-client ━━━━━━━━━━━━━━━━━━━
     // Wrap session with ClientSessionOptimized if available.

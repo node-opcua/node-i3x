@@ -29,4 +29,8 @@ export interface OpcUaClientOptions {
    *   to include (e.g. `['ns=1;s=SmartFactory']`).
    */
   browseFilter?: BrowseFilter;
+  /** OPC UA username for UserName identity token. */
+  username?: string;
+  /** OPC UA password for UserName identity token. */
+  password?: string;
 }

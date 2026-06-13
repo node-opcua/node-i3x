@@ -11,6 +11,8 @@ export interface I3xConfig {
   logLevel: string;
   modelPreload: boolean;
   failOnPreloadError: boolean;
+  username?: string;
+  password?: string;
 }
 
 const DEFAULTS: I3xConfig = {
@@ -68,6 +70,12 @@ function fromEnv(): Partial<I3xConfig> {
 
   const failOnPreload = envBool('NODE_I3X_PRELOAD_STRICT');
   if (failOnPreload !== undefined) result.failOnPreloadError = failOnPreload;
+
+  const username = envStr('NODE_I3X_OPCUA_USERNAME');
+  if (username) result.username = username;
+
+  const password = envStr('NODE_I3X_OPCUA_PASSWORD');
+  if (password) result.password = password;
 
   return result;
 }

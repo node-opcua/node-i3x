@@ -71,6 +71,18 @@ export async function createTestContext(): Promise<TestContext> {
     }),
   });
 
+  // ── Install in-memory historization on process variables ──
+  addressSpace.installHistoricalDataNode(temperature, {
+    maxOnlineValues: 100,
+  });
+  addressSpace.installHistoricalDataNode(pressure, {
+    maxOnlineValues: 100,
+  });
+
+  // Seed a couple of values so history is not empty
+  temperature.setValueFromSource(new Variant({ dataType: DataType.Double, value: 43.0 }));
+  pressure.setValueFromSource(new Variant({ dataType: DataType.Double, value: 102.0 }));
+
   return {
     server,
     addressSpace,

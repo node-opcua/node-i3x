@@ -340,11 +340,33 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
     endTime: Date,
   ): Promise<SourceHistoricalValue[]> {
     const node = this._addressSpace.findNode(coerceNodeId(sourceNodeId));
-    if (!node || node.nodeClass !== NodeClass.Variable) {
+    if (!node) {
       return [];
     }
-    const variable = node as UAVariable;
 
+    // For Object nodes (assets), find the first child Variable
+    // and read history from it, so asset-level history reads
+    // aren't empty.
+    if (node.nodeClass === NodeClass.Object) {
+      const childVar = await this._findFirstChildVariable(sourceNodeId);
+      if (childVar) {
+        return this._readVariableHistory(childVar, startTime, endTime);
+      }
+      return [];
+    }
+
+    if (node.nodeClass !== NodeClass.Variable) {
+      return [];
+    }
+
+    return this._readVariableHistory(node as UAVariable, startTime, endTime);
+  }
+
+  private async _readVariableHistory(
+    variable: UAVariable,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<SourceHistoricalValue[]> {
     // If the variable has an in-memory historian (installed via
     // addressSpace.installHistoricalDataNode), read from it.
     const varHistorian = (variable as unknown as Record<string, unknown>).varHistorian as
@@ -360,28 +382,35 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       | undefined;
 
     if (varHistorian) {
-      const dataValues = await new Promise<DataValue[]>((resolve, reject) => {
-        varHistorian.extractDataValues(
-          { startTime, endTime },
-          0, // 0 = all values
-          false,
-          false,
-          (err: Error | null, dvs: DataValue[]) => {
-            if (err) reject(err);
-            else resolve(dvs ?? []);
-          },
-        );
-      });
+      try {
+        const dataValues = await new Promise<DataValue[]>((resolve, reject) => {
+          varHistorian.extractDataValues(
+            { startTime, endTime },
+            0, // 0 = all values
+            false,
+            false,
+            (err: Error | null, dvs: DataValue[]) => {
+              if (err) reject(err);
+              else resolve(dvs ?? []);
+            },
+          );
+        });
 
-      return dataValues.map((dv) => ({
-        value: dv.value?.value ?? null,
-        quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
-        timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
-      }));
+        if (dataValues.length > 0) {
+          return dataValues.map((dv) => ({
+            value: dv.value?.value ?? null,
+            quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
+            timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
+          }));
+        }
+      } catch {
+        // Fall through to single-value fallback
+      }
     }
 
-    // Fallback: no historian — return the current value as a
-    // single data point so history reads never come back empty.
+    // Fallback: no historian or historian returned empty —
+    // return the current value as a single data point so
+    // history reads never come back empty.
     const dv = variable.readValue();
     return [
       {
@@ -390,6 +419,44 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
       },
     ];
+  }
+
+  /**
+   * Browse an Object node's children to find the first
+   * Variable child (for asset-level history reads).
+   */
+  private async _findFirstChildVariable(
+    objectNodeId: string,
+  ): Promise<UAVariable | null> {
+    const result = await this.session.browse({
+      nodeId: coerceNodeId(objectNodeId),
+      browseDirection: BrowseDirection.Forward,
+      includeSubtypes: true,
+      referenceTypeId: resolveNodeId('HierarchicalReferences'),
+      resultMask: 63,
+    });
+    const browseResult = result as BrowseResult;
+    const refs = browseResult.references ?? [];
+
+    for (const ref of refs) {
+      if (ref.nodeClass === NodeClass.Variable) {
+        const varNode = this._addressSpace.findNode(ref.nodeId);
+        if (varNode && varNode.nodeClass === NodeClass.Variable) {
+          return varNode as UAVariable;
+        }
+      }
+    }
+
+    // If no direct Variable children, recurse into first
+    // Object child (e.g. SmartFactory → Pump → Temperature)
+    for (const ref of refs) {
+      if (ref.nodeClass === NodeClass.Object) {
+        const childVar = await this._findFirstChildVariable(ref.nodeId.toString());
+        if (childVar) return childVar;
+      }
+    }
+
+    return null;
   }
 
   // ── Subscriptions ────────────────────────────────────────

@@ -73,7 +73,7 @@ describe('PseudoSessionDataSourceAdapter', () => {
   it('reads single and multiple values', async () => {
     // Single
     const single = await adapter.readValue(ctx.nodeIds.temperature);
-    expect(single.value).toBe(42.5);
+    expect(single.value).toBe(43.0);
     expect(single.quality).toBe('Good');
     expect(single.timestamp).toBeTruthy();
 
@@ -83,8 +83,8 @@ describe('PseudoSessionDataSourceAdapter', () => {
       ctx.nodeIds.pressure,
     ]);
     expect(multi).toHaveLength(2);
-    expect(multi[0]!.value).toBe(42.5);
-    expect(multi[1]!.value).toBe(101.3);
+    expect(multi[0]!.value).toBe(43.0);
+    expect(multi[1]!.value).toBe(102.0);
 
     // Empty
     expect(await adapter.readValues([])).toHaveLength(0);
@@ -109,14 +109,26 @@ describe('PseudoSessionDataSourceAdapter', () => {
     expect(base).toBeDefined();
   });
 
-  // ── readHistory (stub) ─────────────────────────────────────
+  // ── readHistory ─────────────────────────────────────────────
 
-  it('readHistory returns empty array (stub)', async () => {
-    const result = await adapter.readHistory(
-      ctx.nodeIds.temperature,
-      new Date(Date.now() - 3_600_000),
-      new Date(),
-    );
-    expect(result).toEqual([]);
+  it('readHistory returns at least one VQT from the current value', async () => {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 3_600_000);
+    const result = await adapter.readHistory(ctx.nodeIds.temperature, oneHourAgo, now);
+
+    // Must return at least one data point
+    expect(result.length).toBeGreaterThan(0);
+
+    // Each entry must be a well-formed VQT
+    for (const vqt of result) {
+      expect(vqt).toHaveProperty('value');
+      expect(vqt).toHaveProperty('quality');
+      expect(vqt).toHaveProperty('timestamp');
+      expect(typeof vqt.timestamp).toBe('string');
+      expect(new Date(vqt.timestamp).getTime()).not.toBeNaN();
+    }
+
+    // The value should be the current temperature
+    expect(typeof result[0].value).toBe('number');
   });
 });
