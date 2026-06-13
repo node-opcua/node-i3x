@@ -11,8 +11,32 @@ import { createApp } from '@node-i3x/rest-server';
 import { printBanner } from './banner.js';
 import type { I3xConfig } from './config.js';
 
+/**
+ * Send a structured progress message to the parent process (IPC)
+ * and also log it to stdout. When run standalone (no parent),
+ * process.send is undefined and only the console.log fires.
+ */
+function sendProgress(
+  phase: string,
+  message: string,
+  extra?: Record<string, unknown>,
+): void {
+  const msg = {
+    type: 'progress' as const,
+    phase,
+    message,
+    timestamp: Date.now(),
+    ...extra,
+  };
+  if (typeof process.send === 'function') {
+    process.send(msg);
+  }
+}
+
 export async function startServer(config: I3xConfig, version: string): Promise<void> {
   const logger = consoleLogger;
+
+  sendProgress('initializing', 'Creating OPC UA client...');
 
   // 1. Outbound adapter (OPC UA)
   const opcuaClient = new OpcUaClient(
@@ -40,6 +64,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   const typeService = new TypeService(dataSource, logger);
 
   // 3. Inbound adapter (REST)
+  sendProgress('creating-rest', 'Creating REST API server...');
   const app = await createApp({
     dataSource,
     modelService,
@@ -52,23 +77,36 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   });
 
   // 4. Connect to OPC UA
+  sendProgress('connecting', `Connecting to ${config.endpoint}...`);
   await dataSource.connect();
+  sendProgress('connected', 'OPC UA session established');
 
   // 5. Preload model
   let nodeCount: number | undefined;
   if (config.modelPreload) {
     try {
+      sendProgress('preloading-model', 'Preloading object model...');
       const model = await modelService.preloadModel();
       nodeCount = model.nodesById.size;
+      sendProgress('model-loaded', `Model loaded: ${nodeCount} nodes`, { nodeCount });
+
+      sendProgress('preloading-types', 'Preloading type definitions...');
       await typeService.preloadTypes();
+      sendProgress('types-loaded', 'Type definitions loaded');
     } catch (err) {
+      sendProgress('error', `Model preload failed: ${String(err)}`);
       logger.error(`Model preload failed: ${String(err)}`);
       if (config.failOnPreloadError) process.exit(1);
     }
   }
 
   // 6. Start HTTP server
+  sendProgress('starting-http', 'Starting HTTP server...');
   await app.listen({ port: config.port, host: config.host });
+  sendProgress('ready', `Server listening on ${config.host}:${config.port}`, {
+    port: config.port,
+    host: config.host,
+  });
 
   // 7. Banner
   printBanner(version, config, nodeCount);
