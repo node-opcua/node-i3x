@@ -487,33 +487,151 @@ export class OpcUaClient {
   }
 
   async writeValue(nodeId: string, value: unknown): Promise<void> {
-    // Infer a reasonable OPC UA DataType from the JS value.
-    // DataType.Null would rely on server auto-coercion which
-    // is not always reliable (e.g. integer → Double mismatch).
-    let dataType = DataType.Null;
-    if (typeof value === 'number') {
-      dataType = Number.isInteger(value) ? DataType.Double : DataType.Double;
-    } else if (typeof value === 'boolean') {
-      dataType = DataType.Boolean;
-    } else if (typeof value === 'string') {
-      dataType = DataType.String;
+    const nid = coerceNodeId(nodeId);
+
+    // ── Step 1: Read the variable's declared DataType ──────────
+    const readResults = await this.session.read([
+      { nodeId: nid, attributeId: AttributeIds.DataType },
+      { nodeId: nid, attributeId: AttributeIds.Value },
+    ]);
+    const dvArr = Array.isArray(readResults) ? readResults : [readResults];
+    const dataTypeNodeId = dvArr[0]?.value?.value;
+    const currentDataValue = dvArr[1];
+
+    // Resolve the DataType enum from the DataType NodeId
+    let targetDataType = DataType.Null;
+    if (dataTypeNodeId) {
+      const dtNum =
+        typeof dataTypeNodeId === 'object'
+          ? (dataTypeNodeId.value ?? 0)
+          : Number(dataTypeNodeId);
+      // node-opcua DataType enum values map 1:1 with the
+      // DataType NodeId identifiers for built-in types (1..25)
+      if (dtNum >= 1 && dtNum <= 25) {
+        targetDataType = dtNum as DataType;
+      } else {
+        // For non-built-in types, try to use the current value's type
+        if (currentDataValue?.value?.value !== undefined) {
+          targetDataType = currentDataValue.value.dataType ?? DataType.Null;
+        }
+      }
     }
 
-    const writeValue: WriteValue = {
-      nodeId: coerceNodeId(nodeId),
+    // ── Step 2: Coerce the JSON value to the target DataType ──
+    let coercedValue: unknown = value;
+    try {
+      coercedValue = this._coerceToDataType(value, targetDataType);
+    } catch (coerceErr) {
+      const msg =
+        `Write coercion failed for ${nodeId}: ` +
+        `targetDataType=${DataType[targetDataType]}(${targetDataType}) ` +
+        `jsType=${typeof value} jsValue=${JSON.stringify(value)} ` +
+        `error=${coerceErr}`;
+      this.logger.warn(msg);
+      throw new Error(msg);
+    }
+
+    // ── Step 3: Write ─────────────────────────────────────────
+    const writeVal: WriteValue = {
+      nodeId: nid,
       attributeId: AttributeIds.Value,
       value: {
         value: new Variant({
-          dataType,
-          value: dataType === DataType.Double ? Number(value) : value,
+          dataType:
+            targetDataType !== DataType.Null
+              ? targetDataType
+              : this._inferDataType(coercedValue),
+          value: coercedValue,
         }),
       },
     } as WriteValue;
-    const result = await this.session.write(writeValue);
+
+    this.logger.debug(
+      `writeValue: nodeId=${nodeId} ` +
+        `targetDataType=${DataType[targetDataType]} ` +
+        `jsType=${typeof value} → coerced=${JSON.stringify(coercedValue)}`,
+    );
+
+    const result = await this.session.write(writeVal);
     const code = Array.isArray(result) ? result[0] : result;
     if (code && !code.equals(StatusCodes.Good)) {
-      throw new Error(`Write failed: ${code.toString()}`);
+      const errMsg =
+        `Write failed: ${code.toString()} | ` +
+        `nodeId=${nodeId} ` +
+        `targetDataType=${DataType[targetDataType]}(${targetDataType}) ` +
+        `inputValue=${JSON.stringify(value)} (${typeof value}) ` +
+        `coercedValue=${JSON.stringify(coercedValue)} (${typeof coercedValue})`;
+      this.logger.warn(errMsg);
+      throw new Error(errMsg);
     }
+  }
+
+  /**
+   * Coerce a JSON value to the expected OPC UA DataType.
+   * Handles the common built-in types (1..25).
+   */
+  private _coerceToDataType(value: unknown, dt: DataType): unknown {
+    switch (dt) {
+      // Boolean (1)
+      case DataType.Boolean:
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string')
+          return value.toLowerCase() === 'true' || value === '1';
+        return Boolean(value);
+
+      // Integer types (2-9)
+      case DataType.SByte:
+      case DataType.Byte:
+      case DataType.Int16:
+      case DataType.UInt16:
+      case DataType.Int32:
+      case DataType.UInt32:
+        return Math.trunc(Number(value));
+
+      case DataType.Int64:
+      case DataType.UInt64:
+        // node-opcua uses [high, low] arrays for 64-bit integers
+        if (Array.isArray(value)) return value;
+        return [0, Math.trunc(Number(value))];
+
+      // Floating point (10-11)
+      case DataType.Float:
+      case DataType.Double:
+        return Number(value);
+
+      // String (12)
+      case DataType.String:
+        return String(value);
+
+      // DateTime (13)
+      case DataType.DateTime:
+        if (value instanceof Date) return value;
+        if (typeof value === 'string' || typeof value === 'number') {
+          return new Date(value);
+        }
+        return value;
+
+      // ByteString (15)
+      case DataType.ByteString:
+        if (Buffer.isBuffer(value)) return value;
+        if (typeof value === 'string') return Buffer.from(value, 'base64');
+        return value;
+
+      // Null or unknown — return as-is
+      case DataType.Null:
+      default:
+        return value;
+    }
+  }
+
+  /** Fallback: infer DataType from JS value when server type is unknown. */
+  private _inferDataType(value: unknown): DataType {
+    if (typeof value === 'number') return DataType.Double;
+    if (typeof value === 'boolean') return DataType.Boolean;
+    if (typeof value === 'string') return DataType.String;
+    if (value instanceof Date) return DataType.DateTime;
+    return DataType.Null;
   }
 
   // ── History ────────────────────────────────────────────────

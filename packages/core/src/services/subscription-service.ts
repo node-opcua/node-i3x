@@ -588,12 +588,16 @@ export class SubscriptionService {
       if (!propertyElementId) continue;
 
       // Update the VQT cache for this property
+      let mappedValue = value;
       let mappedQuality = quality as DataQuality;
-      if ((value === null || value === undefined) && mappedQuality !== 'Bad') {
+      // i3X spec: Bad quality → value MUST be null
+      if (mappedQuality === 'Bad') {
+        mappedValue = null;
+      } else if (mappedValue === null || mappedValue === undefined) {
         mappedQuality = 'GoodNoData';
       }
       asset.components.set(propertyElementId, {
-        value,
+        value: mappedValue,
         quality: mappedQuality,
         timestamp,
       });
@@ -642,15 +646,18 @@ export class SubscriptionService {
     } else {
       // Leaf node — single property value
       const firstVqt = asset.components.values().next().value as VQT | undefined;
-      const val = firstVqt?.value ?? null;
-      let qual = firstVqt?.quality ?? 'Good';
-      if ((val === null || val === undefined) && qual !== 'Bad') {
+      let val = firstVqt?.value ?? null;
+      let qual = (firstVqt?.quality ?? 'Good') as DataQuality;
+      // i3X spec: Bad quality → value MUST be null
+      if (qual === 'Bad') {
+        val = null;
+      } else if (val === null || val === undefined) {
         qual = 'GoodNoData';
       }
       compositeValue = {
         isComposition: false,
         value: val,
-        quality: qual as DataQuality,
+        quality: qual,
         timestamp: firstVqt?.timestamp ?? now,
       };
     }

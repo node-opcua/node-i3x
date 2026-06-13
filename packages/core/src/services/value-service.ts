@@ -76,9 +76,12 @@ export class ValueService {
       for (let j = 0; j < leaves.length; j++) {
         const { idx, elementId } = leaves[j]!;
         const dv = values[j];
-        const val = dv ? dv.value : null;
+        let val = dv ? dv.value : null;
         let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
-        if ((val === null || val === undefined) && qual !== 'Bad') {
+        // i3X spec: Bad quality → value MUST be null
+        if (qual === 'Bad') {
+          val = null;
+        } else if (val === null || val === undefined) {
           qual = 'GoodNoData';
         }
         results[idx] = {
@@ -159,9 +162,12 @@ export class ValueService {
         const dv = values[i];
         const pid = propIds[i];
         if (!pid) continue;
-        const val = dv ? dv.value : null;
+        let val = dv ? dv.value : null;
         let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
-        if ((val === null || val === undefined) && qual !== 'Bad') {
+        // i3X spec: Bad quality → value MUST be null
+        if (qual === 'Bad') {
+          val = null;
+        } else if (val === null || val === undefined) {
           qual = 'GoodNoData';
         }
         result.set(pid, {
