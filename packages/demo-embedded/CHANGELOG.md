@@ -1,5 +1,12 @@
 # @node-i3x/demo-embedded
 
+## 0.3.2 (2026-06-13)
+
+- feat: add TypeService to prewarm object types
+- perf: set minimumSamplingInterval 250ms on all vars
+- fix: resolve UPD-01/UPD-03 conformance failures
+- chore: add response compression plugin @fastify/compress
+
 ## 0.3.1 (2026-06-10)
 
 - feat: gate debug logs behind DEBUG env var, widen VHS demo, rename repo refs to node-i3x

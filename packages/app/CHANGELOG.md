@@ -1,5 +1,17 @@
 # @node-i3x/app
 
+## 0.3.2 (2026-06-13)
+
+- fix: add missing typeService to demo.ts RestServerDeps
+- fix: QRY-08 historian support + subscription cleanup
+- feat: add TypeService to prewarm object types
+- perf: set minimumSamplingInterval 250ms on all vars
+- feat: SUB-07/SUB-13 sync acknowledgement with lastSequenceNumber
+- fix: resolve UPD-01/UPD-03 conformance failures
+- fix(SUB-14): close existing SSE stream when second opens
+- fix: enforce clientId validation and ownership on subscription endpoints
+- chore: add response compression plugin @fastify/compress
+
 ## 0.3.1 (2026-06-10)
 
 - feat: gate debug logs behind DEBUG env var, widen VHS demo, rename repo refs to node-i3x
