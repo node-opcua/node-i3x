@@ -875,3 +875,77 @@ describe('REST API', () => {
     }
   });
 });
+
+// ── Auth middleware tests ────────────────────────────────────
+
+describe('Bearer token auth', () => {
+  let securedApp: Awaited<ReturnType<typeof createApp>>;
+  const TEST_API_KEY = 'test-secret-key-12345';
+
+  beforeAll(async () => {
+    const ds = new MockDataSource();
+    const logger = nullLogger;
+    const modelService = new ModelService(ds, logger);
+    const valueService = new ValueService(ds, modelService, logger);
+    const historyService = new HistoryService(ds, modelService, logger);
+    const subscriptionService = new SubscriptionService(ds, modelService, logger, 1);
+    const typeService = new TypeService(ds, logger);
+
+    securedApp = await createApp({
+      dataSource: ds,
+      modelService,
+      typeService,
+      valueService,
+      historyService,
+      subscriptionService,
+      logger,
+      apiKey: TEST_API_KEY,
+    });
+
+    await typeService.preloadTypes();
+  });
+
+  it('GET /v1/info is public (no auth required)', async () => {
+    const res = await securedApp.inject({ method: 'GET', url: '/v1/info' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('GET /health is public (no auth required)', async () => {
+    const res = await securedApp.inject({ method: 'GET', url: '/health' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('GET /v1/namespaces returns 401 without auth', async () => {
+    const res = await securedApp.inject({ method: 'GET', url: '/v1/namespaces' });
+    expect(res.statusCode).toBe(401);
+    const body = res.json();
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('GET /v1/namespaces returns 401 with wrong token', async () => {
+    const res = await securedApp.inject({
+      method: 'GET',
+      url: '/v1/namespaces',
+      headers: { authorization: 'Bearer wrong-key' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('GET /v1/namespaces returns 200 with valid Bearer token', async () => {
+    const res = await securedApp.inject({
+      method: 'GET',
+      url: '/v1/namespaces',
+      headers: { authorization: `Bearer ${TEST_API_KEY}` },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('GET /v1/objects returns 200 with valid Bearer token', async () => {
+    const res = await securedApp.inject({
+      method: 'GET',
+      url: '/v1/objects',
+      headers: { authorization: `Bearer ${TEST_API_KEY}` },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+});

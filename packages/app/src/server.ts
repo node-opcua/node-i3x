@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import {
   consoleLogger,
   HistoryService,
@@ -65,6 +66,16 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
 
   // 3. Inbound adapter (REST)
   sendProgress('creating-rest', 'Creating REST API server...');
+
+  // Resolve API key: 'auto' generates a random key
+  let apiKey = config.apiKey;
+  if (apiKey === 'auto') {
+    apiKey = `i3x_sk_${randomBytes(16).toString('hex')}`;
+  }
+  if (apiKey) {
+    logger.info(`API authentication enabled (Bearer token)`);
+  }
+
   const app = await createApp({
     dataSource,
     modelService,
@@ -74,6 +85,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     subscriptionService,
     logger,
     readOnly: config.readOnly,
+    apiKey,
   });
 
   // 4. Connect to OPC UA
@@ -106,6 +118,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   sendProgress('ready', `Server listening on ${config.host}:${config.port}`, {
     port: config.port,
     host: config.host,
+    apiKey,
   });
 
   // 7. Banner

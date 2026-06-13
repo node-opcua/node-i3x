@@ -23,6 +23,7 @@ import type {
   ValueService,
 } from '@node-i3x/core';
 import { registerErrorHandler } from './errors.js';
+import { registerAuth } from './middleware/auth.js';
 import requestIdPlugin from './middleware/request-id.js';
 import healthRoutes from './routes/health.js';
 import infoRoutes from './routes/info.js';
@@ -41,6 +42,7 @@ export interface RestServerDeps {
   subscriptionService: SubscriptionService;
   logger: ILogger;
   readOnly?: boolean;
+  apiKey?: string;
 }
 
 export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> {
@@ -59,6 +61,9 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
 
   // Register error handler
   registerErrorHandler(app);
+
+  // Register auth middleware (no-op when apiKey is undefined)
+  registerAuth(app, deps.apiKey);
 
   // Brand every response with X-Powered-By header
   app.addHook('onRequest', async (_req, reply) => {

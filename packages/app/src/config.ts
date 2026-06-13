@@ -14,6 +14,7 @@ export interface I3xConfig {
   readOnly: boolean;
   username?: string;
   password?: string;
+  apiKey?: string;
 }
 
 const DEFAULTS: I3xConfig = {
@@ -81,6 +82,9 @@ function fromEnv(): Partial<I3xConfig> {
 
   const readOnly = envBool('NODE_I3X_READ_ONLY');
   if (readOnly !== undefined) result.readOnly = readOnly;
+
+  const apiKey = envStr('NODE_I3X_API_KEY');
+  if (apiKey) result.apiKey = apiKey;
 
   return result;
 }
