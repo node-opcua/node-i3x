@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.3.3 (2026-06-13)
+
+- fix(core): Bad quality value MUST be null per i3X spec
+
 ## 0.3.2 (2026-06-13)
 
 - fix: add missing typeService to demo.ts RestServerDeps
