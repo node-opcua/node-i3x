@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.5.0 (2026-06-13)
+
+- feat(app): add IPC progress reporting during startup
+
 ## 0.4.0 (2026-06-13)
 
 - feat(app,rest-server): add read-only mode command line option and env var
