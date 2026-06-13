@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.5.1 (2026-06-13)
+
+- perf(opcua-connector): parallelize type member enrichment
+
 ## 0.5.0 (2026-06-13)
 
 - Version bump
