@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.5.3 (2026-06-13)
+
+- feat(rest-server): add Bearer token authentication (CORE-06)
+
 ## 0.5.2 (2026-06-13)
 
 - Version bump

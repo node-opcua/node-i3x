@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.5.3 (2026-06-13)
+
+- Version bump
+
 ## 0.5.2 (2026-06-13)
 
 - perf(opcua-connector): filter type browse by ObjectType nodeClass
