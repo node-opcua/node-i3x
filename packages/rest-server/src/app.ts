@@ -19,6 +19,7 @@ import type {
   ILogger,
   ModelService,
   SubscriptionService,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { registerErrorHandler } from './errors.js';
@@ -34,6 +35,7 @@ import subscriptionRoutes from './routes/subscriptions.js';
 export interface RestServerDeps {
   dataSource: IDataSourcePort;
   modelService: ModelService;
+  typeService: TypeService;
   valueService: ValueService;
   historyService: HistoryService;
   subscriptionService: SubscriptionService;

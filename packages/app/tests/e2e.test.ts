@@ -17,6 +17,7 @@ import {
   HistoryService,
   ModelService,
   SubscriptionService,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
@@ -297,11 +298,13 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const valueService = new ValueService(dataSource, modelService, logger);
     const historyService = new HistoryService(dataSource, modelService, logger);
     subscriptionService = new SubscriptionService(dataSource, modelService, logger, 1);
+    const typeService = new TypeService(dataSource, logger);
 
     // 4. REST server
     app = await createApp({
       dataSource,
       modelService,
+      typeService,
       valueService,
       historyService,
       subscriptionService,
@@ -311,6 +314,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     // 5. Connect and preload
     await dataSource.connect();
     await modelService.preloadModel();
+    await typeService.preloadTypes();
   }, 30_000);
 
   afterAll(async () => {

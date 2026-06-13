@@ -46,8 +46,12 @@ export {
   emptyBuildResult,
   ModelService,
 } from './services/model-service.js';
-export { buildObjectTypeSchema } from './services/schema-builder.js';
+export {
+  buildAllObjectTypeSchemas,
+  buildObjectTypeSchema,
+} from './services/schema-builder.js';
 export { SubscriptionService } from './services/subscription-service.js';
+export { TypeService } from './services/type-service.js';
 export { ValueService } from './services/value-service.js';
 
 // API types

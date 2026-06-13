@@ -15,6 +15,7 @@ import {
   nullLogger,
   SubscriptionService,
   stableI3xId,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
@@ -156,15 +157,19 @@ describe('REST API', () => {
     const valueService = new ValueService(ds, modelService, logger);
     const historyService = new HistoryService(ds, modelService, logger);
     subscriptionService = new SubscriptionService(ds, modelService, logger, 1);
+    const typeService = new TypeService(ds, logger);
 
     app = await createApp({
       dataSource: ds,
       modelService,
+      typeService,
       valueService,
       historyService,
       subscriptionService,
       logger,
     });
+
+    await typeService.preloadTypes();
   });
 
   it('GET /v1/info returns server capabilities', async () => {
@@ -639,6 +644,44 @@ describe('REST API', () => {
     expect(valRes.json().results[0].result.value).toBe(77.7);
   });
 
+  it('UPD-02: a written value is readable via POST /objects/value', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+
+    // Find a property node to write to
+    const propId = [...model.propertyToSource.keys()][0]!;
+    const testValue = 123.456;
+
+    // 1. Write via PUT /objects/value (spec format)
+    const writeRes = await app.inject({
+      method: 'PUT',
+      url: '/v1/objects/value',
+      payload: { updates: [{ elementId: propId, value: testValue }] },
+    });
+    expect(writeRes.statusCode).toBe(200);
+    const writeBody = writeRes.json();
+    expect(writeBody.results[0].success).toBe(true);
+
+    // 2. Read back via POST /objects/value
+    const readRes = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/value',
+      payload: { elementIds: [propId] },
+    });
+    expect(readRes.statusCode).toBe(200);
+    const readBody = readRes.json();
+    expect(readBody.results).toHaveLength(1);
+    expect(readBody.results[0].success).toBe(true);
+    expect(readBody.results[0].elementId).toBe(propId);
+
+    // The read-back value must match what was written
+    const vqt = readBody.results[0].result;
+    expect(vqt.value).toBe(testValue);
+    expect(vqt.quality).toBe('Good');
+    expect(typeof vqt.timestamp).toBe('string');
+    expect(new Date(vqt.timestamp).getTime()).not.toBeNaN();
+  });
+
   it('UPD-03: PUT /objects/value partial failure for unknown elementIds', async () => {
     await modelService.preloadModel();
     const model = await modelService.getOrBuildModel();
@@ -784,5 +827,51 @@ describe('REST API', () => {
       status: 404,
       detail: 'Element not found',
     });
+  });
+
+  it('QRY-08: historical values contain well-formed VQTs', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+
+    // Find a property node (leaf) that has a real value
+    const propNode = Array.from(model.nodesById.values()).find(
+      (n) => n.kind === 'property',
+    );
+    expect(propNode).toBeDefined();
+
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 3_600_000);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/history',
+      payload: {
+        elementIds: [propNode!.id],
+        startTime: oneHourAgo.toISOString(),
+        endTime: now.toISOString(),
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.results).toHaveLength(1);
+    expect(body.results[0].success).toBe(true);
+    expect(body.results[0].elementId).toBe(propNode!.id);
+
+    // Must return at least one historical data point
+    const values = body.results[0].result.values;
+    expect(values.length).toBeGreaterThan(0);
+
+    // Each data point must be a well-formed VQT
+    for (const vqt of values) {
+      expect(vqt).toHaveProperty('value');
+      expect(vqt).toHaveProperty('quality');
+      expect(vqt).toHaveProperty('timestamp');
+      expect(typeof vqt.timestamp).toBe('string');
+      // Timestamp must parse as a valid ISO date
+      expect(new Date(vqt.timestamp).getTime()).not.toBeNaN();
+      // Quality must be a known value
+      expect(['Good', 'GoodNoData', 'Bad']).toContain(vqt.quality);
+    }
   });
 });

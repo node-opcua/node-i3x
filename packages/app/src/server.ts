@@ -3,6 +3,7 @@ import {
   HistoryService,
   ModelService,
   SubscriptionService,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
@@ -34,11 +35,13 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     logger,
     config.subscriptionInterval,
   );
+  const typeService = new TypeService(dataSource, logger);
 
   // 3. Inbound adapter (REST)
   const app = await createApp({
     dataSource,
     modelService,
+    typeService,
     valueService,
     historyService,
     subscriptionService,
@@ -54,6 +57,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     try {
       const model = await modelService.preloadModel();
       nodeCount = model.nodesById.size;
+      await typeService.preloadTypes();
     } catch (err) {
       logger.error(`Model preload failed: ${String(err)}`);
       if (config.failOnPreloadError) process.exit(1);

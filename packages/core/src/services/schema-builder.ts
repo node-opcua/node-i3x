@@ -131,6 +131,35 @@ export function buildObjectTypeSchema(
   const bySourceId = new Map<string, ObjectTypeInfo>();
   for (const t of allTypes) bySourceId.set(t.sourceNodeId, t);
 
+  return _buildSchemaWithLookup(type, bySourceId);
+}
+
+/**
+ * Build JSON Schemas for ALL object types in a single pass.
+ * Builds the `bySourceId` lookup once → O(n) instead of O(n²).
+ *
+ * @returns Map from sourceNodeId to its JSON Schema
+ */
+export function buildAllObjectTypeSchemas(
+  allTypes: readonly ObjectTypeInfo[],
+): Map<string, Record<string, unknown>> {
+  const bySourceId = new Map<string, ObjectTypeInfo>();
+  for (const t of allTypes) bySourceId.set(t.sourceNodeId, t);
+
+  const result = new Map<string, Record<string, unknown>>();
+  for (const t of allTypes) {
+    result.set(t.sourceNodeId, _buildSchemaWithLookup(t, bySourceId));
+  }
+  return result;
+}
+
+/**
+ * Internal: build a schema using a pre-built lookup map.
+ */
+function _buildSchemaWithLookup(
+  type: ObjectTypeInfo,
+  bySourceId: ReadonlyMap<string, ObjectTypeInfo>,
+): Record<string, unknown> {
   // Walk the inheritance chain (root-first)
   const lineage: ObjectTypeInfo[] = [];
   const seen = new Set<string>();

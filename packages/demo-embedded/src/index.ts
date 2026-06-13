@@ -12,6 +12,7 @@ import {
   HistoryService,
   ModelService,
   SubscriptionService,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
@@ -21,6 +22,7 @@ import {
   DataType,
   nodesets,
   OPCUAServer,
+  StatusCodes,
   type UAVariable,
   Variant,
 } from 'node-opcua';
@@ -262,6 +264,46 @@ async function createSampleServer() {
     });
   }
 
+  // ── Seed historian with 60 minutes of pre-generated data ──
+  // This ensures QRY-08 always finds VQTs in the time range.
+  const seedConfig: Array<{
+    variable: UAVariable;
+    dataType: DataType;
+    base: number;
+    jitter: number;
+    isInt?: boolean;
+  }> = [
+    { variable: pumpTempVar, dataType: DataType.Double, base: 35.0, jitter: 1.0 },
+    { variable: pumpPressVar, dataType: DataType.Double, base: 4.2, jitter: 0.5 },
+    { variable: pumpFlowVar, dataType: DataType.Double, base: 120.5, jitter: 5.0 },
+    { variable: heaterTempVar, dataType: DataType.Double, base: 180.0, jitter: 3.0 },
+    { variable: heaterPowerVar, dataType: DataType.Double, base: 85.0, jitter: 10.0 },
+    { variable: convSpeedVar, dataType: DataType.Double, base: 2.3, jitter: 0.3 },
+    {
+      variable: itemCountVar,
+      dataType: DataType.UInt32,
+      base: 8000,
+      jitter: 50,
+      isInt: true,
+    },
+  ];
+
+  const now = Date.now();
+  const SEED_INTERVAL_MS = 30_000; // 30 seconds between points
+  const SEED_DURATION_MS = 3_600_000; // 1 hour of history
+
+  for (const { variable, dataType, base, jitter, isInt } of seedConfig) {
+    for (let t = now - SEED_DURATION_MS; t < now; t += SEED_INTERVAL_MS) {
+      let val = base + (Math.random() - 0.5) * jitter * 2;
+      if (isInt) val = Math.round(val);
+      variable.setValueFromSource(
+        new Variant({ dataType, value: val }),
+        StatusCodes.Good,
+        new Date(t),
+      );
+    }
+  }
+
   // ── Simulation (setValueFromSource → fires events) ───
 
   // Mutable state for simulation
@@ -357,6 +399,7 @@ async function main() {
     logger,
     1,
   );
+  const typeService = new TypeService(dataSource, logger);
 
   // Preload the model
   console.log('\n▶ Building i3X model from AddressSpace...');
@@ -367,10 +410,14 @@ async function main() {
       `${model.propertyToSource.size} properties`,
   );
 
+  // Preload types
+  await typeService.preloadTypes();
+
   // Start REST server
   const app = await createApp({
     dataSource,
     modelService,
+    typeService,
     valueService,
     historyService,
     subscriptionService,

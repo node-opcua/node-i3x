@@ -1,4 +1,3 @@
-import { buildObjectTypeSchema, buildTypeIdMap } from '@node-i3x/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps } from '../errors.js';
 import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
@@ -13,39 +12,9 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
         Querystring: { namespaceUri?: string };
       }>,
     ) => {
-      const types = await deps.dataSource.getObjectTypes();
       const { namespaceUri } = req.query;
-
-      const idMap = buildTypeIdMap(types);
-
-      const mapped = types.map((t) => ({
-        elementId: idMap.get(t.sourceNodeId)!,
-        displayName: t.displayName,
-        namespaceUri: t.namespaceUri,
-        sourceTypeId: t.sourceNodeId,
-        version: null,
-        schema: buildObjectTypeSchema(t, types),
-        related: null,
-      }));
-
-      mapped.push({
-        elementId: 'UnknownType',
-        displayName: 'UnknownType',
-        namespaceUri: 'http://opcfoundation.org/UA/',
-        sourceTypeId: 'ns=0;i=58',
-        version: null,
-        schema: {},
-        related: null,
-      });
-
-      const filtered = namespaceUri
-        ? mapped.filter((t) => t.namespaceUri === namespaceUri)
-        : mapped;
-
-      return {
-        success: true,
-        result: filtered,
-      };
+      const types = await deps.typeService.getObjectTypes(namespaceUri);
+      return { success: true, result: types };
     },
   );
 
@@ -53,32 +22,10 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
     '/v1/objecttypes/query',
     async (req: FastifyRequest<{ Body: { elementIds: string[] } }>) => {
       const { elementIds } = req.body;
-      const types = await deps.dataSource.getObjectTypes();
+      const found = await deps.typeService.queryObjectTypes(elementIds);
 
-      const idMap = buildTypeIdMap(types);
-
-      const mapped = types.map((t) => ({
-        elementId: idMap.get(t.sourceNodeId)!,
-        displayName: t.displayName,
-        namespaceUri: t.namespaceUri,
-        sourceTypeId: t.sourceNodeId,
-        version: null,
-        schema: buildObjectTypeSchema(t, types),
-        related: null,
-      }));
-
-      mapped.push({
-        elementId: 'UnknownType',
-        displayName: 'UnknownType',
-        namespaceUri: 'http://opcfoundation.org/UA/',
-        sourceTypeId: 'ns=0;i=58',
-        version: null,
-        schema: {},
-        related: null,
-      });
-
-      const results = elementIds.map((eid) => {
-        const typeNode = mapped.find((t) => t.elementId === eid);
+      const results = elementIds.map((eid, i) => {
+        const typeNode = found[i];
         if (!typeNode) {
           return bulkError(eid, 404, 'Object type not found');
         }
