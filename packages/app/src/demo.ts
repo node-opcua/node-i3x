@@ -7,6 +7,7 @@ import {
   HistoryService,
   ModelService,
   SubscriptionService,
+  TypeService,
   ValueService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
@@ -190,6 +191,7 @@ async function main() {
 
   // 3. Domain services
   const modelService = new ModelService(dataSource, logger);
+  const typeService = new TypeService(dataSource, logger);
   const valueService = new ValueService(dataSource, modelService, logger);
   const historyService = new HistoryService(dataSource, modelService, logger);
   const subscriptionService = new SubscriptionService(
@@ -210,6 +212,7 @@ async function main() {
   const app = await createApp({
     dataSource,
     modelService,
+    typeService,
     valueService,
     historyService,
     subscriptionService,
