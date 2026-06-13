@@ -1,5 +1,9 @@
 # @node-i3x/core
 
+## 0.5.4 (2026-06-13)
+
+- feat: expose OPC UA traffic stats via /health
+
 ## 0.5.3 (2026-06-13)
 
 - Version bump
