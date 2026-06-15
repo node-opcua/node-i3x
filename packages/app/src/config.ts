@@ -16,6 +16,7 @@ export interface I3xConfig {
   preload: boolean;
   preloadStrict: boolean;
   readOnly: boolean;
+  experimental: boolean;
   username?: string;
   password?: string;
   apiKey?: string;
@@ -34,6 +35,7 @@ const DEFAULTS: I3xConfig = {
   preload: true,
   preloadStrict: false,
   readOnly: false,
+  experimental: false,
 };
 
 // ── Environment variable helpers ───────────────────────────
@@ -100,6 +102,9 @@ function fromEnv(): Partial<I3xConfig> {
 
   const readOnly = envBool('NODE_I3X_READ_ONLY');
   if (readOnly !== undefined) result.readOnly = readOnly;
+
+  const experimental = envBool('NODE_I3X_EXPERIMENTAL');
+  if (experimental !== undefined) result.experimental = experimental;
 
   const apiKey = envStr('NODE_I3X_API_KEY');
   if (apiKey) result.apiKey = apiKey;

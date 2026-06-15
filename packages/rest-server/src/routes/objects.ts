@@ -227,24 +227,9 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     },
   );
 
-  // ── GET /v1/objects/:elementId/history ─────────────────────
-  app.get('/v1/objects/:elementId/history', async (_req, reply) => {
-    reply.status(501);
-    return {
-      success: false,
-      responseDetail: {
-        title: 'Not Implemented',
-        status: 501,
-        detail: 'Not implemented',
-      },
-    };
-  });
-
-  // ── PUT /v1/objects/:elementId/history ─────────────────────
-  app.put(
-    '/v1/objects/:elementId/history',
-    { preHandler: readOnlyGuard },
-    async (_req, reply) => {
+  if (deps.experimental) {
+    // ── GET /v1/objects/:elementId/history ─────────────────────
+    app.get('/v1/objects/:elementId/history', async (_req, reply) => {
       reply.status(501);
       return {
         success: false,
@@ -254,39 +239,56 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           detail: 'Not implemented',
         },
       };
-    },
-  );
+    });
 
-  // ── PUT /v1/objects/history ────────────────────────────────
-  app.put('/v1/objects/history', { preHandler: readOnlyGuard }, async (_req, reply) => {
-    reply.status(501);
-    return {
-      success: false,
-      responseDetail: {
-        title: 'Not Implemented',
-        status: 501,
-        detail: 'Not implemented',
+    // ── PUT /v1/objects/:elementId/history ─────────────────────
+    app.put(
+      '/v1/objects/:elementId/history',
+      { preHandler: readOnlyGuard },
+      async (_req, reply) => {
+        reply.status(501);
+        return {
+          success: false,
+          responseDetail: {
+            title: 'Not Implemented',
+            status: 501,
+            detail: 'Not implemented',
+          },
+        };
       },
-    };
-  });
+    );
 
-  // ── PUT /v1/objects/:elementId/value ───────────────────────
-  app.put(
-    '/v1/objects/:elementId/value',
-    { preHandler: readOnlyGuard },
-    async (
-      req: FastifyRequest<{ Params: { elementId: string }; Body: { value: unknown } }>,
-    ) => {
-      const { elementId } = req.params;
-      const { value } = req.body;
-      try {
-        await deps.valueService.writeValue(elementId, value);
-        return successResponse(null);
-      } catch (err) {
-        throw i3xError(404, (err as Error).message);
-      }
-    },
-  );
+    // ── PUT /v1/objects/history ────────────────────────────────
+    app.put('/v1/objects/history', { preHandler: readOnlyGuard }, async (_req, reply) => {
+      reply.status(501);
+      return {
+        success: false,
+        responseDetail: {
+          title: 'Not Implemented',
+          status: 501,
+          detail: 'Not implemented',
+        },
+      };
+    });
+
+    // ── PUT /v1/objects/:elementId/value ───────────────────────
+    app.put(
+      '/v1/objects/:elementId/value',
+      { preHandler: readOnlyGuard },
+      async (
+        req: FastifyRequest<{ Params: { elementId: string }; Body: { value: unknown } }>,
+      ) => {
+        const { elementId } = req.params;
+        const { value } = req.body;
+        try {
+          await deps.valueService.writeValue(elementId, value);
+          return successResponse(null);
+        } catch (err) {
+          throw i3xError(404, (err as Error).message);
+        }
+      },
+    );
+  }
 
   // ── PUT /v1/objects/value ──────────────────────────────────
   app.put(

@@ -167,6 +167,7 @@ describe('REST API', () => {
       historyService,
       subscriptionService,
       logger,
+      experimental: true,
     });
 
     await typeService.preloadTypes();
@@ -908,6 +909,7 @@ describe('Bearer token auth', () => {
       subscriptionService,
       logger,
       apiKey: TEST_API_KEY,
+      experimental: true,
     });
 
     await typeService.preloadTypes();

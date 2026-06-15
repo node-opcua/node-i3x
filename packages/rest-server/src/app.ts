@@ -43,6 +43,7 @@ export interface RestServerDeps {
   logger: ILogger;
   readOnly?: boolean;
   apiKey?: string;
+  experimental?: boolean;
   getOpcuaStats?: () => {
     transactionsPerformed: number;
     bytesRead: number;

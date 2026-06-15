@@ -84,6 +84,7 @@ describe('Read-Only Mode', () => {
       subscriptionService,
       logger,
       readOnly: true, // Enable Read-Only Mode
+      experimental: true,
     });
   });
 
