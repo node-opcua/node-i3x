@@ -1,5 +1,6 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { getDeps, i3xError } from '../errors.js';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { getDeps } from '../app.js';
+import { i3xError } from '../errors.js';
 import {
   bulkError,
   bulkResponse,
@@ -10,6 +11,20 @@ import {
 
 export default async function objectRoutes(app: FastifyInstance): Promise<void> {
   const deps = getDeps(app);
+
+  const readOnlyGuard = async (_req: FastifyRequest, reply: FastifyReply) => {
+    if (deps.readOnly) {
+      reply.status(501);
+      return reply.send({
+        success: false,
+        responseDetail: {
+          title: 'Not Implemented',
+          status: 501,
+          detail: 'Write operations are disabled (read-only mode)',
+        },
+      });
+    }
+  };
 
   // ── GET /v1/objects ────────────────────────────────────────
   app.get(
@@ -58,6 +73,17 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── POST /v1/objects/list ──────────────────────────────────
   app.post(
     '/v1/objects/list',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
     async (req: FastifyRequest<{ Body: { elementIds: string[] } }>) => {
       const { elementIds } = req.body;
       const model = await deps.modelService.getOrBuildModel();
@@ -77,6 +103,19 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // Spec: { elementIds: [...] } → BulkResponse<List<RelatedObjectResult>>
   app.post(
     '/v1/objects/related',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+            relationshipType: { type: ['string', 'null'] },
+            includeMetadata: { type: 'boolean' },
+          },
+        },
+      },
+    },
     async (
       req: FastifyRequest<{
         Body: {
@@ -130,6 +169,18 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── POST /v1/objects/value ─────────────────────────────────
   app.post(
     '/v1/objects/value',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+            maxDepth: { type: 'integer', minimum: 0 },
+          },
+        },
+      },
+    },
     async (
       req: FastifyRequest<{ Body: { elementIds: string[]; maxDepth?: number } }>,
     ) => {
@@ -142,6 +193,20 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── POST /v1/objects/history ───────────────────────────────
   app.post(
     '/v1/objects/history',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+            startTime: { type: 'string' },
+            endTime: { type: 'string' },
+            maxDepth: { type: 'integer', minimum: 0 },
+          },
+        },
+      },
+    },
     async (
       req: FastifyRequest<{
         Body: {
@@ -176,42 +241,24 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   });
 
   // ── PUT /v1/objects/:elementId/history ─────────────────────
-  app.put('/v1/objects/:elementId/history', async (_req, reply) => {
-    if (app.deps.readOnly) {
+  app.put(
+    '/v1/objects/:elementId/history',
+    { preHandler: readOnlyGuard },
+    async (_req, reply) => {
       reply.status(501);
       return {
         success: false,
         responseDetail: {
           title: 'Not Implemented',
           status: 501,
-          detail: 'Write operations are disabled (read-only mode)',
+          detail: 'Not implemented',
         },
       };
-    }
-    reply.status(501);
-    return {
-      success: false,
-      responseDetail: {
-        title: 'Not Implemented',
-        status: 501,
-        detail: 'Not implemented',
-      },
-    };
-  });
+    },
+  );
 
   // ── PUT /v1/objects/history ────────────────────────────────
-  app.put('/v1/objects/history', async (_req, reply) => {
-    if (app.deps.readOnly) {
-      reply.status(501);
-      return {
-        success: false,
-        responseDetail: {
-          title: 'Not Implemented',
-          status: 501,
-          detail: 'Write operations are disabled (read-only mode)',
-        },
-      };
-    }
+  app.put('/v1/objects/history', { preHandler: readOnlyGuard }, async (_req, reply) => {
     reply.status(501);
     return {
       success: false,
@@ -226,21 +273,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── PUT /v1/objects/:elementId/value ───────────────────────
   app.put(
     '/v1/objects/:elementId/value',
+    { preHandler: readOnlyGuard },
     async (
       req: FastifyRequest<{ Params: { elementId: string }; Body: { value: unknown } }>,
-      reply,
     ) => {
-      if (app.deps.readOnly) {
-        reply.status(501);
-        return {
-          success: false,
-          responseDetail: {
-            title: 'Not Implemented',
-            status: 501,
-            detail: 'Write operations are disabled (read-only mode)',
-          },
-        };
-      }
       const { elementId } = req.params;
       const { value } = req.body;
       try {
@@ -255,23 +291,12 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── PUT /v1/objects/value ──────────────────────────────────
   app.put(
     '/v1/objects/value',
+    { preHandler: readOnlyGuard },
     async (
       req: FastifyRequest<{
         Body: { elementId: string; value: unknown }[] | Record<string, unknown>;
       }>,
-      reply,
     ) => {
-      if (app.deps.readOnly) {
-        reply.status(501);
-        return {
-          success: false,
-          responseDetail: {
-            title: 'Not Implemented',
-            status: 501,
-            detail: 'Write operations are disabled (read-only mode)',
-          },
-        };
-      }
       const body = req.body;
       let items: { elementId: string; value: unknown }[] = [];
       if (Array.isArray(body)) {

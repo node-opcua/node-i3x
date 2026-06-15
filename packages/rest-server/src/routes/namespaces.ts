@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { getDeps } from '../errors.js';
+import { getDeps } from '../app.js';
 
 export default async function namespaceRoutes(app: FastifyInstance): Promise<void> {
   const deps = getDeps(app);

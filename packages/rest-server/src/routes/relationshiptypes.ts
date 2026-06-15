@@ -39,6 +39,17 @@ export default async function relationshiptypeRoutes(
 
   app.post(
     '/v1/relationshiptypes/query',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
     async (req: FastifyRequest<{ Body: { elementIds: string[] } }>) => {
       const { elementIds } = req.body;
       const results = elementIds.map((eid) => {

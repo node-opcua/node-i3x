@@ -24,11 +24,6 @@ export function rethrowAsI3x(err: unknown): never {
   throw i3xError(e.statusCode ?? 500, e.message);
 }
 
-/** Extract typed deps from the Fastify app instance. */
-export function getDeps(app: FastifyInstance): RestServerDeps {
-  return app.deps;
-}
-
 export function registerErrorHandler(app: FastifyInstance): void {
   app.setErrorHandler(
     (

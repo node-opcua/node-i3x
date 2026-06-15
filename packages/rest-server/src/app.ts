@@ -87,3 +87,8 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
 
   return app;
 }
+
+/** Extract typed deps from the Fastify app instance. */
+export function getDeps(app: FastifyInstance): RestServerDeps {
+  return app.deps;
+}

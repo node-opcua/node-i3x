@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { getDeps } from '../errors.js';
+import { getDeps } from '../app.js';
 import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
 
 export default async function objecttypeRoutes(app: FastifyInstance): Promise<void> {
@@ -20,6 +20,17 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
 
   app.post(
     '/v1/objecttypes/query',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['elementIds'],
+          properties: {
+            elementIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
     async (req: FastifyRequest<{ Body: { elementIds: string[] } }>) => {
       const { elementIds } = req.body;
       const found = await deps.typeService.queryObjectTypes(elementIds);
