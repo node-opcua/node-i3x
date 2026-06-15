@@ -698,7 +698,7 @@ export class SubscriptionService {
       sequenceNumber: sub.nextSequence++,
       elementId: asset.assetElementId,
       value: compositeValue,
-      quality: compositeValue.quality,
+      quality: compositeValue.isComposition ? 'Good' : compositeValue.quality,
       timestamp: compositeValue.timestamp,
     };
 
