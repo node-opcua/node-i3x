@@ -7,17 +7,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import type {
-  DataChangeCallback,
-  ILogger,
-  IMonitoredSubscription,
-  MonitoredSubscriptionOptions,
-  NamespaceInfo,
-  ObjectTypeInfo,
-  ObjectTypeMemberInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
-  SourceNodeInfo,
+import {
+  type DataChangeCallback,
+  dataValueToHistorical,
+  dataValueToSource,
+  type ILogger,
+  type IMonitoredSubscription,
+  type MonitoredSubscriptionOptions,
+  type NamespaceInfo,
+  type ObjectTypeInfo,
+  type ObjectTypeMemberInfo,
+  type SourceDataValue,
+  type SourceHistoricalValue,
+  type SourceNodeInfo,
 } from '@node-i3x/core';
 import {
   AttributeIds,
@@ -43,11 +45,7 @@ import {
 } from 'node-opcua';
 import { OPCUACertificateManager } from 'node-opcua-certificate-manager';
 import { coerceSecurityPolicy, type SecurityPolicy } from 'node-opcua-secure-channel';
-import {
-  dataValueToHistorical,
-  dataValueToSource,
-  refToSourceNode,
-} from './opcua-mapper.js';
+import { refToSourceNode } from './opcua-mapper.js';
 import type { OpcUaClientOptions } from './opcua-types.js';
 import { wrapSessionIfOptimized } from './optimized.js';
 

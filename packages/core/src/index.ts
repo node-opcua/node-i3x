@@ -2,6 +2,8 @@
 // @node-i3x/core  —  Public API barrel export
 // ─────────────────────────────────────────────────────────────
 
+export type { I3xStack, I3xStackOptions } from './create-i3x-stack.js';
+export { createI3xStack } from './create-i3x-stack.js';
 // Domain models
 export type {
   BuildResult,
@@ -20,7 +22,9 @@ export type {
   SubscriptionUpdate,
 } from './domain/subscription.js';
 export type { CurrentValueResult, HistoricalValueResult, VQT } from './domain/vqt.js';
-
+// Helpers
+export * from './helpers/opcua-mapping.js';
+export * from './helpers/vqt-helpers.js';
 // Ports
 export type {
   BrowseFilter,

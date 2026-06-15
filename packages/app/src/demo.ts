@@ -2,14 +2,7 @@
 // Demo: Start a representative OPC UA server + i3X REST API
 // ─────────────────────────────────────────────────────────────
 
-import {
-  consoleLogger,
-  HistoryService,
-  ModelService,
-  SubscriptionService,
-  TypeService,
-  ValueService,
-} from '@node-i3x/core';
+import { consoleLogger, createI3xStack } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { DataType, nodesets, OPCUAServer, Variant } from 'node-opcua';
@@ -190,16 +183,10 @@ async function main() {
   await dataSource.connect();
 
   // 3. Domain services
-  const modelService = new ModelService(dataSource, logger);
-  const typeService = new TypeService(dataSource, logger);
-  const valueService = new ValueService(dataSource, modelService, logger);
-  const historyService = new HistoryService(dataSource, modelService, logger);
-  const subscriptionService = new SubscriptionService(
-    dataSource,
-    modelService,
-    logger,
-    1,
-  );
+  const { modelService, typeService, valueService, historyService, subscriptionService } =
+    createI3xStack(dataSource, logger, {
+      publishIntervalMs: 1,
+    });
 
   // 4. Preload model
   console.log('\n▶ Building i3X model from OPC UA...');

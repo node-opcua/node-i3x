@@ -7,14 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { parseArgs } from 'node:util';
-import {
-  consoleLogger,
-  HistoryService,
-  ModelService,
-  SubscriptionService,
-  TypeService,
-  ValueService,
-} from '@node-i3x/core';
+import { consoleLogger, createI3xStack } from '@node-i3x/core';
 import { PseudoSessionDataSourceAdapter } from '@node-i3x/pseudo-session-connector';
 import { createApp } from '@node-i3x/rest-server';
 import {
@@ -390,17 +383,11 @@ async function main() {
   console.log('  ✓ Connected — zero-network, in-process');
 
   // Domain services (identical to the remote OPC UA path)
-  const modelService = new ModelService(dataSource, logger);
-  const valueService = new ValueService(dataSource, modelService, logger);
-  const historyService = new HistoryService(dataSource, modelService, logger);
-  const subscriptionService = new SubscriptionService(
-    dataSource,
-    modelService,
-    logger,
-    1000,
-    250,
-  );
-  const typeService = new TypeService(dataSource, logger);
+  const { modelService, typeService, valueService, historyService, subscriptionService } =
+    createI3xStack(dataSource, logger, {
+      publishIntervalMs: 1000,
+      samplingIntervalMs: 250,
+    });
 
   // Preload the model
   console.log('\n▶ Building i3X model from AddressSpace...');

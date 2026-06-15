@@ -1,6 +1,7 @@
+import { qualifiedNameToNsu } from '@node-i3x/core';
 import { NodeClass } from 'node-opcua';
 import { describe, expect, it } from 'vitest';
-import { qualifiedNameToNsu, refToSourceNode } from '../src/opcua-mapper.js';
+import { refToSourceNode } from '../src/opcua-mapper.js';
 
 const defaultNamespaceArray = [
   'http://opcfoundation.org/UA/',

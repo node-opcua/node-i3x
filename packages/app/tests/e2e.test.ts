@@ -14,11 +14,9 @@
 
 import {
   consoleLogger,
-  HistoryService,
-  ModelService,
-  SubscriptionService,
-  TypeService,
-  ValueService,
+  createI3xStack,
+  type ModelService,
+  type SubscriptionService,
 } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
@@ -294,17 +292,13 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const dataSource = new OpcUaDataSourceAdapter(opcuaClient, logger);
 
     // 3. Domain services
-    modelService = new ModelService(dataSource, logger);
-    const valueService = new ValueService(dataSource, modelService, logger);
-    const historyService = new HistoryService(dataSource, modelService, logger);
-    subscriptionService = new SubscriptionService(
-      dataSource,
-      modelService,
-      logger,
-      1000,
-      250,
-    );
-    const typeService = new TypeService(dataSource, logger);
+    const stack = createI3xStack(dataSource, logger, {
+      publishIntervalMs: 1000,
+      samplingIntervalMs: 250,
+    });
+    modelService = stack.modelService;
+    subscriptionService = stack.subscriptionService;
+    const { valueService, historyService, typeService } = stack;
 
     // 4. REST server
     app = await createApp({

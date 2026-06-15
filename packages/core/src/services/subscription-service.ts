@@ -15,6 +15,7 @@ import type {
   SubscriptionUpdate,
 } from '../domain/subscription.js';
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
+import { normalizeVqt } from '../helpers/vqt-helpers.js';
 import type { IDataSourcePort, IMonitoredSubscription } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import type { SyncBatch } from '../types/api.js';
@@ -607,14 +608,7 @@ export class SubscriptionService {
       if (!propertyElementId) continue;
 
       // Update the VQT cache for this property
-      let mappedValue = value;
-      let mappedQuality = quality as DataQuality;
-      // i3X spec: Bad quality → value MUST be null
-      if (mappedQuality === 'Bad') {
-        mappedValue = null;
-      } else if (mappedValue === null || mappedValue === undefined) {
-        mappedQuality = 'GoodNoData';
-      }
+      const { value: mappedValue, quality: mappedQuality } = normalizeVqt(value, quality);
       asset.components.set(propertyElementId, {
         value: mappedValue,
         quality: mappedQuality,
@@ -665,14 +659,10 @@ export class SubscriptionService {
     } else {
       // Leaf node — single property value
       const firstVqt = asset.components.values().next().value as VQT | undefined;
-      let val = firstVqt?.value ?? null;
-      let qual = (firstVqt?.quality ?? 'Good') as DataQuality;
-      // i3X spec: Bad quality → value MUST be null
-      if (qual === 'Bad') {
-        val = null;
-      } else if (val === null || val === undefined) {
-        qual = 'GoodNoData';
-      }
+      const { value: val, quality: qual } = normalizeVqt(
+        firstVqt?.value ?? null,
+        firstVqt?.quality ?? 'Good',
+      );
       compositeValue = {
         isComposition: false,
         value: val,

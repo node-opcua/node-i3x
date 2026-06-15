@@ -3,18 +3,21 @@
 // Implements IDataSourcePort using PseudoSession + AddressSpace
 // ─────────────────────────────────────────────────────────────
 
-import type {
-  BrowseFilter,
-  IDataSourcePort,
-  ILogger,
-  IMonitoredSubscription,
-  MonitoredSubscriptionOptions,
-  NamespaceInfo,
-  ObjectTypeInfo,
-  ObjectTypeMemberInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
-  SourceNodeInfo,
+import {
+  type BrowseFilter,
+  dataValueToSource,
+  type IDataSourcePort,
+  type ILogger,
+  type IMonitoredSubscription,
+  type MonitoredSubscriptionOptions,
+  type NamespaceInfo,
+  NODE_CLASS_NAMES,
+  type ObjectTypeInfo,
+  type ObjectTypeMemberInfo,
+  qualifiedNameToNsu,
+  type SourceDataValue,
+  type SourceHistoricalValue,
+  type SourceNodeInfo,
 } from '@node-i3x/core';
 import type { IAddressSpace, UAVariable } from 'node-opcua-address-space-base';
 import { AttributeIds, BrowseDirection, NodeClass } from 'node-opcua-data-model';
@@ -33,42 +36,6 @@ import type {
 import { DataType, Variant } from 'node-opcua-variant';
 
 import { AddressSpaceMonitoredSubscription } from './address-space-subscription.js';
-
-// ── Helpers ──────────────────────────────────────────────────
-
-const NODE_CLASS_NAMES: Record<number, string> = {
-  [NodeClass.Object]: 'Object',
-  [NodeClass.Variable]: 'Variable',
-  [NodeClass.Method]: 'Method',
-  [NodeClass.ObjectType]: 'ObjectType',
-  [NodeClass.VariableType]: 'VariableType',
-  [NodeClass.ReferenceType]: 'ReferenceType',
-  [NodeClass.DataType]: 'DataType',
-  [NodeClass.View]: 'View',
-};
-
-function qualifiedNameToNsu(
-  browseName: { namespaceIndex?: number; name?: string | null } | null | undefined,
-  namespaceArray: readonly string[],
-): string {
-  if (!browseName?.name) return '';
-  const nsIdx = browseName.namespaceIndex ?? 0;
-  const nsUri = namespaceArray[nsIdx] ?? `ns=${nsIdx}`;
-  return `nsu=${nsUri}:${browseName.name}`;
-}
-
-function dataValueToSource(dv: DataValue): SourceDataValue {
-  const isGood = dv.statusCode?.equals(StatusCodes.Good) ?? false;
-  return {
-    value: dv.value?.value ?? null,
-    quality: isGood ? 'Good' : 'Bad',
-    timestamp:
-      dv.sourceTimestamp?.toISOString() ??
-      dv.serverTimestamp?.toISOString() ??
-      new Date().toISOString(),
-    statusCode: dv.statusCode?.value,
-  };
-}
 
 // ── Adapter ──────────────────────────────────────────────────
 

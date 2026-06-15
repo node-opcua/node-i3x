@@ -8,13 +8,7 @@
 // the architectural difference.
 // ─────────────────────────────────────────────────────────────
 
-import {
-  consoleLogger,
-  HistoryService,
-  ModelService,
-  SubscriptionService,
-  ValueService,
-} from '@node-i3x/core';
+import { consoleLogger, createI3xStack } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { DataType, nodesets, OPCUAServer, Variant } from 'node-opcua';
@@ -103,16 +97,11 @@ async function main() {
   const dataSource = new OpcUaDataSourceAdapter(client, logger);
   await dataSource.connect();
 
-  const modelService = new ModelService(dataSource, logger);
-  const valueService = new ValueService(dataSource, modelService, logger);
-  const historyService = new HistoryService(dataSource, modelService, logger);
-  const subscriptionService = new SubscriptionService(
-    dataSource,
-    modelService,
-    logger,
-    1000,
-    250,
-  );
+  const { modelService, typeService, valueService, historyService, subscriptionService } =
+    createI3xStack(dataSource, logger, {
+      publishIntervalMs: 1000,
+      samplingIntervalMs: 250,
+    });
 
   const model = await modelService.preloadModel();
   console.log(
@@ -122,6 +111,7 @@ async function main() {
   const app = await createApp({
     dataSource,
     modelService,
+    typeService,
     valueService,
     historyService,
     subscriptionService,

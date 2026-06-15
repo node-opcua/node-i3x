@@ -4,6 +4,7 @@
 
 import type { BuildResult, DataQuality, ModelNode } from '../domain/model-node.js';
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
+import { normalizeVqt } from '../helpers/vqt-helpers.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import type { BulkResultItem } from '../types/api.js';
@@ -41,7 +42,6 @@ export class ValueService {
         results[i] = {
           success: false,
           elementId,
-          error: { code: 404, message: 'Object value not found' },
           responseDetail: {
             title: 'Not Found',
             status: 404,
@@ -76,14 +76,10 @@ export class ValueService {
       for (let j = 0; j < leaves.length; j++) {
         const { idx, elementId } = leaves[j]!;
         const dv = values[j];
-        let val = dv ? dv.value : null;
-        let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
-        // i3X spec: Bad quality → value MUST be null
-        if (qual === 'Bad') {
-          val = null;
-        } else if (val === null || val === undefined) {
-          qual = 'GoodNoData';
-        }
+        const { value: val, quality: qual } = normalizeVqt(
+          dv ? dv.value : null,
+          dv ? dv.quality : 'GoodNoData',
+        );
         results[idx] = {
           success: true,
           elementId,
@@ -162,14 +158,10 @@ export class ValueService {
         const dv = values[i];
         const pid = propIds[i];
         if (!pid) continue;
-        let val = dv ? dv.value : null;
-        let qual = (dv ? dv.quality : 'GoodNoData') as DataQuality;
-        // i3X spec: Bad quality → value MUST be null
-        if (qual === 'Bad') {
-          val = null;
-        } else if (val === null || val === undefined) {
-          qual = 'GoodNoData';
-        }
+        const { value: val, quality: qual } = normalizeVqt(
+          dv ? dv.value : null,
+          dv ? dv.quality : 'GoodNoData',
+        );
         result.set(pid, {
           value: val,
           quality: qual,

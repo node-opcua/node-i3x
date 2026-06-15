@@ -5,60 +5,15 @@
 // to ensure compliance with the i3X OpenAPI spec.
 // -----------------------------------------------------------------
 
-/** ErrorDetail as defined in the i3X spec. */
-export interface ErrorDetail {
-  readonly title: string;
-  readonly status: number;
-  readonly detail: string;
-}
-
-/** SuccessResponse<T> -- wraps a single result. */
-export interface SuccessResponse<T> {
-  readonly success: true;
-  readonly result: T;
-}
-
-/** BulkResultItem<T> -- one item in a bulk response. */
-export interface BulkResultItem<T> {
-  readonly success: boolean;
-  readonly elementId?: string | null;
-  readonly subscriptionId?: string | null;
-  readonly result?: T | null;
-  readonly responseDetail?: ErrorDetail | null;
-}
-
-/** BulkResponse<T> -- wraps multiple bulk result items. */
-export interface BulkResponse<T> {
-  readonly success: boolean;
-  readonly results: BulkResultItem<T>[];
-}
-
-/** ObjectInstanceResponse as defined in the i3X spec. */
-export interface ObjectInstanceResponse {
-  readonly elementId: string;
-  readonly displayName: string;
-  readonly typeElementId: string;
-  readonly parentId?: string | null;
-  readonly isComposition: boolean;
-  readonly isExtended: boolean;
-  readonly metadata?: ObjectInstanceMetadata | null;
-}
-
-/** ObjectInstanceMetadata as defined in the i3X spec. */
-export interface ObjectInstanceMetadata {
-  readonly typeNamespaceUri?: string | null;
-  readonly sourceTypeId?: string | null;
-  readonly description?: string | null;
-  readonly relationships?: Record<string, unknown> | null;
-  readonly schemaExtensions?: Record<string, unknown> | null;
-  readonly system?: Record<string, unknown> | null;
-}
-
-/** RelatedObjectResult as defined in the i3X spec. */
-export interface RelatedObjectResult {
-  readonly sourceRelationship: string;
-  readonly object: ObjectInstanceResponse;
-}
+import type {
+  BulkResponse,
+  BulkResultItem,
+  ErrorDetail,
+  ObjectInstanceMetadata,
+  ObjectInstanceResponse,
+  RelatedObjectResult,
+  SuccessResponse,
+} from '@node-i3x/core';
 
 // -- Factory helpers --
 

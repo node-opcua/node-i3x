@@ -1,12 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import {
-  consoleLogger,
-  HistoryService,
-  ModelService,
-  SubscriptionService,
-  TypeService,
-  ValueService,
-} from '@node-i3x/core';
+import { consoleLogger, createI3xStack } from '@node-i3x/core';
 import { OpcUaClient, OpcUaDataSourceAdapter } from '@node-i3x/opcua-connector';
 import { createApp } from '@node-i3x/rest-server';
 import { printBanner } from './banner.js';
@@ -56,17 +49,11 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   const dataSource = new OpcUaDataSourceAdapter(opcuaClient, logger);
 
   // 2. Domain services (inject the port)
-  const modelService = new ModelService(dataSource, logger);
-  const valueService = new ValueService(dataSource, modelService, logger);
-  const historyService = new HistoryService(dataSource, modelService, logger);
-  const subscriptionService = new SubscriptionService(
-    dataSource,
-    modelService,
-    logger,
-    config.publishIntervalMs,
-    config.samplingIntervalMs,
-  );
-  const typeService = new TypeService(dataSource, logger);
+  const { modelService, valueService, historyService, subscriptionService, typeService } =
+    createI3xStack(dataSource, logger, {
+      publishIntervalMs: config.publishIntervalMs,
+      samplingIntervalMs: config.samplingIntervalMs,
+    });
 
   // 3. Inbound adapter (REST)
   sendProgress('creating-rest', 'Creating REST API server...');
