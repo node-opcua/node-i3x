@@ -24,6 +24,8 @@ const { values: args } = parseArgs({
   options: {
     'rest-port': { type: 'string', default: '8080' },
     'opcua-port': { type: 'string', default: '48410' },
+    'api-key': { type: 'string' },
+    'require-auth': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -35,6 +37,8 @@ Usage: i3x-demo [options]
 Options:
   --rest-port <port>   REST API port (default: 8080)
   --opcua-port <port>  OPC UA server port (default: 48410)
+  --api-key <key>      API key for Bearer token auth
+  --require-auth       Require Bearer token auth (exit if no api-key is configured)
   -h, --help           Show this help
 `);
   process.exit(0);
@@ -401,6 +405,12 @@ async function main() {
   // Preload types
   await typeService.preloadTypes();
 
+  const apiKey = args['api-key'];
+  if (args['require-auth'] && !apiKey) {
+    logger.error('require-auth is enabled but no api-key is configured.');
+    process.exit(1);
+  }
+
   // Start REST server
   const app = await createApp({
     dataSource,
@@ -410,6 +420,7 @@ async function main() {
     historyService,
     subscriptionService,
     logger,
+    apiKey,
   });
   await app.listen({ port: REST_PORT, host: '127.0.0.1' });
 
