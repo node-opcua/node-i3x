@@ -1,5 +1,11 @@
 # @node-i3x/demo-embedded
 
+## 0.6.0 (2026-06-15)
+
+- refactor: align config keys with env vars, switch intervals to ms
+- feat(opcua-connector): add SecurityPolicy auto-discovery, dedicated PKI, and self-signed certificates
+- chore: remove empty Development section from .env.example
+
 ## 0.5.4 (2026-06-13)
 
 - Version bump

@@ -1,5 +1,11 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.6.0 (2026-06-15)
+
+- feat(opcua-connector): add SecurityPolicy auto-discovery, dedicated PKI, and self-signed certificates
+- refactor: align config keys with env vars, switch intervals to ms
+- chore: remove empty Development section from .env.example
+
 ## 0.5.4 (2026-06-13)
 
 - Version bump

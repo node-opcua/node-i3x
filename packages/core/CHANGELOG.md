@@ -1,5 +1,12 @@
 # @node-i3x/core
 
+## 0.6.0 (2026-06-15)
+
+- refactor: align config keys with env vars, switch intervals to ms
+- fix: resolve Biome lint warnings in schema-builder and opcua-client
+- feat(opcua-connector): add SecurityPolicy auto-discovery, dedicated PKI, and self-signed certificates
+- chore: remove empty Development section from .env.example
+
 ## 0.5.4 (2026-06-13)
 
 - feat: expose OPC UA traffic stats via /health
