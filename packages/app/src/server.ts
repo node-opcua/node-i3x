@@ -63,8 +63,20 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   if (apiKey === 'auto') {
     apiKey = `i3x_sk_${randomBytes(16).toString('hex')}`;
   }
+
+  // Guard: requireAuth demands an apiKey
+  if (config.requireAuth && !apiKey) {
+    logger.error(
+      'requireAuth is enabled but no apiKey is configured. ' +
+        'Set --api-key <key> (or "auto") to enable Bearer ' +
+        'token authentication, or disable requireAuth.',
+    );
+    process.exit(1);
+  }
+
   if (apiKey) {
-    logger.info(`API authentication enabled (Bearer token)`);
+    const mode = config.requireAuth ? 'enforced' : 'enabled';
+    logger.info(`API authentication ${mode} (Bearer token)`);
   }
 
   const app = await createApp({

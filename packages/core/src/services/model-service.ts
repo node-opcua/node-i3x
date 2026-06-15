@@ -9,7 +9,7 @@ import type {
   SourceNodeInfo,
 } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
-import { inferKind, mapNode, mapType, stableI3xId } from './mapper.js';
+import { inferKind, mapNode, stableI3xId } from './mapper.js';
 
 export class ModelService {
   private _cache: BuildResult | null = null;
@@ -139,17 +139,12 @@ export class ModelService {
       });
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
-      const kind = inferKind(srcNode);
       let typeOverride: string | null = null;
       const typeDef = srcNode.typeDefinition;
-      if (kind === 'asset') {
-        if (typeDef && typeIdMap.has(typeDef)) {
-          typeOverride = typeIdMap.get(typeDef)!;
-        } else {
-          typeOverride = 'UnknownType';
-        }
+      if (typeDef && typeIdMap.has(typeDef)) {
+        typeOverride = typeIdMap.get(typeDef)!;
       } else {
-        typeOverride = mapType(srcNode, kind);
+        typeOverride = 'UnknownType';
       }
       const mapped = mapNode(srcNode, childIds, browsePath, typeOverride);
       nodesById.set(mapped.id, mapped);

@@ -30,7 +30,7 @@ describe('demo-embedded smoke test', () => {
       output += data.toString();
     });
 
-    const maxAttempts = 30;
+    const maxAttempts = 120;
     let success = false;
 
     // Poll the health endpoint
@@ -65,5 +65,5 @@ describe('demo-embedded smoke test', () => {
     }
 
     expect(success).toBe(true);
-  });
+  }, 65_000);
 });

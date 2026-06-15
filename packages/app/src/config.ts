@@ -16,6 +16,7 @@ export interface I3xConfig {
   preload: boolean;
   preloadStrict: boolean;
   readOnly: boolean;
+  requireAuth: boolean;
   experimental: boolean;
   username?: string;
   password?: string;
@@ -35,6 +36,7 @@ const DEFAULTS: I3xConfig = {
   preload: true,
   preloadStrict: false,
   readOnly: false,
+  requireAuth: false,
   experimental: false,
 };
 
@@ -102,6 +104,9 @@ function fromEnv(): Partial<I3xConfig> {
 
   const readOnly = envBool('NODE_I3X_READ_ONLY');
   if (readOnly !== undefined) result.readOnly = readOnly;
+
+  const requireAuth = envBool('NODE_I3X_REQUIRE_AUTH');
+  if (requireAuth !== undefined) result.requireAuth = requireAuth;
 
   const experimental = envBool('NODE_I3X_EXPERIMENTAL');
   if (experimental !== undefined) result.experimental = experimental;

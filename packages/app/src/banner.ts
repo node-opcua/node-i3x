@@ -11,6 +11,7 @@ export function printBanner(
     '',
     `  OPC UA:  ${config.endpoint}`,
     `  REST:    http://${config.host}:${config.port}`,
+    `  Auth:    ${config.apiKey ? `Bearer${config.requireAuth ? ' (required)' : ''}` : 'none (open)'}`,
   ];
 
   if (nodeCount !== undefined) {

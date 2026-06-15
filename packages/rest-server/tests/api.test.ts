@@ -802,14 +802,12 @@ describe('REST API', () => {
 
     // 3. Every object's typeElementId must exist in the registered types
     for (const obj of objects) {
-      if (obj.elementId.startsWith('asset-')) {
-        expect(
-          registeredTypeIds.has(obj.typeElementId),
-          `Object "${obj.displayName}" (${obj.elementId}) has typeElementId ` +
-            `"${obj.typeElementId}" which is not a registered object type. ` +
-            `Registered types: ${[...registeredTypeIds].join(', ')}`,
-        ).toBe(true);
-      }
+      expect(
+        registeredTypeIds.has(obj.typeElementId),
+        `Object "${obj.displayName}" (${obj.elementId}) has typeElementId ` +
+          `"${obj.typeElementId}" which is not a registered object type. ` +
+          `Registered types: ${[...registeredTypeIds].join(', ')}`,
+      ).toBe(true);
     }
   });
 

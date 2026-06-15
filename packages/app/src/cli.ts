@@ -44,6 +44,7 @@ program
   .option('--password <pass>', 'OPC UA password for UserName identity token')
   .option('--read-only', 'Disable write operations (advertise read-only capabilities)')
   .option('--experimental', 'Enable experimental convenience and extension routes')
+  .option('--require-auth', 'Require Bearer token auth (exit if no apiKey is configured)')
   .option('--api-key <key>', 'API key for Bearer token auth (use "auto" to generate)')
   .option('-c, --config <path>', 'Path to config file')
   .action(async (opts) => {
@@ -68,6 +69,7 @@ program
     if (opts.password) cliArgs.password = opts.password;
     if (opts.readOnly) cliArgs.readOnly = true;
     if (opts.experimental) cliArgs.experimental = true;
+    if (opts.requireAuth) cliArgs.requireAuth = true;
     if (opts.apiKey) cliArgs.apiKey = opts.apiKey;
 
     const config = await resolveConfig(cliArgs, opts.config);
