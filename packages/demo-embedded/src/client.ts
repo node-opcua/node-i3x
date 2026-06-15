@@ -312,7 +312,7 @@ async function syncUpdates(): Promise<void> {
       result: SubscriptionUpdate[];
     }>('/v1/subscriptions/sync', {
       subscriptionId: subId,
-      acknowledgeSequence: lastSeq,
+      lastSequenceNumber: lastSeq,
     });
 
     const updates = syncRes.result;

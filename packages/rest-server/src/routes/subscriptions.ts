@@ -154,7 +154,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           required: ['subscriptionId', 'clientId'],
           properties: {
             subscriptionId: { type: 'string' },
-            acknowledgeSequence: { type: 'integer' },
             lastSequenceNumber: { type: 'integer' },
             clientId: { type: 'string' },
           },
@@ -165,17 +164,15 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       req: FastifyRequest<{
         Body: {
           subscriptionId: string;
-          acknowledgeSequence?: number;
           lastSequenceNumber?: number;
           clientId?: string;
         };
       }>,
     ) => {
-      const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
-        req.body;
+      const { subscriptionId, lastSequenceNumber, clientId } = req.body;
       const cid = requireClientId(clientId);
       requireSubscriptionOwnership(deps, subscriptionId, cid);
-      const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
+      const ackSeq = lastSequenceNumber ?? 0;
       try {
         const updates = deps.subscriptionService.sync(subscriptionId, ackSeq);
         return successResponse(updates);
@@ -195,7 +192,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           required: ['subscriptionId', 'clientId'],
           properties: {
             subscriptionId: { type: 'string' },
-            acknowledgeSequence: { type: 'integer' },
             lastSequenceNumber: { type: 'integer' },
             clientId: { type: 'string' },
           },
@@ -206,18 +202,16 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       req: FastifyRequest<{
         Body: {
           subscriptionId: string;
-          acknowledgeSequence?: number;
           lastSequenceNumber?: number;
           clientId?: string;
         };
       }>,
       reply,
     ) => {
-      const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
-        req.body;
+      const { subscriptionId, lastSequenceNumber, clientId } = req.body;
       const cid = requireClientId(clientId);
       requireSubscriptionOwnership(deps, subscriptionId, cid);
-      const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
+      const ackSeq = lastSequenceNumber ?? 0;
 
       try {
         // Validate subscription exists BEFORE hijacking the response

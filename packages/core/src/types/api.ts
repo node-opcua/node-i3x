@@ -156,14 +156,12 @@ export interface RegisterMonitoredItemsRequest {
 export interface SyncRequest {
   clientId?: string | null;
   subscriptionId: string;
-  acknowledgeSequence?: number;
   lastSequenceNumber?: number;
 }
 
 export interface StreamRequest {
   clientId?: string | null;
   subscriptionId: string;
-  acknowledgeSequence?: number;
   lastSequenceNumber?: number;
 }
 

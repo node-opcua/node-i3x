@@ -360,9 +360,9 @@ describe('SubscriptionService', () => {
     expect(speedComp).toBeTruthy();
   });
 
-  // ── Sync with acknowledgeSequence ──────────────────────
+  // ── Sync with lastSequenceNumber ──────────────────────
 
-  it('sync() filters by acknowledgeSequence', async () => {
+  it('sync() filters by lastSequenceNumber', async () => {
     const { subscriptionId } = svc.create();
     const model = await modelService.getOrBuildModel();
     const propId = [...model.propertyToSource.keys()][0]!;

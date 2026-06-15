@@ -485,7 +485,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const syncRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/sync',
-      payload: { subscriptionId: subId, acknowledgeSequence: 0, clientId: 'e2e-test' },
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'e2e-test' },
     });
     expect(syncRes.statusCode).toBe(200);
     const updates = syncRes.json().result;
@@ -615,7 +615,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const syncRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/sync',
-      payload: { subscriptionId: subId, acknowledgeSequence: 0, clientId: 'deep-test' },
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'deep-test' },
     });
     expect(syncRes.statusCode).toBe(200);
     const updates = syncRes
@@ -731,7 +731,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     const syncRes = await app.inject({
       method: 'POST',
       url: '/v1/subscriptions/sync',
-      payload: { subscriptionId: subId, acknowledgeSequence: 0, clientId: 'match-test' },
+      payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'match-test' },
     });
     expect(syncRes.statusCode).toBe(200);
     const updates = syncRes

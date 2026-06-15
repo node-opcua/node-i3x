@@ -319,15 +319,15 @@ export class SubscriptionService {
 
   // ── Sync ───────────────────────────────────────────────────
 
-  sync(subscriptionId: string, acknowledgeSequence: number = 0): SyncBatch[] {
+  sync(subscriptionId: string, lastSequenceNumber: number = 0): SyncBatch[] {
     const sub = this._requireSub(subscriptionId);
     // -1 is a sentinel: clear ALL pending updates (i3X spec §Sync)
-    if (acknowledgeSequence === -1) {
+    if (lastSequenceNumber === -1) {
       sub.updates = [];
       return [];
     }
     // Trim acknowledged updates (matches Python behaviour)
-    sub.updates = sub.updates.filter((u) => u.sequenceNumber > acknowledgeSequence);
+    sub.updates = sub.updates.filter((u) => u.sequenceNumber > lastSequenceNumber);
     return sub.updates.map((u) => ({
       sequenceNumber: u.sequenceNumber,
       updates: [
