@@ -22,12 +22,20 @@ const RELATIONSHIP_TYPES: RelationshipType[] = [
 export default async function relationshiptypeRoutes(
   app: FastifyInstance,
 ): Promise<void> {
-  app.get('/v1/relationshiptypes', async () => {
-    return {
-      success: true,
-      result: RELATIONSHIP_TYPES,
-    };
-  });
+  app.get(
+    '/v1/relationshiptypes',
+    async (req: FastifyRequest<{ Querystring: { namespaceUri?: string } }>) => {
+      const { namespaceUri } = req.query;
+      let types = RELATIONSHIP_TYPES;
+      if (namespaceUri) {
+        types = types.filter((t) => t.namespaceUri === namespaceUri);
+      }
+      return {
+        success: true,
+        result: types,
+      };
+    },
+  );
 
   app.post(
     '/v1/relationshiptypes/query',

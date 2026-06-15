@@ -531,7 +531,7 @@ describe('REST API', () => {
 
     expect(body.results[2].success).toBe(false);
     expect(body.results[2].elementId).toBe('missing-type-id');
-    expect(body.results[2].error.code).toBe(404);
+    expect(body.results[2].responseDetail.status).toBe(404);
   });
 
   it('GET /v1/relationshiptypes returns static relationship types list', async () => {
@@ -558,7 +558,7 @@ describe('REST API', () => {
     expect(body.results[0].elementId).toBe('HasComponent');
     expect(body.results[1].success).toBe(false);
     expect(body.results[1].elementId).toBe('missing-rel-id');
-    expect(body.results[1].error.code).toBe(404);
+    expect(body.results[1].responseDetail.status).toBe(404);
   });
 
   it('PUT /v1/objects/value handles bulk updates in array and object formats', async () => {
@@ -925,7 +925,9 @@ describe('Bearer token auth', () => {
     const res = await securedApp.inject({ method: 'GET', url: '/v1/namespaces' });
     expect(res.statusCode).toBe(401);
     const body = res.json();
-    expect(body.error).toBe('Unauthorized');
+    expect(body.success).toBe(false);
+    expect(body.responseDetail.title).toBe('Unauthorized');
+    expect(body.responseDetail.status).toBe(401);
   });
 
   it('GET /v1/namespaces returns 401 with wrong token', async () => {

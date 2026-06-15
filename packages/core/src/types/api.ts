@@ -10,19 +10,14 @@ export interface SuccessResponse<T> {
 }
 
 export interface ErrorDetail {
-  code: number;
-  message: string;
+  title: string;
+  status: number;
+  detail: string;
 }
 
 export interface ErrorResponse {
   success: false;
-  error: ErrorDetail;
-}
-
-export interface ResponseDetail {
-  title: string;
-  status: number;
-  detail: string;
+  responseDetail: ErrorDetail;
 }
 
 export interface BulkResultItem<T> {
@@ -30,8 +25,7 @@ export interface BulkResultItem<T> {
   elementId?: string | null;
   subscriptionId?: string | null;
   result?: T | null;
-  error?: ErrorDetail | null;
-  responseDetail?: ResponseDetail | null;
+  responseDetail?: ErrorDetail | null;
 }
 
 export interface BulkResponse<T> {
@@ -72,7 +66,7 @@ export interface ObjectInstanceMetadata {
   sourceTypeId?: string | null;
   description?: string | null;
   relationships?: Record<string, unknown> | null;
-  extendedAttributes?: Record<string, unknown> | null;
+  schemaExtensions?: Record<string, unknown> | null;
   system?: Record<string, unknown> | null;
 }
 
@@ -93,12 +87,16 @@ export interface RelatedObjectResult {
 
 // ── Subscriptions ────────────────────────────────────────────
 
-export interface SyncUpdateResponse {
-  sequenceNumber: number;
+export interface SyncUpdateEntry {
   elementId: string;
   value: unknown;
   quality: string;
   timestamp: string;
+}
+
+export interface SyncBatch {
+  sequenceNumber: number;
+  updates: SyncUpdateEntry[];
 }
 
 export interface CreateSubscriptionRequest {

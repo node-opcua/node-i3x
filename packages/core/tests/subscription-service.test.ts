@@ -292,7 +292,9 @@ describe('SubscriptionService', () => {
     // Wait for debounce flush
     await waitForDebounce();
 
-    const updates = svc.sync(subscriptionId, 0);
+    const updates = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     // Debounce produces ONE composite update with the last value
     expect(updates).toHaveLength(1);
     // sequence 1 was consumed by the initial seed
@@ -314,7 +316,9 @@ describe('SubscriptionService', () => {
 
     await waitForDebounce();
 
-    const updates = svc.sync(subscriptionId, 0);
+    const updates = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     // elementId is the registered element (property in this case)
     expect(updates[0]!.elementId).toBe(propId);
   });
@@ -336,7 +340,9 @@ describe('SubscriptionService', () => {
 
     await waitForDebounce();
 
-    const updates = svc.sync(subscriptionId, 0);
+    const updates = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     expect(updates).toHaveLength(1);
     expect(updates[0]!.elementId).toBe(cncNode!.id);
     expect(updates[0]!.value.isComposition).toBe(true);
@@ -374,10 +380,14 @@ describe('SubscriptionService', () => {
     await waitForDebounce();
 
     // Acknowledge first change → only second change returned
-    const firstSync = svc.sync(subscriptionId, 0);
+    const firstSync = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     expect(firstSync.length).toBeGreaterThanOrEqual(2);
     const ackSeq = firstSync[firstSync.length - 2]!.sequenceNumber;
-    const updates = svc.sync(subscriptionId, ackSeq);
+    const updates = svc
+      .sync(subscriptionId, ackSeq)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     expect(updates).toHaveLength(1);
     expect(updates[0]!.value.value).toBe(2);
   });
@@ -394,9 +404,13 @@ describe('SubscriptionService', () => {
 
     await waitForDebounce();
     // Acknowledge all updates → empty
-    const all = svc.sync(subscriptionId, 0);
+    const all = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     const lastSeq = all[all.length - 1]!.sequenceNumber;
-    const updates = svc.sync(subscriptionId, lastSeq);
+    const updates = svc
+      .sync(subscriptionId, lastSeq)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     expect(updates).toHaveLength(0);
   });
 
@@ -471,7 +485,9 @@ describe('SubscriptionService', () => {
     await waitForDebounce();
 
     // With debouncing, 10,001 rapid changes = 1 composite update
-    const all = svc.sync(subscriptionId, 0);
+    const all = svc
+      .sync(subscriptionId, 0)
+      .flatMap((b) => b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })));
     expect(all.length).toBe(1);
     expect(all[0]!.value.value).toBe(10_000);
   });
@@ -490,7 +506,7 @@ describe('SubscriptionService', () => {
   it('deleteSubscriptions returns error for unknown id', async () => {
     const results = await svc.deleteSubscriptions(['unknown']);
     expect(results[0]!.success).toBe(false);
-    expect(results[0]!.error!.code).toBe(404);
+    expect(results[0]!.responseDetail!.status).toBe(404);
   });
 
   // ── List ───────────────────────────────────────────────
@@ -614,7 +630,11 @@ describe('SubscriptionService', () => {
 
       await waitForDebounce();
 
-      const updates = serverSvc.sync(subscriptionId, 0);
+      const updates = serverSvc
+        .sync(subscriptionId, 0)
+        .flatMap((b) =>
+          b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+        );
       expect(updates).toHaveLength(1);
 
       const composite = updates[0]!;
@@ -663,7 +683,11 @@ describe('SubscriptionService', () => {
 
       await waitForDebounce();
 
-      const updates = serverSvc.sync(subscriptionId, 0);
+      const updates = serverSvc
+        .sync(subscriptionId, 0)
+        .flatMap((b) =>
+          b.updates.map((u) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+        );
       expect(updates).toHaveLength(1);
 
       const comps = updates[0]!.value.components!;

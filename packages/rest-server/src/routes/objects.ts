@@ -165,7 +165,14 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
   // ── GET /v1/objects/:elementId/history ─────────────────────
   app.get('/v1/objects/:elementId/history', async (_req, reply) => {
     reply.status(501);
-    return { success: false, error: { code: 501, message: 'Not implemented' } };
+    return {
+      success: false,
+      responseDetail: {
+        title: 'Not Implemented',
+        status: 501,
+        detail: 'Not implemented',
+      },
+    };
   });
 
   // ── PUT /v1/objects/:elementId/history ─────────────────────
@@ -174,14 +181,22 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       reply.status(501);
       return {
         success: false,
-        error: {
-          code: 501,
-          message: 'Write operations are disabled (read-only mode)',
+        responseDetail: {
+          title: 'Not Implemented',
+          status: 501,
+          detail: 'Write operations are disabled (read-only mode)',
         },
       };
     }
     reply.status(501);
-    return { success: false, error: { code: 501, message: 'Not implemented' } };
+    return {
+      success: false,
+      responseDetail: {
+        title: 'Not Implemented',
+        status: 501,
+        detail: 'Not implemented',
+      },
+    };
   });
 
   // ── PUT /v1/objects/history ────────────────────────────────
@@ -190,14 +205,22 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       reply.status(501);
       return {
         success: false,
-        error: {
-          code: 501,
-          message: 'Write operations are disabled (read-only mode)',
+        responseDetail: {
+          title: 'Not Implemented',
+          status: 501,
+          detail: 'Write operations are disabled (read-only mode)',
         },
       };
     }
     reply.status(501);
-    return { success: false, error: { code: 501, message: 'Not implemented' } };
+    return {
+      success: false,
+      responseDetail: {
+        title: 'Not Implemented',
+        status: 501,
+        detail: 'Not implemented',
+      },
+    };
   });
 
   // ── PUT /v1/objects/:elementId/value ───────────────────────
@@ -211,9 +234,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         reply.status(501);
         return {
           success: false,
-          error: {
-            code: 501,
-            message: 'Write operations are disabled (read-only mode)',
+          responseDetail: {
+            title: 'Not Implemented',
+            status: 501,
+            detail: 'Write operations are disabled (read-only mode)',
           },
         };
       }
@@ -223,7 +247,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         await deps.valueService.writeValue(elementId, value);
         return successResponse(null);
       } catch (err) {
-        throw i3xError(404, 404, (err as Error).message);
+        throw i3xError(404, (err as Error).message);
       }
     },
   );
@@ -241,9 +265,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         reply.status(501);
         return {
           success: false,
-          error: {
-            code: 501,
-            message: 'Write operations are disabled (read-only mode)',
+          responseDetail: {
+            title: 'Not Implemented',
+            status: 501,
+            detail: 'Write operations are disabled (read-only mode)',
           },
         };
       }

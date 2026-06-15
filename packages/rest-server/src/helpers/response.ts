@@ -7,8 +7,9 @@
 
 /** ErrorDetail as defined in the i3X spec. */
 export interface ErrorDetail {
-  readonly code: number;
-  readonly message: string;
+  readonly title: string;
+  readonly status: number;
+  readonly detail: string;
 }
 
 /** SuccessResponse<T> -- wraps a single result. */
@@ -23,12 +24,7 @@ export interface BulkResultItem<T> {
   readonly elementId?: string | null;
   readonly subscriptionId?: string | null;
   readonly result?: T | null;
-  readonly error?: ErrorDetail | null;
-  readonly responseDetail?: {
-    readonly title: string;
-    readonly status: number;
-    readonly detail: string;
-  } | null;
+  readonly responseDetail?: ErrorDetail | null;
 }
 
 /** BulkResponse<T> -- wraps multiple bulk result items. */
@@ -54,7 +50,7 @@ export interface ObjectInstanceMetadata {
   readonly sourceTypeId?: string | null;
   readonly description?: string | null;
   readonly relationships?: Record<string, unknown> | null;
-  readonly extendedAttributes?: Record<string, unknown> | null;
+  readonly schemaExtensions?: Record<string, unknown> | null;
   readonly system?: Record<string, unknown> | null;
 }
 
@@ -81,17 +77,16 @@ export function bulkSuccess<T>(elementId: string, result: T): BulkResultItem<T> 
 
 export function bulkError<T>(
   elementId: string,
-  code: number,
+  statusCode: number,
   message: string,
   title?: string,
 ): BulkResultItem<T> {
   return {
     success: false,
     elementId,
-    error: { code, message },
     responseDetail: {
       title: title ?? 'Error',
-      status: code,
+      status: statusCode,
       detail: message,
     },
   };

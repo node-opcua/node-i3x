@@ -13,7 +13,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     ) => {
       const { clientId, displayName } = req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const result = deps.subscriptionService.create({
         clientId,
@@ -38,11 +38,11 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     ) => {
       const { subscriptionId, elementIds, maxDepth, clientId } = req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list([subscriptionId]);
       if (details.length === 0 || details[0]!.clientId !== clientId) {
-        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+        throw i3xError(404, `Subscription ${subscriptionId} not found`);
       }
       try {
         const { registered, errors } = await deps.subscriptionService.register(
@@ -55,7 +55,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           ...errors.map((e) => ({
             success: false,
             elementId: e.elementId,
-            error: { code: 404, message: e.error },
             responseDetail: { title: 'Not Found', status: 404, detail: e.error },
           })),
         ];
@@ -76,11 +75,11 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     ) => {
       const { subscriptionId, elementIds, clientId } = req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list([subscriptionId]);
       if (details.length === 0 || details[0]!.clientId !== clientId) {
-        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+        throw i3xError(404, `Subscription ${subscriptionId} not found`);
       }
       try {
         const { registered, errors } = await deps.subscriptionService.unregister(
@@ -96,7 +95,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
           ...errors.map((e) => ({
             success: false as const,
             elementId: e.elementId,
-            error: { code: 404, message: e.error },
             responseDetail: { title: 'Not Found', status: 404, detail: e.error },
           })),
         ];
@@ -123,11 +121,11 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
         req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list([subscriptionId]);
       if (details.length === 0 || details[0]!.clientId !== clientId) {
-        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+        throw i3xError(404, `Subscription ${subscriptionId} not found`);
       }
       const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
       try {
@@ -156,11 +154,11 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       const { subscriptionId, acknowledgeSequence, lastSequenceNumber, clientId } =
         req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list([subscriptionId]);
       if (details.length === 0 || details[0]!.clientId !== clientId) {
-        throw i3xError(404, 404, `Subscription ${subscriptionId} not found`);
+        throw i3xError(404, `Subscription ${subscriptionId} not found`);
       }
       const ackSeq = acknowledgeSequence ?? lastSequenceNumber ?? 0;
 
@@ -250,13 +248,13 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     ) => {
       const { subscriptionIds, clientId } = req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list(subscriptionIds);
       for (const id of subscriptionIds) {
         const d = details.find((x) => x.subscriptionId === id);
         if (!d || d.clientId !== clientId) {
-          throw i3xError(404, 404, `Subscription ${id} not found`);
+          throw i3xError(404, `Subscription ${id} not found`);
         }
       }
       const results = await deps.subscriptionService.deleteSubscriptions(subscriptionIds);
@@ -272,7 +270,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
     ) => {
       const { subscriptionIds, clientId } = req.body;
       if (!clientId) {
-        throw i3xError(400, 400, 'clientId is required');
+        throw i3xError(400, 'clientId is required');
       }
       const details = deps.subscriptionService.list(subscriptionIds);
 
@@ -284,7 +282,6 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
             return {
               success: false,
               subscriptionId: id,
-              error: { code: 404, message: `Subscription ${id} not found` },
               responseDetail: {
                 title: 'Not Found',
                 status: 404,

@@ -17,6 +17,7 @@ import type {
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
 import type { IDataSourcePort, IMonitoredSubscription } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
+import type { SyncBatch } from '../types/api.js';
 import type { ModelService } from './model-service.js';
 
 // ── Asset monitor state ──────────────────────────────────────
@@ -314,7 +315,7 @@ export class SubscriptionService {
 
   // ── Sync ───────────────────────────────────────────────────
 
-  sync(subscriptionId: string, acknowledgeSequence: number = 0): SubscriptionUpdate[] {
+  sync(subscriptionId: string, acknowledgeSequence: number = 0): SyncBatch[] {
     const sub = this._requireSub(subscriptionId);
     // -1 is a sentinel: clear ALL pending updates (i3X spec §Sync)
     if (acknowledgeSequence === -1) {
@@ -323,7 +324,17 @@ export class SubscriptionService {
     }
     // Trim acknowledged updates (matches Python behaviour)
     sub.updates = sub.updates.filter((u) => u.sequenceNumber > acknowledgeSequence);
-    return [...sub.updates];
+    return sub.updates.map((u) => ({
+      sequenceNumber: u.sequenceNumber,
+      updates: [
+        {
+          elementId: u.elementId,
+          value: u.value,
+          quality: u.quality,
+          timestamp: u.timestamp,
+        },
+      ],
+    }));
   }
 
   /**
@@ -408,7 +419,11 @@ export class SubscriptionService {
         results.push({
           success: false,
           subscriptionId: id,
-          error: { code: 404, message: 'Subscription not found' },
+          responseDetail: {
+            title: 'Not Found',
+            status: 404,
+            detail: 'Subscription not found',
+          },
         });
         continue;
       }

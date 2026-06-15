@@ -624,7 +624,11 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionId: subId, acknowledgeSequence: 0, clientId: 'deep-test' },
     });
     expect(syncRes.statusCode).toBe(200);
-    const updates = syncRes.json().result;
+    const updates = syncRes
+      .json()
+      .result.flatMap((b: any) =>
+        b.updates.map((u: any) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+      );
     expect(Array.isArray(updates)).toBe(true);
     expect(updates.length).toBeGreaterThan(0);
 
@@ -736,7 +740,11 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       payload: { subscriptionId: subId, acknowledgeSequence: 0, clientId: 'match-test' },
     });
     expect(syncRes.statusCode).toBe(200);
-    const updates = syncRes.json().result;
+    const updates = syncRes
+      .json()
+      .result.flatMap((b: any) =>
+        b.updates.map((u: any) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+      );
     expect(updates.length).toBeGreaterThan(0);
 
     // ── Step 4: The critical assertion ──
@@ -785,7 +793,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.results[0].success).toBe(false);
-    expect(body.results[0].error.code).toBe(404);
+    expect(body.results[0].responseDetail.status).toBe(404);
   });
 
   it('POST /v1/subscriptions/stream returns 404 for unknown subscription', async () => {
@@ -837,7 +845,11 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'sub07' },
     });
-    const updates1 = sync1.json().result;
+    const updates1 = sync1
+      .json()
+      .result.flatMap((b: any) =>
+        b.updates.map((u: any) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+      );
     expect(updates1.length).toBeGreaterThan(0);
     const lastSeq = updates1[updates1.length - 1].sequenceNumber;
 
@@ -850,7 +862,11 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, lastSequenceNumber: lastSeq, clientId: 'sub07' },
     });
-    const updates2 = sync2.json().result;
+    const updates2 = sync2
+      .json()
+      .result.flatMap((b: any) =>
+        b.updates.map((u: any) => ({ ...u, sequenceNumber: b.sequenceNumber })),
+      );
     // All returned updates must have sequenceNumber > lastSeq
     for (const u of updates2) {
       expect(u.sequenceNumber).toBeGreaterThan(lastSeq);
@@ -901,7 +917,7 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
       url: '/v1/subscriptions/sync',
       payload: { subscriptionId: subId, lastSequenceNumber: 0, clientId: 'sub13' },
     });
-    expect(sync1.json().result.length).toBeGreaterThan(0);
+    expect(sync1.json().result.flatMap((b: any) => b.updates).length).toBeGreaterThan(0);
 
     // Sync with lastSequenceNumber = -1 — should clear everything
     const sync2 = await app.inject({

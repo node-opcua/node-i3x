@@ -1,4 +1,22 @@
+import { readFileSync } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
+
+let serverVersion = '0.6.0';
+try {
+  const pkg = JSON.parse(
+    readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+  );
+  serverVersion = pkg.version;
+} catch {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    );
+    serverVersion = pkg.version;
+  } catch {
+    // fallback
+  }
+}
 
 export default async function infoRoutes(app: FastifyInstance): Promise<void> {
   app.get('/v1/info', async () => {
@@ -7,7 +25,7 @@ export default async function infoRoutes(app: FastifyInstance): Promise<void> {
       success: true,
       result: {
         specVersion: '1.0',
-        serverVersion: '0.1.0',
+        serverVersion,
         serverName: 'node-i3x',
         vendor: {
           name: 'Sterfive SAS',

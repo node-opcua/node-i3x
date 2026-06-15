@@ -34,8 +34,12 @@ export function registerAuth(app: FastifyInstance, apiKey: string | undefined): 
     const authHeader = request.headers.authorization;
     if (!authHeader) {
       reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Missing Authorization header. Use: Authorization: Bearer <token>',
+        success: false,
+        responseDetail: {
+          title: 'Unauthorized',
+          status: 401,
+          detail: 'Missing Authorization header. Use: Authorization: Bearer <token>',
+        },
       });
       return;
     }
@@ -43,8 +47,12 @@ export function registerAuth(app: FastifyInstance, apiKey: string | undefined): 
     const [scheme, token] = authHeader.split(' ', 2);
     if (scheme?.toLowerCase() !== 'bearer' || token !== apiKey) {
       reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Invalid or missing Bearer token.',
+        success: false,
+        responseDetail: {
+          title: 'Unauthorized',
+          status: 401,
+          detail: 'Invalid or missing Bearer token.',
+        },
       });
       return;
     }

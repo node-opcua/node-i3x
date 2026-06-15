@@ -32,7 +32,11 @@ export interface SubscriptionSyncResult {
 export interface SubscriptionDeleteResult {
   readonly success: boolean;
   readonly subscriptionId: string;
-  readonly error?: { readonly code: number; readonly message: string } | null;
+  readonly responseDetail?: {
+    readonly title: string;
+    readonly status: number;
+    readonly detail: string;
+  } | null;
 }
 
 /** Public view of a subscription's current state. */
