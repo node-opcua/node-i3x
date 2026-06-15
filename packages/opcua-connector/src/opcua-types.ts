@@ -7,8 +7,34 @@ import type { BrowseFilter } from '@node-i3x/core';
 /** Configuration for the OPC UA client connection. */
 export interface OpcUaClientOptions {
   endpointUrl: string;
-  securityMode?: string;
+  /**
+   * OPC UA security mode.
+   * - `'None'` | `'Sign'` | `'SignAndEncrypt'` — explicit mode.
+   * - `'Auto'` — discover endpoints and pick the strongest
+   *   SecurityPolicy + SecurityMode combination.
+   * @default 'Auto'
+   */
+  securityMode?: 'None' | 'Sign' | 'SignAndEncrypt' | 'Auto';
+  /**
+   * OPC UA security policy (e.g. `'Basic256Sha256'`).
+   * Only used when securityMode is NOT `'Auto'`. When `'Auto'`
+   * is selected, the policy is discovered from the server.
+   * @default 'None'
+   */
+  securityPolicy?: string;
   applicationName?: string;
+  /**
+   * OPC UA application URI embedded in the client certificate.
+   * @default `urn:<hostname>:<applicationName>`
+   */
+  applicationUri?: string;
+  /**
+   * Root folder for this client instance's PKI store.
+   * Each bridge instance should use a separate folder to
+   * avoid file contention when running multiple processes.
+   * @default auto-generated under `<cwd>/pki/` from endpoint URL hash
+   */
+  pkiFolder?: string;
   optimizedClient?: 'auto' | 'disabled';
   /**
    * Browse strategy for tree discovery.

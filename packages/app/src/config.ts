@@ -6,6 +6,8 @@ export interface I3xConfig {
   port: number;
   host: string;
   securityMode: string;
+  securityPolicy: string;
+  pkiFolder?: string;
   optimizedClient: 'auto' | 'disabled';
   publishIntervalMs: number;
   samplingIntervalMs: number;
@@ -22,7 +24,8 @@ const DEFAULTS: I3xConfig = {
   endpoint: 'opc.tcp://localhost:4840',
   port: 8080,
   host: '0.0.0.0',
-  securityMode: 'None',
+  securityMode: 'Auto',
+  securityPolicy: 'None',
   optimizedClient: 'auto',
   publishIntervalMs: 1000,
   samplingIntervalMs: 250,
@@ -59,6 +62,12 @@ function fromEnv(): Partial<I3xConfig> {
 
   const securityMode = envStr('NODE_I3X_OPCUA_SECURITY_MODE');
   if (securityMode) result.securityMode = securityMode;
+
+  const securityPolicy = envStr('NODE_I3X_OPCUA_SECURITY_POLICY');
+  if (securityPolicy) result.securityPolicy = securityPolicy;
+
+  const pkiFolder = envStr('NODE_I3X_PKI_FOLDER');
+  if (pkiFolder) result.pkiFolder = pkiFolder;
 
   const optimizedClient = envStr('NODE_I3X_OPCUA_OPTIMIZED_CLIENT');
   if (optimizedClient === 'auto' || optimizedClient === 'disabled')

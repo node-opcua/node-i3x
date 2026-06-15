@@ -2,6 +2,11 @@
 // @node-i3x/opcua-connector — node-opcua client wrapper
 // ─────────────────────────────────────────────────────────────
 
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import type {
   DataChangeCallback,
   ILogger,
@@ -36,6 +41,8 @@ import {
   Variant,
   type WriteValue,
 } from 'node-opcua';
+import { OPCUACertificateManager } from 'node-opcua-certificate-manager';
+import { coerceSecurityPolicy, type SecurityPolicy } from 'node-opcua-secure-channel';
 import {
   dataValueToHistorical,
   dataValueToSource,
@@ -48,6 +55,28 @@ const SECURITY_MODES: Record<string, MessageSecurityMode> = {
   None: MessageSecurityMode.None,
   Sign: MessageSecurityMode.Sign,
   SignAndEncrypt: MessageSecurityMode.SignAndEncrypt,
+};
+
+/**
+ * Security policies ranked strongest (index 0) to weakest.
+ * Deprecated policies (Basic256, Basic128Rsa15, etc.) are
+ * deprioritized but not excluded — the server may only offer
+ * legacy policies and we must still be able to connect.
+ */
+const SECURITY_POLICY_RANK: string[] = [
+  'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss',
+  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256',
+  'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep',
+  'http://opcfoundation.org/UA/SecurityPolicy#Basic256',
+  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Rsa15',
+  'http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15',
+  'http://opcfoundation.org/UA/SecurityPolicy#None',
+];
+
+const SECURITY_MODE_RANK: Record<number, number> = {
+  [MessageSecurityMode.SignAndEncrypt]: 0,
+  [MessageSecurityMode.Sign]: 1,
+  [MessageSecurityMode.None]: 2,
 };
 
 /** OPC UA session-level traffic statistics */
@@ -69,6 +98,7 @@ export interface OpcuaStats {
 export class OpcUaClient {
   private _client: OPCUAClient | null = null;
   private _session: ClientSession | null = null;
+  private _certificateManager: OPCUACertificateManager | null = null;
   private _namespaceArray: string[] = [];
   private _serviceCounters = {
     browse: 0,
@@ -84,13 +114,14 @@ export class OpcUaClient {
       OpcUaClientOptions,
       | 'endpointUrl'
       | 'securityMode'
+      | 'securityPolicy'
       | 'applicationName'
       | 'optimizedClient'
       | 'browseStrategy'
       | 'browseFilter'
     >
   > &
-    Pick<OpcUaClientOptions, 'username' | 'password'>;
+    Pick<OpcUaClientOptions, 'username' | 'password' | 'applicationUri' | 'pkiFolder'>;
 
   constructor(
     opts: OpcUaClientOptions,
@@ -98,13 +129,16 @@ export class OpcUaClient {
   ) {
     this._opts = {
       endpointUrl: opts.endpointUrl,
-      securityMode: opts.securityMode ?? 'None',
+      securityMode: opts.securityMode ?? 'Auto',
+      securityPolicy: opts.securityPolicy ?? 'None',
       applicationName: opts.applicationName ?? 'node-i3x',
       optimizedClient: opts.optimizedClient ?? 'auto',
       browseStrategy: opts.browseStrategy ?? 'parallel',
       browseFilter: opts.browseFilter ?? 'application-only',
       username: opts.username,
       password: opts.password,
+      applicationUri: opts.applicationUri,
+      pkiFolder: opts.pkiFolder,
     };
   }
 
@@ -120,12 +154,35 @@ export class OpcUaClient {
   // ── Lifecycle ──────────────────────────────────────────────
 
   async connect(): Promise<void> {
-    const securityMode =
-      SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
+    // ── Certificate manager (dedicated PKI per instance) ────
+    const certificateManager = await this._createCertificateManager();
+    this._certificateManager = certificateManager;
 
+    // ── Security mode / policy resolution ──────────────────
+    let securityMode: MessageSecurityMode;
+    let securityPolicy: SecurityPolicy | string;
+
+    if (this._opts.securityMode === 'Auto') {
+      const best = await this._discoverBestEndpoint();
+      securityMode = best.securityMode;
+      securityPolicy = best.securityPolicy;
+    } else {
+      securityMode = SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
+      securityPolicy = coerceSecurityPolicy(this._opts.securityPolicy);
+    }
+
+    // ── Build applicationUri ───────────────────────────────
+    const hostname = os.hostname();
+    const applicationUri =
+      this._opts.applicationUri ?? `urn:${hostname}:${this._opts.applicationName}`;
+
+    // ── Create client ──────────────────────────────────────
     this._client = OPCUAClient.create({
       applicationName: this._opts.applicationName,
+      applicationUri,
       securityMode,
+      securityPolicy,
+      clientCertificateManager: certificateManager,
       connectionStrategy: {
         initialDelay: 1000,
         maxDelay: 30_000,
@@ -142,7 +199,11 @@ export class OpcUaClient {
       this.logger.info('OPC UA connection re-established');
     });
 
-    this.logger.info(`Connecting to ${this._opts.endpointUrl}...`);
+    this.logger.info(
+      `Connecting to ${this._opts.endpointUrl} ` +
+        `(securityMode=${MessageSecurityMode[securityMode]}, ` +
+        `securityPolicy=${securityPolicy})...`,
+    );
     await this._client.connect(this._opts.endpointUrl);
 
     const userIdentity =
@@ -191,7 +252,189 @@ export class OpcUaClient {
       }
       this._client = null;
     }
+    if (this._certificateManager) {
+      try {
+        await this._certificateManager.dispose();
+      } catch {
+        /* best effort */
+      }
+      this._certificateManager = null;
+    }
     this.logger.info('OPC UA disconnected');
+  }
+
+  // ── Security discovery ────────────────────────────────────
+
+  /**
+   * Discover available endpoints and select the strongest
+   * SecurityPolicy + SecurityMode combination.
+   *
+   * Inspired by node-wot's "auto" security scheme: connect
+   * briefly with no security, call GetEndpoints, rank results
+   * by the server's `securityLevel` then by our own policy
+   * strength ranking, and pick the winner.
+   *
+   * Deprecated policies (Basic256, Basic128Rsa15) are
+   * deprioritized but not excluded.
+   */
+  private async _discoverBestEndpoint(): Promise<{
+    securityMode: MessageSecurityMode;
+    securityPolicy: SecurityPolicy;
+  }> {
+    const discoveryClient = OPCUAClient.create({
+      connectionStrategy: {
+        maxRetry: 3,
+        initialDelay: 500,
+        maxDelay: 5_000,
+      },
+      endpointMustExist: false,
+    });
+
+    try {
+      await discoveryClient.connect(this._opts.endpointUrl);
+      const endpoints = await discoveryClient.getEndpoints();
+      await discoveryClient.disconnect();
+
+      if (endpoints.length === 0) {
+        this.logger.warn(
+          'No endpoints returned by server; ' + 'falling back to None/None',
+        );
+        return {
+          securityMode: MessageSecurityMode.None,
+          securityPolicy: coerceSecurityPolicy('None'),
+        };
+      }
+
+      // Prefer secured endpoints; fall back to all if
+      // the server only offers None.
+      const secured = endpoints.filter(
+        (ep) => ep.securityMode !== MessageSecurityMode.None,
+      );
+      const pool = secured.length > 0 ? secured : endpoints;
+
+      pool.sort((a, b) => {
+        // 1. Server-assigned securityLevel (higher = better)
+        const levelDiff = (b.securityLevel ?? 0) - (a.securityLevel ?? 0);
+        if (levelDiff !== 0) return levelDiff;
+
+        // 2. Our policy ranking (lower index = stronger)
+        const pA = SECURITY_POLICY_RANK.indexOf(a.securityPolicyUri ?? '');
+        const pB = SECURITY_POLICY_RANK.indexOf(b.securityPolicyUri ?? '');
+        const policyDiff = (pA === -1 ? 999 : pA) - (pB === -1 ? 999 : pB);
+        if (policyDiff !== 0) return policyDiff;
+
+        // 3. Mode ranking (SignAndEncrypt > Sign > None)
+        return (
+          (SECURITY_MODE_RANK[a.securityMode] ?? 9) -
+          (SECURITY_MODE_RANK[b.securityMode] ?? 9)
+        );
+      });
+
+      const best = pool[0]!;
+      const policy = coerceSecurityPolicy(best.securityPolicyUri);
+      this.logger.info(
+        `Auto-discovered best endpoint: ` +
+          `securityPolicy=${best.securityPolicyUri} ` +
+          `securityMode=${MessageSecurityMode[best.securityMode]}`,
+      );
+      return {
+        securityMode: best.securityMode,
+        securityPolicy: policy,
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Endpoint discovery failed (${err}); ` + `falling back to None/None`,
+      );
+      try {
+        await discoveryClient.disconnect();
+      } catch {
+        /* best effort */
+      }
+      return {
+        securityMode: MessageSecurityMode.None,
+        securityPolicy: coerceSecurityPolicy('None'),
+      };
+    }
+  }
+
+  // ── Certificate management ────────────────────────────────
+
+  /**
+   * Create a dedicated `OPCUACertificateManager` for this
+   * instance.  Uses a unique PKI folder derived from the
+   * endpoint URL hash to avoid contention when multiple bridge
+   * processes run concurrently.
+   *
+   * The certificate manager is initialised and, if no client
+   * certificate exists yet, a self-signed certificate with
+   * proper OPC UA shape is created automatically.
+   */
+  private async _createCertificateManager(): Promise<OPCUACertificateManager> {
+    const hash = crypto
+      .createHash('sha256')
+      .update(this._opts.endpointUrl)
+      .digest('hex')
+      .slice(0, 12);
+
+    const pkiFolder =
+      this._opts.pkiFolder ?? path.join(process.cwd(), 'pki', `i3x-${hash}`);
+
+    const certificateManager = new OPCUACertificateManager({
+      rootFolder: pkiFolder,
+      automaticallyAcceptUnknownCertificate: true,
+      name: 'PKI',
+      keySize: 2048,
+    });
+
+    await certificateManager.initialize();
+
+    // ── Create self-signed certificate if missing ──────────
+    await this._ensureSelfSignedCertificate(certificateManager, pkiFolder, hash);
+
+    return certificateManager;
+  }
+
+  /**
+   * Create a self-signed certificate with the correct OPC UA
+   * shape if one does not already exist in the PKI folder.
+   *
+   * The certificate includes:
+   * - `applicationUri` in the Subject Alternative Name (SAN)
+   * - X.500 subject with CN = applicationName-hash
+   * - DNS hostname in the SAN
+   * - 10-year validity
+   */
+  private async _ensureSelfSignedCertificate(
+    certificateManager: OPCUACertificateManager,
+    pkiFolder: string,
+    hash: string,
+  ): Promise<void> {
+    const certFile = path.join(
+      pkiFolder,
+      'PKI',
+      'own',
+      'certs',
+      'client_certificate.pem',
+    );
+
+    if (fs.existsSync(certFile)) {
+      this.logger.debug(`Client certificate exists: ${certFile}`);
+      return;
+    }
+
+    const hostname = os.hostname();
+    const applicationUri =
+      this._opts.applicationUri ?? `urn:${hostname}:${this._opts.applicationName}`;
+
+    await certificateManager.createSelfSignedCertificate({
+      applicationUri,
+      subject: `/CN=${this._opts.applicationName}-${hash}/O=Sterfive/L=Orleans/C=FR`,
+      dns: [hostname],
+      startDate: new Date(),
+      validity: 365 * 10, // 10 years
+    });
+
+    this.logger.info(`Created self-signed client certificate: ${certFile}`);
   }
 
   isConnected(): boolean {

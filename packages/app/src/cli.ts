@@ -16,7 +16,12 @@ program
   .option('-e, --endpoint <url>', 'OPC UA endpoint URL')
   .option('-p, --port <port>', 'REST API port', parseInt)
   .option('-H, --host <host>', 'REST API bind address')
-  .option('--security-mode <mode>', 'OPC UA security mode')
+  .option(
+    '--security-mode <mode>',
+    'OPC UA security mode (None, Sign, SignAndEncrypt, Auto)',
+  )
+  .option('--security-policy <policy>', 'OPC UA security policy (e.g. Basic256Sha256)')
+  .option('--pki-folder <path>', 'PKI folder for certificate storage')
   .option('--optimized-client <mode>', 'Optimized client: auto | disabled')
   .option(
     '--publish-interval <ms>',
@@ -43,6 +48,8 @@ program
     if (opts.port !== undefined) cliArgs.port = opts.port;
     if (opts.host) cliArgs.host = opts.host;
     if (opts.securityMode) cliArgs.securityMode = opts.securityMode;
+    if (opts.securityPolicy) cliArgs.securityPolicy = opts.securityPolicy;
+    if (opts.pkiFolder) cliArgs.pkiFolder = opts.pkiFolder;
     if (opts.optimizedClient) cliArgs.optimizedClient = opts.optimizedClient;
     if (opts.publishInterval !== undefined)
       cliArgs.publishIntervalMs = opts.publishInterval;

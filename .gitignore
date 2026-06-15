@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 .env
 coverage/
+pki/
 .turbo/
 *.log
 *.deb

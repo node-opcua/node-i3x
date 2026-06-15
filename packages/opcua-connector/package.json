@@ -59,7 +59,9 @@
   "dependencies": {
     "@node-i3x/core": "0.5.4",
     "node-opcua": "^2.173.1",
-    "node-opcua-client": "^2.173.1"
+    "node-opcua-certificate-manager": "^2.173.1",
+    "node-opcua-client": "^2.173.1",
+    "node-opcua-secure-channel": "^2.173.1"
   },
   "optionalDependencies": {
     "@sterfive/opcua-optimized-client": "*"

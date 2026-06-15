@@ -43,7 +43,9 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   const opcuaClient = new OpcUaClient(
     {
       endpointUrl: config.endpoint,
-      securityMode: config.securityMode,
+      securityMode: config.securityMode as 'None' | 'Sign' | 'SignAndEncrypt' | 'Auto',
+      securityPolicy: config.securityPolicy,
+      pkiFolder: config.pkiFolder,
       optimizedClient: config.optimizedClient,
       username: config.username,
       password: config.password,
