@@ -227,6 +227,19 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
     },
   );
 
+  // ── PUT /v1/objects/history ────────────────────────────────
+  app.put('/v1/objects/history', { preHandler: readOnlyGuard }, async (_req, reply) => {
+    reply.status(501);
+    return {
+      success: false,
+      responseDetail: {
+        title: 'Not Implemented',
+        status: 501,
+        detail: 'Not implemented',
+      },
+    };
+  });
+
   if (deps.experimental) {
     // ── GET /v1/objects/:elementId/history ─────────────────────
     app.get('/v1/objects/:elementId/history', async (_req, reply) => {
@@ -257,19 +270,6 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         };
       },
     );
-
-    // ── PUT /v1/objects/history ────────────────────────────────
-    app.put('/v1/objects/history', { preHandler: readOnlyGuard }, async (_req, reply) => {
-      reply.status(501);
-      return {
-        success: false,
-        responseDetail: {
-          title: 'Not Implemented',
-          status: 501,
-          detail: 'Not implemented',
-        },
-      };
-    });
 
     // ── PUT /v1/objects/:elementId/value ───────────────────────
     app.put(
