@@ -49,6 +49,9 @@ import { refToSourceNode } from './opcua-mapper.js';
 import type { OpcUaClientOptions } from './opcua-types.js';
 import { wrapSessionIfOptimized } from './optimized.js';
 
+const RESULT_MASK_ALL = 63;
+const NAMESPACE_ARRAY_NODE_ID = 'i=2255';
+
 const SECURITY_MODES: Record<string, MessageSecurityMode> = {
   None: MessageSecurityMode.None,
   Sign: MessageSecurityMode.Sign,
@@ -265,7 +268,7 @@ export class OpcUaClient {
 
     // Cache namespace array for nsu-qualified browse names
     const nsArrayDv = await session.read({
-      nodeId: coerceNodeId('i=2255'),
+      nodeId: coerceNodeId(NAMESPACE_ARRAY_NODE_ID),
       attributeId: AttributeIds.Value,
     });
     this._namespaceArray = nsArrayDv.value?.value ?? [];
@@ -276,24 +279,28 @@ export class OpcUaClient {
     if (this._session) {
       try {
         await this._session.close();
-      } catch {
-        /* best effort */
+      } catch (err) {
+        this.logger.debug(`best-effort session.close failed: ${(err as Error).message}`);
       }
       this._session = null;
     }
     if (this._client) {
       try {
         await this._client.disconnect();
-      } catch {
-        /* best effort */
+      } catch (err) {
+        this.logger.debug(
+          `best-effort client.disconnect failed: ${(err as Error).message}`,
+        );
       }
       this._client = null;
     }
     if (this._certificateManager) {
       try {
         await this._certificateManager.dispose();
-      } catch {
-        /* best effort */
+      } catch (err) {
+        this.logger.debug(
+          `best-effort certificateManager.dispose failed: ${(err as Error).message}`,
+        );
       }
       this._certificateManager = null;
     }
@@ -352,8 +359,10 @@ export class OpcUaClient {
       if (hasFilter) {
         try {
           await discoveryClient.disconnect();
-        } catch {
-          /* best effort */
+        } catch (discoveryDisconnectErr) {
+          this.logger.debug(
+            `discoveryClient disconnect failed: ${(discoveryDisconnectErr as Error).message}`,
+          );
         }
         throw err;
       }
@@ -363,8 +372,10 @@ export class OpcUaClient {
       );
       try {
         await discoveryClient.disconnect();
-      } catch {
-        /* best effort */
+      } catch (discoveryDisconnectErr) {
+        this.logger.debug(
+          `discoveryClient disconnect failed: ${(discoveryDisconnectErr as Error).message}`,
+        );
       }
       return {
         securityMode: MessageSecurityMode.None,
@@ -569,7 +580,7 @@ export class OpcUaClient {
       browseDirection: BrowseDirection.Forward,
       includeSubtypes: true,
       referenceTypeId,
-      resultMask: 63,
+      resultMask: RESULT_MASK_ALL,
       requestedMaxReferencesPerNode: 0,
     }));
   }
@@ -849,8 +860,10 @@ export class OpcUaClient {
           const dtValue = arr[i]?.value?.value;
           dataTypeMap.set(childId, dtValue ? dtValue.toString() : null);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        this.logger.debug(
+          `Failed to resolve DataTypes during browse: ${(err as Error).message}`,
+        );
       }
     }
 
@@ -868,7 +881,7 @@ export class OpcUaClient {
         browseDirection: BrowseDirection.Forward,
         includeSubtypes: true,
         referenceTypeId: resolveNodeId('HasModellingRule'),
-        resultMask: 63,
+        resultMask: RESULT_MASK_ALL,
         requestedMaxReferencesPerNode: 0,
       }));
       try {
@@ -878,8 +891,10 @@ export class OpcUaClient {
           const mrRef = mrResults[i]?.references?.[0];
           modellingRuleMap.set(childId, mrRef?.displayName?.text ?? null);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        this.logger.debug(
+          `Failed to resolve ModellingRules during browse: ${(err as Error).message}`,
+        );
       }
     }
 
@@ -1209,8 +1224,8 @@ export class OpcUaClient {
       async close(): Promise<void> {
         try {
           await sub.terminate();
-        } catch {
-          /* best effort */
+        } catch (err) {
+          logger.debug(`Failed to terminate subscription: ${(err as Error).message}`);
         }
         monitored.clear();
       },

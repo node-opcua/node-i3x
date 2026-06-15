@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { RestServerDeps } from './app.js';
 
 export interface I3xError extends Error {
   statusCode: number;

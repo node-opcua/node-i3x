@@ -43,13 +43,14 @@ export function mapNode(
   node: SourceNodeInfo,
   childIds: readonly string[],
   browsePath: string,
+  typeOverride?: string | null,
 ): ModelNode {
   const kind = inferKind(node);
   return {
     id: stableI3xId(browsePath, kind),
     name: node.displayName || node.browseName,
     kind,
-    type: mapType(node, kind),
+    type: typeOverride !== undefined ? typeOverride : mapType(node, kind),
     children: childIds,
     sourceNodeId: node.sourceNodeId,
     namespaceUri: node.namespaceUri,

@@ -3,12 +3,8 @@
 // ─────────────────────────────────────────────────────────────
 
 import {
-  dataValueToHistorical,
-  dataValueToSource,
   NODE_CLASS_NAMES,
   qualifiedNameToNsu,
-  type SourceDataValue,
-  type SourceHistoricalValue,
   type SourceNodeInfo,
 } from '@node-i3x/core';
 import { NodeClass, type ReferenceDescription } from 'node-opcua';

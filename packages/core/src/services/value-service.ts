@@ -2,7 +2,7 @@
 // @node-i3x/core  —  ValueService
 // ─────────────────────────────────────────────────────────────
 
-import type { BuildResult, DataQuality, ModelNode } from '../domain/model-node.js';
+import type { BuildResult, ModelNode } from '../domain/model-node.js';
 import type { CurrentValueResult, VQT } from '../domain/vqt.js';
 import { normalizeVqt } from '../helpers/vqt-helpers.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
@@ -64,7 +64,10 @@ export class ValueService {
       let values: Awaited<ReturnType<IDataSourcePort['readValues']>>;
       try {
         values = await this.dataSource.readValues(sourceIds);
-      } catch {
+      } catch (err) {
+        this._logger.debug(
+          `readValues failed, falling back to GoodNoData: ${(err as Error).message}`,
+        );
         // Fallback: mark all as GoodNoData
         values = sourceIds.map(() => ({
           value: null,

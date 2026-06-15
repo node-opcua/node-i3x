@@ -136,8 +136,8 @@ export async function resolveConfig(
     if (result && !result.isEmpty) {
       fileConfig = result.config as Partial<I3xConfig>;
     }
-  } catch {
-    // No config file found -- that's fine
+  } catch (err) {
+    console.debug(`No config file loaded: ${(err as Error).message}`);
   }
 
   // 2. Layer: defaults < config file < env vars < CLI args

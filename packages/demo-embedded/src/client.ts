@@ -496,8 +496,8 @@ async function main() {
   // Check server
   try {
     await get('/health');
-  } catch {
-    console.error(`\n  ❌ Cannot reach i3X server at ${BASE}`);
+  } catch (err) {
+    console.error(`\n  ❌ Cannot reach i3X server at ${BASE}: ${(err as Error).message}`);
     console.error(
       '  Start the demo first:\n' + '    npm run demo -w packages/demo-embedded\n',
     );
@@ -531,8 +531,10 @@ async function main() {
         await post('/v1/subscriptions/delete', {
           subscriptionIds: [subId],
         });
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.error(
+          `best-effort subscription delete failed: ${(err as Error).message}`,
+        );
       }
     }
     console.log('  Subscription cleaned up. Bye!\n');

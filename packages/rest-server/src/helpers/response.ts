@@ -8,10 +8,7 @@
 import type {
   BulkResponse,
   BulkResultItem,
-  ErrorDetail,
-  ObjectInstanceMetadata,
   ObjectInstanceResponse,
-  RelatedObjectResult,
   SuccessResponse,
 } from '@node-i3x/core';
 

@@ -61,7 +61,10 @@ export class HistoryService {
                 })),
               },
             };
-          } catch {
+          } catch (err) {
+            this._logger.debug(
+              `readHistory failed for ${elementId}: ${(err as Error).message}`,
+            );
             return {
               success: false,
               elementId,

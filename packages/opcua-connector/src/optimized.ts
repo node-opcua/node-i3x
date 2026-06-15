@@ -35,7 +35,10 @@ export async function wrapSessionIfOptimized(
         'auto-batching, limit-splitting, and coalescing enabled',
     );
     return optimized as unknown as ClientSession;
-  } catch {
+  } catch (err) {
+    logger.debug(
+      `Failed to import @sterfive/opcua-optimized-client: ${(err as Error).message}`,
+    );
     logger.info(
       'Standard node-opcua client mode. ' +
         'Install @sterfive/opcua-optimized-client for automatic ' +

@@ -37,6 +37,9 @@ import { DataType, Variant } from 'node-opcua-variant';
 
 import { AddressSpaceMonitoredSubscription } from './address-space-subscription.js';
 
+const RESULT_MASK_ALL = 63;
+const NAMESPACE_ARRAY_NODE_ID = 'i=2255';
+
 // ── Adapter ──────────────────────────────────────────────────
 
 /**
@@ -67,7 +70,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
     this._session = new PseudoSession(this._addressSpace);
     // Cache namespace array
     const nsArrayDv = await this._session.read({
-      nodeId: coerceNodeId('i=2255'),
+      nodeId: coerceNodeId(NAMESPACE_ARRAY_NODE_ID),
       attributeId: AttributeIds.Value,
     });
     this._namespaceArray = nsArrayDv.value?.value ?? [];
@@ -181,7 +184,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       browseDirection: BrowseDirection.Forward,
       includeSubtypes: true,
       referenceTypeId: resolveNodeId('HierarchicalReferences'),
-      resultMask: 63,
+      resultMask: RESULT_MASK_ALL,
     });
     const browseResult = result as BrowseResult;
     const refs = browseResult.references ?? [];
@@ -212,8 +215,10 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
                 dtResult.value.value.toString())
               : dtResult.value.value.toString();
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          this._logger.debug(
+            `Failed to read DataType for ${ref.nodeId.toString()}: ${(err as Error).message}`,
+          );
         }
       }
 
@@ -224,15 +229,17 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
           browseDirection: BrowseDirection.Forward,
           includeSubtypes: true,
           referenceTypeId: resolveNodeId('HasModellingRule'),
-          resultMask: 63,
+          resultMask: RESULT_MASK_ALL,
         });
         const mrBrowse = mrResult as BrowseResult;
         const mrRef = mrBrowse.references?.[0];
         if (mrRef) {
           modellingRule = mrRef.displayName?.text ?? null;
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        this._logger.debug(
+          `Failed to browse ModellingRule for ${ref.nodeId.toString()}: ${(err as Error).message}`,
+        );
       }
 
       members.push({
@@ -370,8 +377,10 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
             timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
           }));
         }
-      } catch {
-        // Fall through to single-value fallback
+      } catch (err) {
+        this._logger.debug(
+          `History read failed, falling back to current value: ${(err as Error).message}`,
+        );
       }
     }
 
@@ -400,7 +409,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       browseDirection: BrowseDirection.Forward,
       includeSubtypes: true,
       referenceTypeId: resolveNodeId('HierarchicalReferences'),
-      resultMask: 63,
+      resultMask: RESULT_MASK_ALL,
     });
     const browseResult = result as BrowseResult;
     const refs = browseResult.references ?? [];
@@ -494,7 +503,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         browseDirection: BrowseDirection.Forward,
         includeSubtypes: true,
         referenceTypeId: resolveNodeId('HierarchicalReferences'),
-        resultMask: 63,
+        resultMask: RESULT_MASK_ALL,
         requestedMaxReferencesPerNode: 0,
       }));
 

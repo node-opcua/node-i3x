@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'node:crypto';
-import type { BuildResult, DataQuality } from '../domain/model-node.js';
+import type { BuildResult } from '../domain/model-node.js';
 import type {
   CreateSubscriptionOptions,
   MonitoredObjectEntry,
@@ -20,6 +20,9 @@ import type { IDataSourcePort, IMonitoredSubscription } from '../ports/data-sour
 import type { ILogger } from '../ports/logger.js';
 import type { SyncBatch } from '../types/api.js';
 import type { ModelService } from './model-service.js';
+
+const MAX_QUEUE_SIZE = 10_000;
+const SLICE_QUEUE_SIZE = 5_000;
 
 // ── Asset monitor state ──────────────────────────────────────
 
@@ -301,8 +304,8 @@ export class SubscriptionService {
     if (sub.runtime && sourceIdsToRemove.length > 0) {
       try {
         await sub.runtime.removeItems(sourceIdsToRemove);
-      } catch {
-        /* best effort */
+      } catch (err) {
+        this.logger.debug(`best-effort removeItems failed: ${(err as Error).message}`);
       }
     }
 
@@ -435,8 +438,10 @@ export class SubscriptionService {
       if (sub.runtime) {
         try {
           await sub.runtime.close();
-        } catch {
-          /* best effort */
+        } catch (err) {
+          this.logger.debug(
+            `best-effort runtime.close failed: ${(err as Error).message}`,
+          );
         }
       }
       this._subs.delete(id);
@@ -471,8 +476,10 @@ export class SubscriptionService {
       if (sub.runtime) {
         try {
           await sub.runtime.close();
-        } catch {
-          /* best effort */
+        } catch (err) {
+          this.logger.debug(
+            `best-effort runtime.close failed: ${(err as Error).message}`,
+          );
         }
       }
     }
@@ -682,8 +689,8 @@ export class SubscriptionService {
     sub.updates.push(update);
 
     // Cap queue at 10 000 entries
-    if (sub.updates.length > 10_000) {
-      sub.updates = sub.updates.slice(-5_000);
+    if (sub.updates.length > MAX_QUEUE_SIZE) {
+      sub.updates = sub.updates.slice(-SLICE_QUEUE_SIZE);
     }
 
     // Wake any long-poll / stream waiters
