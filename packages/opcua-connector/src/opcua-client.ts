@@ -716,9 +716,6 @@ export class OpcUaClient {
         if (Buffer.isBuffer(value)) return value;
         if (typeof value === 'string') return Buffer.from(value, 'base64');
         return value;
-
-      // Null or unknown — return as-is
-      case DataType.Null:
       default:
         return value;
     }

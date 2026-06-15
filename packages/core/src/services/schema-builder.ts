@@ -111,7 +111,7 @@ function schemaForMember(member: ObjectTypeMemberInfo): Record<string, unknown> 
 
   const schema = jsonSchemaForDataType(member.dataType);
   if (member.displayName && member.displayName !== member.browseName) {
-    schema['title'] = member.displayName;
+    schema.title = member.displayName;
   }
   return schema;
 }
@@ -205,7 +205,7 @@ function _buildSchemaWithLookup(
   };
 
   if (required.length > 0) {
-    schema['required'] = required;
+    schema.required = required;
   }
 
   return schema;
