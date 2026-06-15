@@ -22,6 +22,10 @@ program
   )
   .option('--security-policy <policy>', 'OPC UA security policy (e.g. Basic256Sha256)')
   .option('--pki-folder <path>', 'PKI folder for certificate storage')
+  .option(
+    '--certificate-subject <subject>',
+    'X.500 subject for the client certificate (e.g. /CN=my-app/O=Acme/OU=user@acme.com)',
+  )
   .option('--optimized-client <mode>', 'Optimized client: auto | disabled')
   .option(
     '--publish-interval <ms>',
@@ -50,6 +54,7 @@ program
     if (opts.securityMode) cliArgs.securityMode = opts.securityMode;
     if (opts.securityPolicy) cliArgs.securityPolicy = opts.securityPolicy;
     if (opts.pkiFolder) cliArgs.pkiFolder = opts.pkiFolder;
+    if (opts.certificateSubject) cliArgs.certificateSubject = opts.certificateSubject;
     if (opts.optimizedClient) cliArgs.optimizedClient = opts.optimizedClient;
     if (opts.publishInterval !== undefined)
       cliArgs.publishIntervalMs = opts.publishInterval;

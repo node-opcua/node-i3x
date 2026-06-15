@@ -79,6 +79,16 @@ const SECURITY_MODE_RANK: Record<number, number> = {
   [MessageSecurityMode.None]: 2,
 };
 
+/**
+ * Minimal endpoint shape for `selectBestEndpoint`.
+ * Mirrors the fields of `EndpointDescription` used in ranking.
+ */
+export interface EndpointLike {
+  securityMode: MessageSecurityMode;
+  securityPolicyUri?: string;
+  securityLevel?: number;
+}
+
 /** OPC UA session-level traffic statistics */
 export interface OpcuaStats {
   transactionsPerformed: number;
@@ -121,7 +131,10 @@ export class OpcUaClient {
       | 'browseFilter'
     >
   > &
-    Pick<OpcUaClientOptions, 'username' | 'password' | 'applicationUri' | 'pkiFolder'>;
+    Pick<
+      OpcUaClientOptions,
+      'username' | 'password' | 'applicationUri' | 'pkiFolder' | 'certificateSubject'
+    >;
 
   constructor(
     opts: OpcUaClientOptions,
@@ -130,7 +143,7 @@ export class OpcUaClient {
     this._opts = {
       endpointUrl: opts.endpointUrl,
       securityMode: opts.securityMode ?? 'Auto',
-      securityPolicy: opts.securityPolicy ?? 'None',
+      securityPolicy: opts.securityPolicy ?? 'Auto',
       applicationName: opts.applicationName ?? 'node-i3x',
       optimizedClient: opts.optimizedClient ?? 'auto',
       browseStrategy: opts.browseStrategy ?? 'parallel',
@@ -139,6 +152,7 @@ export class OpcUaClient {
       password: opts.password,
       applicationUri: opts.applicationUri,
       pkiFolder: opts.pkiFolder,
+      certificateSubject: opts.certificateSubject,
     };
   }
 
@@ -162,11 +176,36 @@ export class OpcUaClient {
     let securityMode: MessageSecurityMode;
     let securityPolicy: SecurityPolicy | string;
 
-    if (this._opts.securityMode === 'Auto') {
+    if (this._opts.securityMode === 'None') {
+      // No security — policy is always None
+      securityMode = MessageSecurityMode.None;
+      securityPolicy = coerceSecurityPolicy('None');
+    } else if (
+      this._opts.securityMode === 'Auto' &&
+      this._opts.securityPolicy === 'Auto'
+    ) {
+      // Both auto-discovered — pick strongest combination
       const best = await this._discoverBestEndpoint();
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
+    } else if (this._opts.securityMode === 'Auto') {
+      // Auto mode + explicit policy — find the best mode
+      // that supports the requested policy
+      const policyUri =
+        `http://opcfoundation.org/UA/SecurityPolicy#` + this._opts.securityPolicy;
+      const best = await this._discoverBestEndpoint(undefined, policyUri);
+      securityMode = best.securityMode;
+      securityPolicy = best.securityPolicy;
+    } else if (this._opts.securityPolicy === 'Auto') {
+      // Explicit mode + auto policy — find the strongest
+      // policy for the requested mode
+      const explicitMode =
+        SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
+      const best = await this._discoverBestEndpoint(explicitMode);
+      securityMode = best.securityMode;
+      securityPolicy = best.securityPolicy;
     } else {
+      // Fully explicit
       securityMode = SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
       securityPolicy = coerceSecurityPolicy(this._opts.securityPolicy);
     }
@@ -269,18 +308,19 @@ export class OpcUaClient {
    * Discover available endpoints and select the strongest
    * SecurityPolicy + SecurityMode combination.
    *
-   * Inspired by node-wot's "auto" security scheme: connect
-   * briefly with no security, call GetEndpoints, rank results
-   * by the server's `securityLevel` then by our own policy
-   * strength ranking, and pick the winner.
-   *
-   * Deprecated policies (Basic256, Basic128Rsa15) are
-   * deprioritized but not excluded.
+   * @param modeFilter Only consider endpoints with this mode.
+   * @param policyFilter Only consider endpoints with this
+   *   policy URI.
    */
-  private async _discoverBestEndpoint(): Promise<{
+  private async _discoverBestEndpoint(
+    modeFilter?: MessageSecurityMode,
+    policyFilter?: string,
+  ): Promise<{
     securityMode: MessageSecurityMode;
     securityPolicy: SecurityPolicy;
   }> {
+    const hasFilter = modeFilter !== undefined || policyFilter !== undefined;
+
     const discoveryClient = OPCUAClient.create({
       connectionStrategy: {
         maxRetry: 3,
@@ -295,53 +335,31 @@ export class OpcUaClient {
       const endpoints = await discoveryClient.getEndpoints();
       await discoveryClient.disconnect();
 
-      if (endpoints.length === 0) {
-        this.logger.warn(
-          'No endpoints returned by server; ' + 'falling back to None/None',
-        );
-        return {
-          securityMode: MessageSecurityMode.None,
-          securityPolicy: coerceSecurityPolicy('None'),
-        };
-      }
-
-      // Prefer secured endpoints; fall back to all if
-      // the server only offers None.
-      const secured = endpoints.filter(
-        (ep) => ep.securityMode !== MessageSecurityMode.None,
+      const result = OpcUaClient.selectBestEndpoint(
+        endpoints as EndpointLike[],
+        modeFilter,
+        policyFilter,
       );
-      const pool = secured.length > 0 ? secured : endpoints;
 
-      pool.sort((a, b) => {
-        // 1. Server-assigned securityLevel (higher = better)
-        const levelDiff = (b.securityLevel ?? 0) - (a.securityLevel ?? 0);
-        if (levelDiff !== 0) return levelDiff;
-
-        // 2. Our policy ranking (lower index = stronger)
-        const pA = SECURITY_POLICY_RANK.indexOf(a.securityPolicyUri ?? '');
-        const pB = SECURITY_POLICY_RANK.indexOf(b.securityPolicyUri ?? '');
-        const policyDiff = (pA === -1 ? 999 : pA) - (pB === -1 ? 999 : pB);
-        if (policyDiff !== 0) return policyDiff;
-
-        // 3. Mode ranking (SignAndEncrypt > Sign > None)
-        return (
-          (SECURITY_MODE_RANK[a.securityMode] ?? 9) -
-          (SECURITY_MODE_RANK[b.securityMode] ?? 9)
-        );
-      });
-
-      const best = pool[0]!;
-      const policy = coerceSecurityPolicy(best.securityPolicyUri);
       this.logger.info(
         `Auto-discovered best endpoint: ` +
-          `securityPolicy=${best.securityPolicyUri} ` +
-          `securityMode=${MessageSecurityMode[best.securityMode]}`,
+          `securityPolicy=${result.securityPolicy} ` +
+          `securityMode=` +
+          `${MessageSecurityMode[result.securityMode]}`,
       );
-      return {
-        securityMode: best.securityMode,
-        securityPolicy: policy,
-      };
+      return result;
     } catch (err) {
+      // When filters were set, propagate — don't silently
+      // downgrade to None.
+      if (hasFilter) {
+        try {
+          await discoveryClient.disconnect();
+        } catch {
+          /* best effort */
+        }
+        throw err;
+      }
+
       this.logger.warn(
         `Endpoint discovery failed (${err}); ` + `falling back to None/None`,
       );
@@ -355,6 +373,94 @@ export class OpcUaClient {
         securityPolicy: coerceSecurityPolicy('None'),
       };
     }
+  }
+
+  // ── Endpoint selection (static, for testability) ─────────
+
+  /**
+   * Select the best endpoint from a list of endpoint
+   * descriptions.  Pure ranking logic extracted from
+   * `_discoverBestEndpoint` for unit-testing.
+   */
+  static selectBestEndpoint(
+    endpoints: EndpointLike[],
+    modeFilter?: MessageSecurityMode,
+    policyFilter?: string,
+  ): {
+    securityMode: MessageSecurityMode;
+    securityPolicy: SecurityPolicy;
+  } {
+    if (endpoints.length === 0) {
+      if (modeFilter !== undefined || policyFilter !== undefined) {
+        throw new Error(
+          'Server returned no endpoints. Cannot discover ' +
+            'a matching security configuration.',
+        );
+      }
+      return {
+        securityMode: MessageSecurityMode.None,
+        securityPolicy: coerceSecurityPolicy('None'),
+      };
+    }
+
+    // ── Build candidate pool ──────────────────────────────
+    let pool = [...endpoints];
+
+    if (modeFilter !== undefined) {
+      const filtered = pool.filter((ep) => ep.securityMode === modeFilter);
+      if (filtered.length === 0) {
+        throw new Error(
+          `Server has no endpoints with securityMode=` +
+            `${MessageSecurityMode[modeFilter]}. ` +
+            `Available modes: ${[
+              ...new Set(pool.map((ep) => MessageSecurityMode[ep.securityMode])),
+            ].join(', ')}.`,
+        );
+      }
+      pool = filtered;
+    }
+
+    if (policyFilter !== undefined) {
+      const filtered = pool.filter((ep) => ep.securityPolicyUri === policyFilter);
+      if (filtered.length === 0) {
+        throw new Error(
+          `Server has no endpoints with ` +
+            `securityPolicy=${policyFilter}. ` +
+            `Available policies: ${[
+              ...new Set(pool.map((ep) => ep.securityPolicyUri)),
+            ].join(', ')}.`,
+        );
+      }
+      pool = filtered;
+    }
+
+    // When no filters, prefer secured endpoints
+    if (modeFilter === undefined && policyFilter === undefined) {
+      const secured = pool.filter((ep) => ep.securityMode !== MessageSecurityMode.None);
+      if (secured.length > 0) pool = secured;
+    }
+
+    // ── Rank candidates ───────────────────────────────────
+    pool.sort((a, b) => {
+      const levelDiff = (b.securityLevel ?? 0) - (a.securityLevel ?? 0);
+      if (levelDiff !== 0) return levelDiff;
+
+      const pA = SECURITY_POLICY_RANK.indexOf(a.securityPolicyUri ?? '');
+      const pB = SECURITY_POLICY_RANK.indexOf(b.securityPolicyUri ?? '');
+      const policyDiff = (pA === -1 ? 999 : pA) - (pB === -1 ? 999 : pB);
+      if (policyDiff !== 0) return policyDiff;
+
+      return (
+        (SECURITY_MODE_RANK[a.securityMode] ?? 9) -
+        (SECURITY_MODE_RANK[b.securityMode] ?? 9)
+      );
+    });
+
+    const best = pool[0]!;
+    return {
+      securityMode: best.securityMode,
+      securityPolicy: coerceSecurityPolicy(best.securityPolicyUri),
+    };
   }
 
   // ── Certificate management ────────────────────────────────
@@ -428,7 +534,9 @@ export class OpcUaClient {
 
     await certificateManager.createSelfSignedCertificate({
       applicationUri,
-      subject: `/CN=${this._opts.applicationName}-${hash}/O=Sterfive/L=Orleans/C=FR`,
+      subject:
+        this._opts.certificateSubject ??
+        `/CN=${this._opts.applicationName}-${hash}/O=Sterfive/L=Orleans/C=FR`,
       dns: [hostname],
       startDate: new Date(),
       validity: 365 * 10, // 10 years

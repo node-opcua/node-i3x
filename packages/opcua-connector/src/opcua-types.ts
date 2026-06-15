@@ -35,6 +35,16 @@ export interface OpcUaClientOptions {
    * @default auto-generated under `<cwd>/pki/` from endpoint URL hash
    */
   pkiFolder?: string;
+  /**
+   * Custom X.500 subject for the self-signed client certificate.
+   * Use this to inject distinguishing markers (e.g. user email,
+   * portal name) into the certificate.
+   *
+   * Example: `/CN=node-i3x-abc123/O=Sterfive/OU=john@acme.com`
+   *
+   * @default `/CN=<applicationName>-<hash>/O=Sterfive/L=Orleans/C=FR`
+   */
+  certificateSubject?: string;
   optimizedClient?: 'auto' | 'disabled';
   /**
    * Browse strategy for tree discovery.

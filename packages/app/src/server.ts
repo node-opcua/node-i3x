@@ -46,6 +46,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
       securityMode: config.securityMode as 'None' | 'Sign' | 'SignAndEncrypt' | 'Auto',
       securityPolicy: config.securityPolicy,
       pkiFolder: config.pkiFolder,
+      certificateSubject: config.certificateSubject,
       optimizedClient: config.optimizedClient,
       username: config.username,
       password: config.password,

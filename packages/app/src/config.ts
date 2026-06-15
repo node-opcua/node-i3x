@@ -8,6 +8,7 @@ export interface I3xConfig {
   securityMode: string;
   securityPolicy: string;
   pkiFolder?: string;
+  certificateSubject?: string;
   optimizedClient: 'auto' | 'disabled';
   publishIntervalMs: number;
   samplingIntervalMs: number;
@@ -25,7 +26,7 @@ const DEFAULTS: I3xConfig = {
   port: 8080,
   host: '0.0.0.0',
   securityMode: 'Auto',
-  securityPolicy: 'None',
+  securityPolicy: 'Auto',
   optimizedClient: 'auto',
   publishIntervalMs: 1000,
   samplingIntervalMs: 250,
@@ -68,6 +69,9 @@ function fromEnv(): Partial<I3xConfig> {
 
   const pkiFolder = envStr('NODE_I3X_PKI_FOLDER');
   if (pkiFolder) result.pkiFolder = pkiFolder;
+
+  const certSubject = envStr('NODE_I3X_CERTIFICATE_SUBJECT');
+  if (certSubject) result.certificateSubject = certSubject;
 
   const optimizedClient = envStr('NODE_I3X_OPCUA_OPTIMIZED_CLIENT');
   if (optimizedClient === 'auto' || optimizedClient === 'disabled')
