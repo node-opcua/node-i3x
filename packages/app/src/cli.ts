@@ -19,12 +19,18 @@ program
   .option('--security-mode <mode>', 'OPC UA security mode')
   .option('--optimized-client <mode>', 'Optimized client: auto | disabled')
   .option(
-    '--subscription-interval <seconds>',
-    'Subscription interval in seconds',
+    '--publish-interval <ms>',
+    'OPC UA publishing interval in milliseconds',
+    parseInt,
+  )
+  .option(
+    '--sampling-interval <ms>',
+    'OPC UA sampling interval in milliseconds',
     parseInt,
   )
   .option('--log-level <level>', 'Log level: debug | info | warn | error')
-  .option('--no-model-preload', 'Skip model preload on startup')
+  .option('--no-preload', 'Skip model preload on startup')
+  .option('--preload-strict', 'Exit if model preload fails')
   .option('--username <user>', 'OPC UA username for UserName identity token')
   .option('--password <pass>', 'OPC UA password for UserName identity token')
   .option('--read-only', 'Disable write operations (advertise read-only capabilities)')
@@ -38,10 +44,13 @@ program
     if (opts.host) cliArgs.host = opts.host;
     if (opts.securityMode) cliArgs.securityMode = opts.securityMode;
     if (opts.optimizedClient) cliArgs.optimizedClient = opts.optimizedClient;
-    if (opts.subscriptionInterval !== undefined)
-      cliArgs.subscriptionInterval = opts.subscriptionInterval;
+    if (opts.publishInterval !== undefined)
+      cliArgs.publishIntervalMs = opts.publishInterval;
+    if (opts.samplingInterval !== undefined)
+      cliArgs.samplingIntervalMs = opts.samplingInterval;
     if (opts.logLevel) cliArgs.logLevel = opts.logLevel;
-    if (opts.modelPreload === false) cliArgs.modelPreload = false;
+    if (opts.preload === false) cliArgs.preload = false;
+    if (opts.preloadStrict) cliArgs.preloadStrict = true;
     if (opts.username) cliArgs.username = opts.username;
     if (opts.password) cliArgs.password = opts.password;
     if (opts.readOnly) cliArgs.readOnly = true;

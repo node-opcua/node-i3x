@@ -12,10 +12,13 @@ host: 0.0.0.0
 securityMode: None
 # optimizedClient: auto
 
-# Domain settings
-subscriptionInterval: 5
-modelPreload: true
-# failOnPreloadError: false
+# OPC UA subscription intervals (milliseconds)
+publishIntervalMs: 1000
+samplingIntervalMs: 250
+
+# Model preloading
+preload: true
+# preloadStrict: false
 
 # Logging
 logLevel: info

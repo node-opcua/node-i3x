@@ -156,7 +156,7 @@ describe('REST API', () => {
     modelService = new ModelService(ds, logger);
     const valueService = new ValueService(ds, modelService, logger);
     const historyService = new HistoryService(ds, modelService, logger);
-    subscriptionService = new SubscriptionService(ds, modelService, logger, 1);
+    subscriptionService = new SubscriptionService(ds, modelService, logger, 1000, 250);
     const typeService = new TypeService(ds, logger);
 
     app = await createApp({
@@ -888,7 +888,13 @@ describe('Bearer token auth', () => {
     const modelService = new ModelService(ds, logger);
     const valueService = new ValueService(ds, modelService, logger);
     const historyService = new HistoryService(ds, modelService, logger);
-    const subscriptionService = new SubscriptionService(ds, modelService, logger, 1);
+    const subscriptionService = new SubscriptionService(
+      ds,
+      modelService,
+      logger,
+      1000,
+      250,
+    );
     const typeService = new TypeService(ds, logger);
 
     securedApp = await createApp({

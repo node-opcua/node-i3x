@@ -60,7 +60,8 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     dataSource,
     modelService,
     logger,
-    config.subscriptionInterval,
+    config.publishIntervalMs,
+    config.samplingIntervalMs,
   );
   const typeService = new TypeService(dataSource, logger);
 
@@ -96,7 +97,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
 
   // 5. Preload model
   let nodeCount: number | undefined;
-  if (config.modelPreload) {
+  if (config.preload) {
     try {
       sendProgress('preloading-model', 'Preloading object model...');
       const model = await modelService.preloadModel();
@@ -109,7 +110,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     } catch (err) {
       sendProgress('error', `Model preload failed: ${String(err)}`);
       logger.error(`Model preload failed: ${String(err)}`);
-      if (config.failOnPreloadError) process.exit(1);
+      if (config.preloadStrict) process.exit(1);
     }
   }
 

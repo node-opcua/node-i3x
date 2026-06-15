@@ -110,7 +110,8 @@ async function main() {
     dataSource,
     modelService,
     logger,
-    1,
+    1000,
+    250,
   );
 
   const model = await modelService.preloadModel();

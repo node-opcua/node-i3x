@@ -187,7 +187,7 @@ describe('SubscriptionService', () => {
     ds = createMockDataSource();
     modelService = new ModelService(ds, nullLogger);
     await modelService.preloadModel();
-    svc = new SubscriptionService(ds, modelService, nullLogger, 1);
+    svc = new SubscriptionService(ds, modelService, nullLogger, 1000, 250);
   });
 
   afterEach(async () => {
@@ -568,7 +568,13 @@ describe('SubscriptionService', () => {
       serverDs = createServerMockDataSource();
       serverModelService = new ModelService(serverDs, nullLogger);
       await serverModelService.preloadModel();
-      serverSvc = new SubscriptionService(serverDs, serverModelService, nullLogger, 1);
+      serverSvc = new SubscriptionService(
+        serverDs,
+        serverModelService,
+        nullLogger,
+        1000,
+        250,
+      );
     });
 
     afterEach(async () => {

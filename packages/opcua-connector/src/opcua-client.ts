@@ -811,7 +811,7 @@ export class OpcUaClient {
                 attributeId: AttributeIds.Value,
               },
               {
-                samplingInterval: options.publishingIntervalMs,
+                samplingInterval: options.samplingIntervalMs,
                 discardOldest: true,
                 queueSize: 10,
               },

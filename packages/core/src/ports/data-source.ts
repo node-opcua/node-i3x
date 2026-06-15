@@ -95,6 +95,7 @@ export type DataChangeCallback = (
 
 export interface MonitoredSubscriptionOptions {
   readonly publishingIntervalMs: number;
+  readonly samplingIntervalMs: number;
 }
 
 /**

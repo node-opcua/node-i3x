@@ -397,7 +397,8 @@ async function main() {
     dataSource,
     modelService,
     logger,
-    1,
+    1000,
+    250,
   );
   const typeService = new TypeService(dataSource, logger);
 

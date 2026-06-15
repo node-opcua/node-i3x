@@ -38,9 +38,11 @@ Options:
   -H, --host <host>                  REST API bind address (default: 0.0.0.0)
   --security-mode <mode>             OPC UA security mode (default: None)
   --optimized-client <mode>          Optimized client: auto | disabled
-  --subscription-interval <seconds>  Subscription interval in seconds
+  --publish-interval <ms>            OPC UA publishing interval in milliseconds
+  --sampling-interval <ms>            OPC UA sampling interval in milliseconds
   --log-level <level>                debug | info | warn | error
-  --no-model-preload                 Skip model preload on startup
+  --no-preload                       Skip model preload on startup
+  --preload-strict                    Exit if model preload fails
   -c, --config <path>                Path to config file
   -h, --help                         Show help
 ```
@@ -66,8 +68,9 @@ endpoint: opc.tcp://192.168.1.100:4840
 port: 8080
 host: 0.0.0.0
 logLevel: info
-subscriptionInterval: 5
-modelPreload: true
+publishIntervalMs: 1000
+samplingIntervalMs: 250
+preload: true
 ```
 
 Supported file names (auto-discovered):
@@ -93,9 +96,11 @@ All environment variables are prefixed with `NODE_I3X_`:
 | `NODE_I3X_HOST` | `host` | `0.0.0.0` |
 | `NODE_I3X_OPCUA_SECURITY_MODE` | `securityMode` | `None` |
 | `NODE_I3X_OPCUA_OPTIMIZED_CLIENT` | `optimizedClient` | `auto` |
-| `NODE_I3X_PUBLISH_INTERVAL` | `subscriptionInterval` | `5` |
+| `NODE_I3X_PUBLISH_INTERVAL_MS` | `publishIntervalMs` | `1000` |
+| `NODE_I3X_SAMPLING_INTERVAL_MS` | `samplingIntervalMs` | `250` |
 | `NODE_I3X_LOG_LEVEL` | `logLevel` | `info` |
-| `NODE_I3X_PRELOAD` | `modelPreload` | `true` |
+| `NODE_I3X_PRELOAD` | `preload` | `true` |
+| `NODE_I3X_PRELOAD_STRICT` | `preloadStrict` | `false` |
 
 ## Programmatic Usage
 

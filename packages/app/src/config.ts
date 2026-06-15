@@ -7,10 +7,11 @@ export interface I3xConfig {
   host: string;
   securityMode: string;
   optimizedClient: 'auto' | 'disabled';
-  subscriptionInterval: number;
+  publishIntervalMs: number;
+  samplingIntervalMs: number;
   logLevel: string;
-  modelPreload: boolean;
-  failOnPreloadError: boolean;
+  preload: boolean;
+  preloadStrict: boolean;
   readOnly: boolean;
   username?: string;
   password?: string;
@@ -23,10 +24,11 @@ const DEFAULTS: I3xConfig = {
   host: '0.0.0.0',
   securityMode: 'None',
   optimizedClient: 'auto',
-  subscriptionInterval: 5,
+  publishIntervalMs: 1000,
+  samplingIntervalMs: 250,
   logLevel: 'info',
-  modelPreload: true,
-  failOnPreloadError: false,
+  preload: true,
+  preloadStrict: false,
   readOnly: false,
 };
 
@@ -62,17 +64,20 @@ function fromEnv(): Partial<I3xConfig> {
   if (optimizedClient === 'auto' || optimizedClient === 'disabled')
     result.optimizedClient = optimizedClient;
 
-  const interval = envInt('NODE_I3X_PUBLISH_INTERVAL');
-  if (interval !== undefined) result.subscriptionInterval = interval;
+  const publishInterval = envInt('NODE_I3X_PUBLISH_INTERVAL_MS');
+  if (publishInterval !== undefined) result.publishIntervalMs = publishInterval;
+
+  const samplingInterval = envInt('NODE_I3X_SAMPLING_INTERVAL_MS');
+  if (samplingInterval !== undefined) result.samplingIntervalMs = samplingInterval;
 
   const logLevel = envStr('NODE_I3X_LOG_LEVEL');
   if (logLevel) result.logLevel = logLevel;
 
   const preload = envBool('NODE_I3X_PRELOAD');
-  if (preload !== undefined) result.modelPreload = preload;
+  if (preload !== undefined) result.preload = preload;
 
-  const failOnPreload = envBool('NODE_I3X_PRELOAD_STRICT');
-  if (failOnPreload !== undefined) result.failOnPreloadError = failOnPreload;
+  const preloadStrict = envBool('NODE_I3X_PRELOAD_STRICT');
+  if (preloadStrict !== undefined) result.preloadStrict = preloadStrict;
 
   const username = envStr('NODE_I3X_OPCUA_USERNAME');
   if (username) result.username = username;

@@ -138,9 +138,10 @@ All configuration is via environment variables (or `.env` file):
 | `NODE_I3X_OPCUA_ENDPOINT` | `opc.tcp://localhost:4840` | OPC UA server endpoint URL |
 | `NODE_I3X_OPCUA_SECURITY_MODE` | `None` | Security mode (`None`, `Sign`, `SignAndEncrypt`) |
 | `NODE_I3X_OPCUA_OPTIMIZED_CLIENT` | `auto` | `auto` = detect @sterfive module, `disabled` = skip |
+| `NODE_I3X_PUBLISH_INTERVAL_MS` | `1000` | OPC UA publishing interval (milliseconds) |
+| `NODE_I3X_SAMPLING_INTERVAL_MS` | `250` | OPC UA sampling interval (milliseconds) |
 | `NODE_I3X_PRELOAD` | `true` | Preload the OPC UA model on startup |
 | `NODE_I3X_PRELOAD_STRICT` | `false` | Exit if model preload fails |
-| `NODE_I3X_PUBLISH_INTERVAL` | `5` | Subscription polling interval |
 | `NODE_I3X_PORT` | `8000` | HTTP server port |
 | `NODE_I3X_HOST` | `127.0.0.1` | HTTP server bind address |
 | `NODE_I3X_LOG_LEVEL` | `info` | Log level (`debug`, `info`, `warn`, `error`) |

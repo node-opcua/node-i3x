@@ -74,15 +74,18 @@ const DEBOUNCE_MS = 200;
 
 export class SubscriptionService {
   private readonly _subs = new Map<string, SubState>();
-  private readonly _intervalMs: number;
+  private readonly _publishIntervalMs: number;
+  private readonly _samplingIntervalMs: number;
 
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly modelService: ModelService,
     private readonly logger: ILogger,
-    intervalSeconds: number = 5,
+    publishIntervalMs: number = 1000,
+    samplingIntervalMs: number = 250,
   ) {
-    this._intervalMs = intervalSeconds * 1000;
+    this._publishIntervalMs = publishIntervalMs;
+    this._samplingIntervalMs = samplingIntervalMs;
   }
 
   // ── Create ─────────────────────────────────────────────────
@@ -537,7 +540,8 @@ export class SubscriptionService {
     if (!sub.runtime) {
       try {
         sub.runtime = await this.dataSource.createMonitoredSubscription({
-          publishingIntervalMs: this._intervalMs,
+          publishingIntervalMs: this._publishIntervalMs,
+          samplingIntervalMs: this._samplingIntervalMs,
         });
         sub.runtime.onDataChange((sourceNodeId, value, quality, timestamp) => {
           this._onDataChange(sub, sourceNodeId, value, quality, timestamp);
@@ -709,7 +713,7 @@ export class SubscriptionService {
         } catch (err) {
           this.logger.warn(`Poll error for subscription ${sub.subscriptionId}: ${err}`);
         }
-        await new Promise((r) => setTimeout(r, this._intervalMs));
+        await new Promise((r) => setTimeout(r, this._publishIntervalMs));
       }
     };
     poll().catch(() => {});

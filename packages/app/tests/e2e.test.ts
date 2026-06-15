@@ -297,7 +297,13 @@ describe('E2E: OPC UA Server → i3X REST API', () => {
     modelService = new ModelService(dataSource, logger);
     const valueService = new ValueService(dataSource, modelService, logger);
     const historyService = new HistoryService(dataSource, modelService, logger);
-    subscriptionService = new SubscriptionService(dataSource, modelService, logger, 1);
+    subscriptionService = new SubscriptionService(
+      dataSource,
+      modelService,
+      logger,
+      1000,
+      250,
+    );
     const typeService = new TypeService(dataSource, logger);
 
     // 4. REST server
