@@ -488,6 +488,14 @@ export class SubscriptionService {
 
   // ── Internals ──────────────────────────────────────────────
 
+  /**
+   * Helper to retrieve a subscription by its ID, throwing a 404 error
+   * if the subscription does not exist.
+   *
+   * @param id The subscription identifier.
+   * @returns The SubState object for the subscription.
+   * @throws Error with statusCode 404 if not found.
+   */
   private _requireSub(id: string): SubState {
     const sub = this._subs.get(id);
     if (!sub)
@@ -559,6 +567,14 @@ export class SubscriptionService {
     return out;
   }
 
+  /**
+   * Ensures the underlying native OPC UA monitored subscription runtime is created
+   * and registers the monitored items. If native subscriptions fail, it falls back
+   * to software-based polling.
+   *
+   * @param sub The subscription state object.
+   * @param newSourceNodeIds The list of new source node IDs to monitor.
+   */
   private async _ensureRuntime(sub: SubState, newSourceNodeIds: string[]): Promise<void> {
     if (!sub.runtime) {
       try {
@@ -701,6 +717,12 @@ export class SubscriptionService {
     }
   }
 
+  /**
+   * Starts a software polling loop for the subscription when native OPC UA
+   * subscriptions are not supported or fail.
+   *
+   * @param sub The subscription state object.
+   */
   private _startPolling(sub: SubState): void {
     const poll = async () => {
       while (this._subs.has(sub.subscriptionId) && sub.mode === 'polling') {

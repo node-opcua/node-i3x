@@ -73,6 +73,14 @@ export class ModelService {
     return null;
   }
 
+  /**
+   * Internal method to build the OPC UA object and variable model.
+   * Discovers the server's type hierarchy, browses the node tree,
+   * constructs stable browse path identifiers, and maps the components
+   * to domain-level ModelNodes.
+   *
+   * @returns A promise resolving to the built model result.
+   */
   private async _build(): Promise<BuildResult> {
     const sourceTypes = await this.dataSource.getObjectTypes();
     const typeIdMap = this._buildTypeIdMap(sourceTypes);
@@ -158,6 +166,12 @@ export class ModelService {
     return { nodesById, rootIds, childrenById, propertyToSource, actionToMethod };
   }
 
+  /**
+   * Builds a map from OPC UA type definition identifier to its string classification.
+   *
+   * @param types List of object type info fetched from the source.
+   * @returns Map of type IDs to their mapped string names.
+   */
   private _buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
     return buildTypeIdMap(types);
   }
