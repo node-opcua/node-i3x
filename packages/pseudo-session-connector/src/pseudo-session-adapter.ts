@@ -117,6 +117,21 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       objectsFolderId,
       (ref, parentNodeId) => {
         const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
+        // Apply browse filter for top-level children of ObjectsFolder
+        if (parentNodeId === objectsFolderId) {
+          if (
+            filter === 'application-only' &&
+            (ref.browseName?.namespaceIndex ?? 0) === 0
+          ) {
+            return null;
+          }
+          if (Array.isArray(filter)) {
+            const nodeId = ref.nodeId.toString();
+            const name = ref.browseName?.name ?? '';
+            const matched = filter.some((f) => f === nodeId || f === name);
+            if (!matched) return null;
+          }
+        }
         return this._refToSourceNode(ref, effectiveParent);
       },
       (ref, parentNodeId) => {

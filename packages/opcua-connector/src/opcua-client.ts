@@ -703,6 +703,21 @@ export class OpcUaClient {
       (ref, parentNodeId) => {
         // Children of ObjectsFolder are roots (parentId = null)
         const effectiveParent = parentNodeId === objectsFolderId ? null : parentNodeId;
+        // Apply browse filter for top-level children of ObjectsFolder
+        if (parentNodeId === objectsFolderId) {
+          if (
+            filter === 'application-only' &&
+            (ref.browseName?.namespaceIndex ?? 0) === 0
+          ) {
+            return null;
+          }
+          if (Array.isArray(filter)) {
+            const nodeId = ref.nodeId.toString();
+            const name = ref.browseName?.name ?? '';
+            const matched = filter.some((f) => f === nodeId || f === name);
+            if (!matched) return null;
+          }
+        }
         return refToSourceNode(ref, effectiveParent, this._namespaceArray);
       },
       (ref, parentNodeId) => {
