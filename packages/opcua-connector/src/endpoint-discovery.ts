@@ -1,25 +1,28 @@
-// ─────────────────────────────────────────────────────────────
-// @node-i3x/opcua-connector — endpoint discovery & selection
-// ─────────────────────────────────────────────────────────────
-
 import type { ILogger } from '@node-i3x/core';
 import { MessageSecurityMode, OPCUAClient } from 'node-opcua';
-import { coerceSecurityPolicy, type SecurityPolicy } from 'node-opcua-secure-channel';
+import {
+  coerceSecurityPolicy,
+  SecurityPolicy,
+  type SecurityPolicy as SecurityPolicyType,
+} from 'node-opcua-secure-channel';
 
 /**
  * Security policies ranked strongest (index 0) to weakest.
+ * Uses `SecurityPolicy` enum from node-opcua to avoid
+ * error-prone hardcoded URI strings.
+ *
  * Deprecated policies (Basic256, Basic128Rsa15, etc.) are
  * deprioritized but not excluded — the server may only offer
  * legacy policies and we must still be able to connect.
  */
 export const SECURITY_POLICY_RANK: string[] = [
-  'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256',
-  'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Rsa15',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15',
-  'http://opcfoundation.org/UA/SecurityPolicy#None',
+  SecurityPolicy.Aes256_Sha256_RsaPss,
+  SecurityPolicy.Basic256Sha256,
+  SecurityPolicy.Aes128_Sha256_RsaOaep,
+  SecurityPolicy.Basic256,
+  SecurityPolicy.Basic256Rsa15,
+  SecurityPolicy.Basic128Rsa15,
+  SecurityPolicy.None,
 ];
 
 export const SECURITY_MODE_RANK: Record<number, number> = {
@@ -33,6 +36,60 @@ export const SECURITY_MODES: Record<string, MessageSecurityMode> = {
   Sign: MessageSecurityMode.Sign,
   SignAndEncrypt: MessageSecurityMode.SignAndEncrypt,
 };
+
+/**
+ * Map of short policy names → full OPC UA policy URIs,
+ * derived from the `SecurityPolicy` object in node-opcua.
+ */
+export const SECURITY_POLICY_URI: Record<string, string> = {
+  None: SecurityPolicy.None,
+  Basic128Rsa15: SecurityPolicy.Basic128Rsa15,
+  Basic256: SecurityPolicy.Basic256,
+  Basic256Rsa15: SecurityPolicy.Basic256Rsa15,
+  Basic256Sha256: SecurityPolicy.Basic256Sha256,
+  Aes128_Sha256_RsaOaep: SecurityPolicy.Aes128_Sha256_RsaOaep,
+  Aes256_Sha256_RsaPss: SecurityPolicy.Aes256_Sha256_RsaPss,
+};
+
+/**
+ * Coerce a string security mode name to the node-opcua
+ * `MessageSecurityMode` enum.  Throws if the name is invalid.
+ *
+ * @example
+ *   coerceMessageSecurityMode('Sign')
+ *   // → MessageSecurityMode.Sign (= 2)
+ */
+export function coerceMessageSecurityMode(mode: string): MessageSecurityMode {
+  const result = SECURITY_MODES[mode];
+  if (result === undefined) {
+    throw new Error(
+      `Invalid OPC UA security mode '${mode}'. ` +
+        `Must be one of: ${Object.keys(SECURITY_MODES).join(', ')}.`,
+    );
+  }
+  return result;
+}
+
+/**
+ * Coerce a short security policy name (e.g. 'Basic256Sha256')
+ * to the full OPC UA SecurityPolicy URI.  Also accepts full
+ * URIs (returned as-is) and the node-opcua SecurityPolicy
+ * type via `coerceSecurityPolicy`.
+ *
+ * @example
+ *   coercePolicyToUri('Basic256Sha256')
+ *   // → 'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256'
+ */
+export function coercePolicyToUri(policy: string): string {
+  // Already a full URI?
+  if (policy.startsWith('http://')) return policy;
+
+  const uri = SECURITY_POLICY_URI[policy];
+  if (uri) return uri;
+
+  // Fallback: try node-opcua's coercion
+  return coerceSecurityPolicy(policy);
+}
 
 /**
  * Minimal endpoint shape for `selectBestEndpoint`.
@@ -55,7 +112,7 @@ export function selectBestEndpoint(
   policyFilter?: string,
 ): {
   securityMode: MessageSecurityMode;
-  securityPolicy: SecurityPolicy;
+  securityPolicy: SecurityPolicyType;
 } {
   if (endpoints.length === 0) {
     if (modeFilter !== undefined || policyFilter !== undefined) {
@@ -147,7 +204,7 @@ export async function discoverBestEndpoint(
   policyFilter?: string,
 ): Promise<{
   securityMode: MessageSecurityMode;
-  securityPolicy: SecurityPolicy;
+  securityPolicy: SecurityPolicyType;
 }> {
   const hasFilter = modeFilter !== undefined || policyFilter !== undefined;
 
@@ -161,9 +218,34 @@ export async function discoverBestEndpoint(
   });
 
   try {
+    logger.info(
+      `[discovery] Connecting to ${endpointUrl} ` +
+        `(mode=None/policy=None for GetEndpoints)...`,
+    );
     await discoveryClient.connect(endpointUrl);
+
     const endpoints = await discoveryClient.getEndpoints();
     await discoveryClient.disconnect();
+
+    // ── Log all server-reported endpoints ────────────────
+    logger.info(`[discovery] Server returned ${endpoints.length} ` + `endpoint(s):`);
+    for (const ep of endpoints) {
+      const modeName =
+        MessageSecurityMode[ep.securityMode] ?? `Unknown(${ep.securityMode})`;
+      logger.info(
+        `  • mode=${modeName}, ` +
+          `policy=${ep.securityPolicyUri}, ` +
+          `securityLevel=${ep.securityLevel ?? 0}`,
+      );
+    }
+
+    if (modeFilter !== undefined || policyFilter !== undefined) {
+      logger.info(
+        `[discovery] Applying filters: ` +
+          `mode=${modeFilter !== undefined ? MessageSecurityMode[modeFilter] : 'any'}, ` +
+          `policy=${policyFilter ?? 'any'}`,
+      );
+    }
 
     const result = selectBestEndpoint(
       endpoints as EndpointLike[],
@@ -172,10 +254,10 @@ export async function discoverBestEndpoint(
     );
 
     logger.info(
-      `Auto-discovered best endpoint: ` +
-        `securityPolicy=${result.securityPolicy} ` +
-        `securityMode=` +
-        `${MessageSecurityMode[result.securityMode]}`,
+      `[discovery] Selected best endpoint: ` +
+        `mode=${MessageSecurityMode[result.securityMode]} ` +
+        `(enum=${result.securityMode}), ` +
+        `policy=${result.securityPolicy}`,
     );
     return result;
   } catch (err) {

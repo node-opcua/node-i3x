@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.7.1 (2026-06-16)
+
+- Version bump
+
 ## 0.7.0 (2026-06-16)
 
 - feat: boost coverage to 88%, add Coveralls CI + badges

@@ -45,9 +45,10 @@ import { coerceSecurityPolicy } from 'node-opcua-secure-channel';
 import { createCertificateManager } from './certificate-manager.js';
 import { coerceToDataType, inferDataType } from './data-type-coercer.js';
 import {
+  coerceMessageSecurityMode,
+  coercePolicyToUri,
   discoverBestEndpoint,
   type EndpointLike,
-  SECURITY_MODES,
   selectBestEndpoint,
 } from './endpoint-discovery.js';
 import { refToSourceNode } from './opcua-mapper.js';
@@ -165,23 +166,32 @@ export class OpcUaClient {
     let securityMode: MessageSecurityMode;
     let securityPolicy: string;
 
+    this.logger.info(
+      `Security configuration: mode='${this._opts.securityMode}', ` +
+        `policy='${this._opts.securityPolicy}'`,
+    );
+
     if (this._opts.securityMode === 'None') {
       // No security — policy is always None
       securityMode = MessageSecurityMode.None;
       securityPolicy = coerceSecurityPolicy('None');
+      this.logger.info(`Using None/None (no security).`);
     } else if (
       this._opts.securityMode === 'Auto' &&
       this._opts.securityPolicy === 'Auto'
     ) {
       // Both auto-discovered — pick strongest combination
+      this.logger.info('Auto/Auto: discovering best endpoint...');
       const best = await discoverBestEndpoint(this._opts.endpointUrl, this.logger);
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
     } else if (this._opts.securityMode === 'Auto') {
       // Auto mode + explicit policy — find the best mode
       // that supports the requested policy
-      const policyUri =
-        `http://opcfoundation.org/UA/SecurityPolicy#` + this._opts.securityPolicy;
+      const policyUri = coercePolicyToUri(this._opts.securityPolicy);
+      this.logger.info(
+        `Auto mode + explicit policy: ` + `discovering best mode for ${policyUri}...`,
+      );
       const best = await discoverBestEndpoint(
         this._opts.endpointUrl,
         this.logger,
@@ -193,8 +203,12 @@ export class OpcUaClient {
     } else if (this._opts.securityPolicy === 'Auto') {
       // Explicit mode + auto policy — find the strongest
       // policy for the requested mode
-      const explicitMode =
-        SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
+      const explicitMode = coerceMessageSecurityMode(this._opts.securityMode);
+      this.logger.info(
+        `Explicit mode=${MessageSecurityMode[explicitMode]} ` +
+          `(${explicitMode}) + auto policy: ` +
+          `discovering best policy...`,
+      );
       const best = await discoverBestEndpoint(
         this._opts.endpointUrl,
         this.logger,
@@ -203,10 +217,21 @@ export class OpcUaClient {
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
     } else {
-      // Fully explicit
-      securityMode = SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
-      securityPolicy = coerceSecurityPolicy(this._opts.securityPolicy);
+      // Fully explicit — coerce both to node-opcua types
+      securityMode = coerceMessageSecurityMode(this._opts.securityMode);
+      securityPolicy = coercePolicyToUri(this._opts.securityPolicy);
+      this.logger.info(
+        `Fully explicit: mode=${MessageSecurityMode[securityMode]} ` +
+          `(${securityMode}), policy=${securityPolicy}`,
+      );
     }
+
+    this.logger.info(
+      `Resolved security: ` +
+        `MessageSecurityMode=${MessageSecurityMode[securityMode]} ` +
+        `(enum=${securityMode}), ` +
+        `SecurityPolicy=${securityPolicy}`,
+    );
 
     // ── Build applicationUri ───────────────────────────────
     const hostname = os.hostname();
@@ -222,8 +247,8 @@ export class OpcUaClient {
       clientCertificateManager: certificateManager,
       connectionStrategy: {
         initialDelay: 1000,
-        maxDelay: 30_000,
-        maxRetry: Infinity,
+        maxDelay: 5_000,
+        maxRetry: 2,
       },
       keepSessionAlive: true,
       endpointMustExist: false,
