@@ -95,6 +95,67 @@ export interface OpcuaStats {
   };
 }
 
+function validateOpcUaClientOptions(opts: OpcUaClientOptions): void {
+  if (!opts || typeof opts !== 'object') {
+    throw new Error('OPC UA client options must be an object');
+  }
+  if (typeof opts.endpointUrl !== 'string' || !opts.endpointUrl.trim()) {
+    throw new Error('OPC UA endpointUrl must be a non-empty string');
+  }
+  if (!opts.endpointUrl.startsWith('opc.tcp://')) {
+    throw new Error('OPC UA endpointUrl must start with "opc.tcp://"');
+  }
+  if (
+    opts.securityMode !== undefined &&
+    !['None', 'Sign', 'SignAndEncrypt', 'Auto'].includes(opts.securityMode)
+  ) {
+    throw new Error(
+      `OPC UA securityMode must be "None", "Sign", "SignAndEncrypt", or "Auto", got "${opts.securityMode}"`,
+    );
+  }
+  if (
+    opts.optimizedClient !== undefined &&
+    !['auto', 'disabled'].includes(opts.optimizedClient)
+  ) {
+    throw new Error(
+      `OPC UA optimizedClient must be "auto" or "disabled", got "${opts.optimizedClient}"`,
+    );
+  }
+  if (
+    opts.browseStrategy !== undefined &&
+    !['parallel', 'browseAll'].includes(opts.browseStrategy)
+  ) {
+    throw new Error(
+      `OPC UA browseStrategy must be "parallel" or "browseAll", got "${opts.browseStrategy}"`,
+    );
+  }
+  if (opts.browseFilter !== undefined) {
+    const filter = opts.browseFilter;
+    if (filter !== 'application-only' && filter !== 'all' && !Array.isArray(filter)) {
+      throw new Error(
+        'OPC UA browseFilter must be "application-only", "all", or an array of string node IDs/browse names',
+      );
+    }
+    if (Array.isArray(filter) && filter.some((item) => typeof item !== 'string')) {
+      throw new Error('OPC UA browseFilter array must contain only strings');
+    }
+  }
+  const stringFields: (keyof OpcUaClientOptions)[] = [
+    'username',
+    'password',
+    'securityPolicy',
+    'applicationName',
+    'applicationUri',
+    'pkiFolder',
+    'certificateSubject',
+  ];
+  for (const field of stringFields) {
+    if (opts[field] !== undefined && typeof opts[field] !== 'string') {
+      throw new Error(`OPC UA ${field} must be a string`);
+    }
+  }
+}
+
 export class OpcUaClient {
   private _client: OPCUAClient | null = null;
   private _session: ClientSession | null = null;
@@ -130,6 +191,7 @@ export class OpcUaClient {
     opts: OpcUaClientOptions,
     private readonly logger: ILogger,
   ) {
+    validateOpcUaClientOptions(opts);
     this._opts = {
       endpointUrl: opts.endpointUrl,
       securityMode: opts.securityMode ?? 'Auto',
@@ -239,7 +301,7 @@ export class OpcUaClient {
       this._opts.applicationUri ?? `urn:${hostname}:${this._opts.applicationName}`;
 
     // ── Create client ──────────────────────────────────────
-    this._client = OPCUAClient.create({
+    const clientOptions = {
       applicationName: this._opts.applicationName,
       applicationUri,
       securityMode,
@@ -252,7 +314,22 @@ export class OpcUaClient {
       },
       keepSessionAlive: true,
       endpointMustExist: false,
-    });
+    };
+
+    this.logger.info(
+      `OPCUAClient.create parameters: ${JSON.stringify(
+        clientOptions,
+        (key, value) => {
+          if (key === 'clientCertificateManager') {
+            return value ? 'OPCUACertificateManager' : 'undefined';
+          }
+          return value;
+        },
+        2,
+      )}`,
+    );
+
+    this._client = OPCUAClient.create(clientOptions);
 
     this._client.on('backoff', (count: number, delay: number) => {
       this.logger.warn(`Connection backoff #${count}, retrying in ${delay}ms`);
@@ -276,6 +353,20 @@ export class OpcUaClient {
             password: this._opts.password,
           }
         : undefined;
+
+    const sessionParams = {
+      userIdentity: userIdentity
+        ? {
+            type: UserTokenType[userIdentity.type] ?? userIdentity.type,
+            userName: userIdentity.userName,
+            password: '***',
+          }
+        : undefined,
+    };
+    this.logger.info(
+      `OPCUAClient.createSession parameters: ${JSON.stringify(sessionParams, null, 2)}`,
+    );
+
     let session = await this._client.createSession(userIdentity);
 
     // ━━━ @sterfive/opcua-optimized-client ━━━━━━━━━━━━━━━━━━━

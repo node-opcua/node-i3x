@@ -54,6 +54,59 @@ describe('OpcUaClient', () => {
       );
       expect(client).toBeDefined();
     });
+
+    it('throws if endpointUrl is missing or invalid', () => {
+      expect(() => new OpcUaClient({} as any, logger)).toThrow(
+        'OPC UA endpointUrl must be a non-empty string',
+      );
+      expect(() => new OpcUaClient({ endpointUrl: '' }, logger)).toThrow(
+        'OPC UA endpointUrl must be a non-empty string',
+      );
+      expect(
+        () => new OpcUaClient({ endpointUrl: 'http://localhost:4840' }, logger),
+      ).toThrow('OPC UA endpointUrl must start with "opc.tcp://"');
+    });
+
+    it('throws if securityMode is invalid', () => {
+      expect(
+        () =>
+          new OpcUaClient(
+            { endpointUrl: 'opc.tcp://localhost:4840', securityMode: 'Invalid' as any },
+            logger,
+          ),
+      ).toThrow(
+        'OPC UA securityMode must be "None", "Sign", "SignAndEncrypt", or "Auto", got "Invalid"',
+      );
+    });
+
+    it('throws if browseFilter is invalid', () => {
+      expect(
+        () =>
+          new OpcUaClient(
+            { endpointUrl: 'opc.tcp://localhost:4840', browseFilter: 'invalid' as any },
+            logger,
+          ),
+      ).toThrow(
+        'OPC UA browseFilter must be "application-only", "all", or an array of string node IDs/browse names',
+      );
+      expect(
+        () =>
+          new OpcUaClient(
+            { endpointUrl: 'opc.tcp://localhost:4840', browseFilter: [123] as any },
+            logger,
+          ),
+      ).toThrow('OPC UA browseFilter array must contain only strings');
+    });
+
+    it('throws if optional string field has invalid type', () => {
+      expect(
+        () =>
+          new OpcUaClient(
+            { endpointUrl: 'opc.tcp://localhost:4840', username: 123 as any },
+            logger,
+          ),
+      ).toThrow('OPC UA username must be a string');
+    });
   });
 
   describe('getStats()', () => {
