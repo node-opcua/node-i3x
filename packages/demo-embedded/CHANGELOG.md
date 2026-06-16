@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.8.0 (2026-06-16)
+
+- ci: consolidate GitLab CI pipeline into a single sequential job
+
 ## 0.7.2 (2026-06-16)
 
 - ci: retrigger v0.7.1

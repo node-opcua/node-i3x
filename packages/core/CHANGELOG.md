@@ -1,5 +1,10 @@
 # @node-i3x/core
 
+## 0.8.0 (2026-06-16)
+
+- chore: fix Biome lint and formatting issues across workspace
+- ci: consolidate GitLab CI pipeline into a single sequential job
+
 ## 0.7.2 (2026-06-16)
 
 - ci: retrigger v0.7.1

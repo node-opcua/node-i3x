@@ -337,6 +337,7 @@ export async function setupE2E(): Promise<E2EContext> {
  * Call from `afterAll` to tear down OPC UA + i3X REST stack.
  */
 export async function teardownE2E(ctx: E2EContext): Promise<void> {
+  if (!ctx) return;
   await ctx.subscriptionService.close();
   const ds = (ctx.app as unknown as Record<string, unknown>).deps as Record<
     string,

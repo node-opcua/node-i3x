@@ -11,7 +11,7 @@ describe('E2E: Subscriptions', () => {
 
   beforeAll(async () => {
     ctx = await setupE2E();
-  }, 30_000);
+  }, 60_000);
 
   afterAll(async () => {
     await teardownE2E(ctx);

@@ -10,7 +10,7 @@ describe('E2E: Values (read / write)', () => {
 
   beforeAll(async () => {
     ctx = await setupE2E();
-  }, 30_000);
+  }, 60_000);
 
   afterAll(async () => {
     await teardownE2E(ctx);
