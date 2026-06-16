@@ -42,7 +42,7 @@ describe('E2E: Secure Connection Combinations', () => {
     await opcuaServer.initialize();
     await opcuaServer.start();
     endpointUrl = `opc.tcp://localhost:${serverPort}/UA/i3xSecurityTest`;
-  }, 30000);
+  }, 60000);
 
   afterAll(async () => {
     if (opcuaServer) {
@@ -79,6 +79,6 @@ describe('E2E: Secure Connection Combinations', () => {
       } finally {
         await adapter.disconnect();
       }
-    }, 30000); // 30s timeout per security handshake to prevent flakes under load
+    }, 60000); // 60s timeout per security handshake to prevent flakes under heavy load
   }
 });

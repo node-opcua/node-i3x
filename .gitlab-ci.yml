@@ -3,10 +3,7 @@
 # ─────────────────────────────────────────────────────────────
 
 stages:
-  - install
-  - check
   - test
-  - build
 
 variables:
   NODE_ENV: development
@@ -28,70 +25,45 @@ default:
         - package-lock.json
     paths:
       - .npm/
-      - node_modules/
-      - packages/*/node_modules/
 
-# ── Install ───────────────────────────────────────────────────
-
-install:
-  stage: install
-  script:
-    - npm ci
-  artifacts:
-    paths:
-      - node_modules/
-      - packages/*/node_modules/
-    expire_in: 1 hour
-
-# ── Check ─────────────────────────────────────────────────────
-
-typecheck:
-  stage: check
-  needs: [install]
-  script:
-    - npm run typecheck
-
-lint:
-  stage: check
-  needs: [install]
-  script:
-    - npx biome check .
-
-# ── Test ──────────────────────────────────────────────────────
-
-test:
+ci:
   stage: test
-  needs: [install]
   script:
+    - echo "── Installing dependencies ──"
+    - npm ci
+
+    - echo "── Building all packages ──"
+    - npm run build
+
+    - echo "── Running Lint and Type Check (Concurrent) ──"
+    - |
+      npx biome check . &
+      PID_LINT=$!
+      npm run typecheck &
+      PID_TYPECHECK=$!
+      
+      wait $PID_LINT
+      EXIT_LINT=$?
+      wait $PID_TYPECHECK
+      EXIT_TYPECHECK=$?
+      
+      if [ $EXIT_LINT -ne 0 ] || [ $EXIT_TYPECHECK -ne 0 ]; then
+        echo "Lint or Typecheck failed"
+        exit 1
+      fi
+
+    - echo "── Running tests with coverage ──"
+    - npm run coverage
+
+    - echo "── Removing @sterfive/opcua-optimized-client ──"
+    - npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed — good"
+    - "! node -e \"require.resolve('@sterfive/opcua-optimized-client')\" 2>/dev/null || (echo 'FAIL: package still resolvable' && exit 1)"
+
+    - echo "── Running tests without optimized client ──"
     - npm test
   coverage: '/All files\s+\|\s+[\d.]+/'
   artifacts:
     when: always
-    reports:
-      junit: test-results.xml
     paths:
       - coverage/
     expire_in: 7 days
-
-test:no-optimized-client:
-  stage: test
-  needs: [install]
-  script:
-    - echo "── Removing @sterfive/opcua-optimized-client ──"
-    - npm ls @sterfive/opcua-optimized-client 2>/dev/null && npm rm @sterfive/opcua-optimized-client || echo "Not installed — good"
-    - "! node -e \"require.resolve('@sterfive/opcua-optimized-client')\" 2>/dev/null || (echo 'FAIL: package still resolvable' && exit 1)"
-    - echo "── Running tests without optimized client ──"
-    - npm test
-
-# ── Build ─────────────────────────────────────────────────────
-
-build:
-  stage: build
-  needs: [typecheck, lint, test]
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - packages/*/dist/
-    expire_in: 7 days
-
