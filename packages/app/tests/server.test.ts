@@ -50,15 +50,9 @@ const {
 vi.mock('@node-i3x/opcua-connector', () => {
   // Must use real classes so `new` works with V8 coverage
   class MockOpcUaClient {
-    constructor() {
-      /* no-op */
-    }
     getStats = mockGetStats;
   }
   class MockOpcUaDataSourceAdapter {
-    constructor() {
-      /* no-op */
-    }
     connect = mockConnect;
     disconnect = mockDisconnect;
   }

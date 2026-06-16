@@ -106,7 +106,7 @@ describe('coerceToDataType', () => {
     });
 
     it('coerces string to Double', () => {
-      expect(coerceToDataType('2.718281828', DataType.Double)).toBeCloseTo(2.718281828);
+      expect(coerceToDataType('2.718281828', DataType.Double)).toBeCloseTo(Math.E);
     });
 
     it('coerces integer string to Double', () => {

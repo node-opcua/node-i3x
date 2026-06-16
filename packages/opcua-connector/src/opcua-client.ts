@@ -252,7 +252,7 @@ export class OpcUaClient {
       // that supports the requested policy
       const policyUri = coercePolicyToUri(this._opts.securityPolicy);
       this.logger.info(
-        `Auto mode + explicit policy: ` + `discovering best mode for ${policyUri}...`,
+        `Auto mode + explicit policy: discovering best mode for ${policyUri}...`,
       );
       const best = await discoverBestEndpoint(
         this._opts.endpointUrl,

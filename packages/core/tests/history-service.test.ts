@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type {
   IDataSourcePort,
   SourceHistoricalValue,
@@ -20,7 +20,7 @@ function mockDataSource(
     readValue: async () => ({ value: null, quality: 'Good', timestamp: '' }),
     readValues: async () => [],
     writeValue: async () => {},
-    readHistory: async (nodeId, start, end) => {
+    readHistory: async (nodeId, _start, _end) => {
       if (nodeId === 'error-node') {
         throw new Error('History read not supported');
       }

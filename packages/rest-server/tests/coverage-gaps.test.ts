@@ -49,7 +49,7 @@ describe('errors — i3xError and rethrowAsI3x', () => {
       url: '/v1/subscriptions',
       payload: { clientId: 'err-test', displayName: 'Err Sub' },
     });
-    const subId = createRes.json().result.subscriptionId;
+    const _subId = createRes.json().result.subscriptionId;
 
     // Register with a non-existent elementId — the service returns
     // it in the errors array, NOT via rethrowAsI3x.  We need to

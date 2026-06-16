@@ -228,7 +228,7 @@ export async function discoverBestEndpoint(
     await discoveryClient.disconnect();
 
     // ── Log all server-reported endpoints ────────────────
-    logger.info(`[discovery] Server returned ${endpoints.length} ` + `endpoint(s):`);
+    logger.info(`[discovery] Server returned ${endpoints.length} endpoint(s):`);
     for (const ep of endpoints) {
       const modeName =
         MessageSecurityMode[ep.securityMode] ?? `Unknown(${ep.securityMode})`;
@@ -274,7 +274,7 @@ export async function discoverBestEndpoint(
       throw err;
     }
 
-    logger.warn(`Endpoint discovery failed (${err}); ` + `falling back to None/None`);
+    logger.warn(`Endpoint discovery failed (${err}); falling back to None/None`);
     try {
       await discoveryClient.disconnect();
     } catch (discoveryDisconnectErr) {
