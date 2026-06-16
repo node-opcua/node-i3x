@@ -4,6 +4,9 @@
 
 <!-- Badges -->
 [![CI](https://github.com/node-opcua/node-i3x/actions/workflows/ci.yml/badge.svg)](https://github.com/node-opcua/node-i3x/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/node-opcua/node-i3x/badge.svg?branch=main)](https://coveralls.io/github/node-opcua/node-i3x?branch=main)
+[![npm downloads/month](https://img.shields.io/npm/dm/@node-i3x/app?label=downloads%2Fmonth&logo=npm)](https://www.npmjs.com/package/@node-i3x/app)
+[![npm downloads](https://img.shields.io/npm/dt/@node-i3x/app?label=total%20downloads&logo=npm)](https://www.npmjs.com/package/@node-i3x/app)
 [![License: AGPL-3.0 OR Commercial](https://img.shields.io/badge/license-AGPL--3.0%20%7C%20Commercial-blue)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js)](https://nodejs.org)
 [![TypeScript 5.7](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://typescriptlang.org)

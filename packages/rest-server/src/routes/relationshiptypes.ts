@@ -1,6 +1,11 @@
 import type { RelationshipType } from '@node-i3x/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
+import {
+  bulkError,
+  bulkResponse,
+  bulkSuccess,
+  successResponse,
+} from '../helpers/response.js';
 
 const RELATIONSHIP_TYPES: RelationshipType[] = [
   {
@@ -30,10 +35,7 @@ export default async function relationshiptypeRoutes(
       if (namespaceUri) {
         types = types.filter((t) => t.namespaceUri === namespaceUri);
       }
-      return {
-        success: true,
-        result: types,
-      };
+      return successResponse(types);
     },
   );
 

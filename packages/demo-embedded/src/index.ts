@@ -47,6 +47,20 @@ Options:
 const REST_PORT = parseInt(args['rest-port']!, 10);
 const OPCUA_PORT = parseInt(args['opcua-port']!, 10);
 
+// ── Named constants ───────────────────────────────────────
+
+/** Minimum OPC UA sampling interval for all simulated variables. */
+const MIN_SAMPLING_INTERVAL_MS = 250;
+
+/** Pump sensor drift (temperature, pressure, flow). */
+const PUMP_SIM_INTERVAL_MS = 800;
+/** Heater simulation (temperature tracks setpoint, power varies). */
+const HEATER_SIM_INTERVAL_MS = 1000;
+/** Conveyor simulation (speed, item count). */
+const CONVEYOR_SIM_INTERVAL_MS = 1200;
+/** Heater on/off toggle cycle. */
+const HEATER_TOGGLE_INTERVAL_MS = 15_000;
+
 // ── Helper: update a variable and fire value_changed ──────
 
 function setVar(v: UAVariable, dataType: DataType, val: unknown) {
@@ -88,7 +102,7 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -102,7 +116,7 @@ async function createSampleServer() {
     browseName: 'Pressure',
     displayName: 'Pressure (bar)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -116,7 +130,7 @@ async function createSampleServer() {
     browseName: 'FlowRate',
     displayName: 'Flow Rate (L/min)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -130,7 +144,7 @@ async function createSampleServer() {
     browseName: 'Running',
     displayName: 'Running',
     dataType: DataType.Boolean,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -151,7 +165,7 @@ async function createSampleServer() {
     browseName: 'HeaterOn',
     displayName: 'Heater On/Off',
     dataType: DataType.Boolean,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -165,7 +179,7 @@ async function createSampleServer() {
     browseName: 'Temperature',
     displayName: 'Temperature (°C)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -179,7 +193,7 @@ async function createSampleServer() {
     browseName: 'Setpoint',
     displayName: 'Setpoint (°C)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -193,7 +207,7 @@ async function createSampleServer() {
     browseName: 'Power',
     displayName: 'Power (%)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -214,7 +228,7 @@ async function createSampleServer() {
     browseName: 'Speed',
     displayName: 'Speed (m/s)',
     dataType: DataType.Double,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -228,7 +242,7 @@ async function createSampleServer() {
     browseName: 'ItemCount',
     displayName: 'Items Processed',
     dataType: DataType.UInt32,
-    minimumSamplingInterval: 250,
+    minimumSamplingInterval: MIN_SAMPLING_INTERVAL_MS,
     accessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     userAccessLevel: AccessLevelFlag.CurrentRead | AccessLevelFlag.CurrentWrite,
     value: new Variant({
@@ -324,7 +338,7 @@ async function createSampleServer() {
     setVar(pumpTempVar, DataType.Double, pumpTemp);
     setVar(pumpPressVar, DataType.Double, pumpPressure);
     setVar(pumpFlowVar, DataType.Double, pumpFlowRate);
-  }, 800);
+  }, PUMP_SIM_INTERVAL_MS);
 
   // Heater: temp tracks setpoint, power varies
   setInterval(() => {
@@ -337,13 +351,13 @@ async function createSampleServer() {
     }
     setVar(heaterTempVar, DataType.Double, heaterTemp);
     setVar(heaterPowerVar, DataType.Double, heaterPower);
-  }, 1000);
+  }, HEATER_SIM_INTERVAL_MS);
 
   // Toggle heater every ~15 seconds
   setInterval(() => {
     heaterOn = !heaterOn;
     setVar(heaterOnVar, DataType.Boolean, heaterOn);
-  }, 15_000);
+  }, HEATER_TOGGLE_INTERVAL_MS);
 
   // Conveyor: items increase, speed varies
   setInterval(() => {
@@ -353,7 +367,7 @@ async function createSampleServer() {
 
     setVar(convSpeedVar, DataType.Double, convSpeed);
     setVar(itemCountVar, DataType.UInt32, itemCount);
-  }, 1200);
+  }, CONVEYOR_SIM_INTERVAL_MS);
 
   await server.start();
 

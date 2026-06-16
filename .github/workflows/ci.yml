@@ -116,10 +116,17 @@ jobs:
             packages/*/dist
           key: workspace-${{ github.sha }}
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npm run coverage
 
-      - name: Upload coverage
+      - name: Upload coverage to Coveralls
+        if: success() && github.event_name != 'pull_request'
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage/lcov.info
+
+      - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:

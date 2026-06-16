@@ -1,4 +1,3 @@
-import type { IDataSourcePort, SourceNodeInfo } from '@node-i3x/core';
 import {
   HistoryService,
   ModelService,
@@ -9,53 +8,7 @@ import {
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
 import { beforeAll, describe, expect, it } from 'vitest';
-
-class MockDataSource implements IDataSourcePort {
-  connected = true;
-  async connect() {
-    this.connected = true;
-  }
-  async disconnect() {
-    this.connected = false;
-  }
-  isConnected() {
-    return this.connected;
-  }
-  async browseTree(): Promise<SourceNodeInfo[]> {
-    return [
-      {
-        sourceNodeId: 'ns=2;s=Temperature',
-        parentSourceNodeId: null,
-        browseName: 'Temperature',
-        nsuQualifiedName: 'nsu=http://example.com/:Temperature',
-        displayName: 'Temperature',
-        nodeClass: 'Variable',
-        typeDefinition: 'Double',
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-    ];
-  }
-  async getNamespaces() {
-    return [];
-  }
-  async getObjectTypes() {
-    return [];
-  }
-  async readValue() {
-    return { value: 12.3, quality: 'Good' as const, timestamp: '' };
-  }
-  async readValues() {
-    return [];
-  }
-  async writeValue() {}
-  async readHistory() {
-    return [];
-  }
-  async createMonitoredSubscription() {
-    return {} as any;
-  }
-}
+import { MockDataSource } from './helpers/mock-data-source.js';
 
 describe('Read-Only Mode', () => {
   let app: Awaited<ReturnType<typeof createApp>>;

@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getDeps } from '../app.js';
-import { bulkError, bulkResponse, bulkSuccess } from '../helpers/response.js';
+import {
+  bulkError,
+  bulkResponse,
+  bulkSuccess,
+  successResponse,
+} from '../helpers/response.js';
 
 export default async function objecttypeRoutes(app: FastifyInstance): Promise<void> {
   const deps = getDeps(app);
@@ -14,7 +19,7 @@ export default async function objecttypeRoutes(app: FastifyInstance): Promise<vo
     ) => {
       const { namespaceUri } = req.query;
       const types = await deps.typeService.getObjectTypes(namespaceUri);
-      return { success: true, result: types };
+      return successResponse(types);
     },
   );
 

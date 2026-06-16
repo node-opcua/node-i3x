@@ -2,10 +2,7 @@
 // @node-i3x/opcua-connector — node-opcua client wrapper
 // ─────────────────────────────────────────────────────────────
 
-import crypto from 'node:crypto';
-import fs from 'node:fs';
 import os from 'node:os';
-import path from 'node:path';
 
 import {
   type DataChangeCallback,
@@ -43,8 +40,16 @@ import {
   Variant,
   type WriteValue,
 } from 'node-opcua';
-import { OPCUACertificateManager } from 'node-opcua-certificate-manager';
-import { coerceSecurityPolicy, type SecurityPolicy } from 'node-opcua-secure-channel';
+import type { OPCUACertificateManager } from 'node-opcua-certificate-manager';
+import { coerceSecurityPolicy } from 'node-opcua-secure-channel';
+import { createCertificateManager } from './certificate-manager.js';
+import { coerceToDataType, inferDataType } from './data-type-coercer.js';
+import {
+  discoverBestEndpoint,
+  type EndpointLike,
+  SECURITY_MODES,
+  selectBestEndpoint,
+} from './endpoint-discovery.js';
 import { refToSourceNode } from './opcua-mapper.js';
 import type { OpcUaClientOptions } from './opcua-types.js';
 import { wrapSessionIfOptimized } from './optimized.js';
@@ -52,43 +57,26 @@ import { wrapSessionIfOptimized } from './optimized.js';
 const RESULT_MASK_ALL = 63;
 const NAMESPACE_ARRAY_NODE_ID = 'i=2255';
 
-const SECURITY_MODES: Record<string, MessageSecurityMode> = {
-  None: MessageSecurityMode.None,
-  Sign: MessageSecurityMode.Sign,
-  SignAndEncrypt: MessageSecurityMode.SignAndEncrypt,
-};
+/** Requested lifetime count for OPC UA subscriptions. */
+const SUBSCRIPTION_LIFETIME_COUNT = 100;
+/** Requested keep-alive count for OPC UA subscriptions. */
+const SUBSCRIPTION_KEEPALIVE_COUNT = 10;
+/** Queue size for monitored items in subscriptions. */
+const MONITORED_ITEM_QUEUE_SIZE = 10;
+/** Priority level for OPC UA subscriptions. */
+const SUBSCRIPTION_PRIORITY = 10;
 
 /**
- * Security policies ranked strongest (index 0) to weakest.
- * Deprecated policies (Basic256, Basic128Rsa15, etc.) are
- * deprioritized but not excluded — the server may only offer
- * legacy policies and we must still be able to connect.
+ * Number of ObjectType nodes enriched concurrently with their
+ * member definitions.  200 balances parallelism against server
+ * load — the optimized client coalesces concurrent calls within
+ * each chunk into fewer wire-level OPC UA requests, so larger
+ * chunks improve throughput without overloading the server.
  */
-const SECURITY_POLICY_RANK: string[] = [
-  'http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256',
-  'http://opcfoundation.org/UA/SecurityPolicy#Aes128_Sha256_RsaOaep',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic256Rsa15',
-  'http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15',
-  'http://opcfoundation.org/UA/SecurityPolicy#None',
-];
+const ENRICH_CHUNK_SIZE = 200;
 
-const SECURITY_MODE_RANK: Record<number, number> = {
-  [MessageSecurityMode.SignAndEncrypt]: 0,
-  [MessageSecurityMode.Sign]: 1,
-  [MessageSecurityMode.None]: 2,
-};
-
-/**
- * Minimal endpoint shape for `selectBestEndpoint`.
- * Mirrors the fields of `EndpointDescription` used in ranking.
- */
-export interface EndpointLike {
-  securityMode: MessageSecurityMode;
-  securityPolicyUri?: string;
-  securityLevel?: number;
-}
+// Re-export EndpointLike so existing consumers keep working
+export type { EndpointLike };
 
 /** OPC UA session-level traffic statistics */
 export interface OpcuaStats {
@@ -170,12 +158,12 @@ export class OpcUaClient {
 
   async connect(): Promise<void> {
     // ── Certificate manager (dedicated PKI per instance) ────
-    const certificateManager = await this._createCertificateManager();
+    const certificateManager = await createCertificateManager(this._opts, this.logger);
     this._certificateManager = certificateManager;
 
     // ── Security mode / policy resolution ──────────────────
     let securityMode: MessageSecurityMode;
-    let securityPolicy: SecurityPolicy | string;
+    let securityPolicy: string;
 
     if (this._opts.securityMode === 'None') {
       // No security — policy is always None
@@ -186,7 +174,7 @@ export class OpcUaClient {
       this._opts.securityPolicy === 'Auto'
     ) {
       // Both auto-discovered — pick strongest combination
-      const best = await this._discoverBestEndpoint();
+      const best = await discoverBestEndpoint(this._opts.endpointUrl, this.logger);
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
     } else if (this._opts.securityMode === 'Auto') {
@@ -194,7 +182,12 @@ export class OpcUaClient {
       // that supports the requested policy
       const policyUri =
         `http://opcfoundation.org/UA/SecurityPolicy#` + this._opts.securityPolicy;
-      const best = await this._discoverBestEndpoint(undefined, policyUri);
+      const best = await discoverBestEndpoint(
+        this._opts.endpointUrl,
+        this.logger,
+        undefined,
+        policyUri,
+      );
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
     } else if (this._opts.securityPolicy === 'Auto') {
@@ -202,7 +195,11 @@ export class OpcUaClient {
       // policy for the requested mode
       const explicitMode =
         SECURITY_MODES[this._opts.securityMode] ?? MessageSecurityMode.None;
-      const best = await this._discoverBestEndpoint(explicitMode);
+      const best = await discoverBestEndpoint(
+        this._opts.endpointUrl,
+        this.logger,
+        explicitMode,
+      );
       securityMode = best.securityMode;
       securityPolicy = best.securityPolicy;
     } else {
@@ -307,252 +304,14 @@ export class OpcUaClient {
     this.logger.info('OPC UA disconnected');
   }
 
-  // ── Security discovery ────────────────────────────────────
-
-  /**
-   * Discover available endpoints and select the strongest
-   * SecurityPolicy + SecurityMode combination.
-   *
-   * @param modeFilter Only consider endpoints with this mode.
-   * @param policyFilter Only consider endpoints with this
-   *   policy URI.
-   */
-  private async _discoverBestEndpoint(
-    modeFilter?: MessageSecurityMode,
-    policyFilter?: string,
-  ): Promise<{
-    securityMode: MessageSecurityMode;
-    securityPolicy: SecurityPolicy;
-  }> {
-    const hasFilter = modeFilter !== undefined || policyFilter !== undefined;
-
-    const discoveryClient = OPCUAClient.create({
-      connectionStrategy: {
-        maxRetry: 3,
-        initialDelay: 500,
-        maxDelay: 5_000,
-      },
-      endpointMustExist: false,
-    });
-
-    try {
-      await discoveryClient.connect(this._opts.endpointUrl);
-      const endpoints = await discoveryClient.getEndpoints();
-      await discoveryClient.disconnect();
-
-      const result = OpcUaClient.selectBestEndpoint(
-        endpoints as EndpointLike[],
-        modeFilter,
-        policyFilter,
-      );
-
-      this.logger.info(
-        `Auto-discovered best endpoint: ` +
-          `securityPolicy=${result.securityPolicy} ` +
-          `securityMode=` +
-          `${MessageSecurityMode[result.securityMode]}`,
-      );
-      return result;
-    } catch (err) {
-      // When filters were set, propagate — don't silently
-      // downgrade to None.
-      if (hasFilter) {
-        try {
-          await discoveryClient.disconnect();
-        } catch (discoveryDisconnectErr) {
-          this.logger.debug(
-            `discoveryClient disconnect failed: ${(discoveryDisconnectErr as Error).message}`,
-          );
-        }
-        throw err;
-      }
-
-      this.logger.warn(
-        `Endpoint discovery failed (${err}); ` + `falling back to None/None`,
-      );
-      try {
-        await discoveryClient.disconnect();
-      } catch (discoveryDisconnectErr) {
-        this.logger.debug(
-          `discoveryClient disconnect failed: ${(discoveryDisconnectErr as Error).message}`,
-        );
-      }
-      return {
-        securityMode: MessageSecurityMode.None,
-        securityPolicy: coerceSecurityPolicy('None'),
-      };
-    }
-  }
-
-  // ── Endpoint selection (static, for testability) ─────────
+  // ── Endpoint selection (static, delegates to module) ─────
 
   /**
    * Select the best endpoint from a list of endpoint
-   * descriptions.  Pure ranking logic extracted from
-   * `_discoverBestEndpoint` for unit-testing.
+   * descriptions.  Pure ranking logic extracted to
+   * `endpoint-discovery.ts` for unit-testing.
    */
-  static selectBestEndpoint(
-    endpoints: EndpointLike[],
-    modeFilter?: MessageSecurityMode,
-    policyFilter?: string,
-  ): {
-    securityMode: MessageSecurityMode;
-    securityPolicy: SecurityPolicy;
-  } {
-    if (endpoints.length === 0) {
-      if (modeFilter !== undefined || policyFilter !== undefined) {
-        throw new Error(
-          'Server returned no endpoints. Cannot discover ' +
-            'a matching security configuration.',
-        );
-      }
-      return {
-        securityMode: MessageSecurityMode.None,
-        securityPolicy: coerceSecurityPolicy('None'),
-      };
-    }
-
-    // ── Build candidate pool ──────────────────────────────
-    let pool = [...endpoints];
-
-    if (modeFilter !== undefined) {
-      const filtered = pool.filter((ep) => ep.securityMode === modeFilter);
-      if (filtered.length === 0) {
-        throw new Error(
-          `Server has no endpoints with securityMode=` +
-            `${MessageSecurityMode[modeFilter]}. ` +
-            `Available modes: ${[
-              ...new Set(pool.map((ep) => MessageSecurityMode[ep.securityMode])),
-            ].join(', ')}.`,
-        );
-      }
-      pool = filtered;
-    }
-
-    if (policyFilter !== undefined) {
-      const filtered = pool.filter((ep) => ep.securityPolicyUri === policyFilter);
-      if (filtered.length === 0) {
-        throw new Error(
-          `Server has no endpoints with ` +
-            `securityPolicy=${policyFilter}. ` +
-            `Available policies: ${[
-              ...new Set(pool.map((ep) => ep.securityPolicyUri)),
-            ].join(', ')}.`,
-        );
-      }
-      pool = filtered;
-    }
-
-    // When no filters, prefer secured endpoints
-    if (modeFilter === undefined && policyFilter === undefined) {
-      const secured = pool.filter((ep) => ep.securityMode !== MessageSecurityMode.None);
-      if (secured.length > 0) pool = secured;
-    }
-
-    // ── Rank candidates ───────────────────────────────────
-    pool.sort((a, b) => {
-      const levelDiff = (b.securityLevel ?? 0) - (a.securityLevel ?? 0);
-      if (levelDiff !== 0) return levelDiff;
-
-      const pA = SECURITY_POLICY_RANK.indexOf(a.securityPolicyUri ?? '');
-      const pB = SECURITY_POLICY_RANK.indexOf(b.securityPolicyUri ?? '');
-      const policyDiff = (pA === -1 ? 999 : pA) - (pB === -1 ? 999 : pB);
-      if (policyDiff !== 0) return policyDiff;
-
-      return (
-        (SECURITY_MODE_RANK[a.securityMode] ?? 9) -
-        (SECURITY_MODE_RANK[b.securityMode] ?? 9)
-      );
-    });
-
-    const best = pool[0]!;
-    return {
-      securityMode: best.securityMode,
-      securityPolicy: coerceSecurityPolicy(best.securityPolicyUri),
-    };
-  }
-
-  // ── Certificate management ────────────────────────────────
-
-  /**
-   * Create a dedicated `OPCUACertificateManager` for this
-   * instance.  Uses a unique PKI folder derived from the
-   * endpoint URL hash to avoid contention when multiple bridge
-   * processes run concurrently.
-   *
-   * The certificate manager is initialised and, if no client
-   * certificate exists yet, a self-signed certificate with
-   * proper OPC UA shape is created automatically.
-   */
-  private async _createCertificateManager(): Promise<OPCUACertificateManager> {
-    const hash = crypto
-      .createHash('sha256')
-      .update(this._opts.endpointUrl)
-      .digest('hex')
-      .slice(0, 12);
-
-    const pkiFolder =
-      this._opts.pkiFolder ?? path.join(process.cwd(), 'pki', `i3x-${hash}`);
-
-    const certificateManager = new OPCUACertificateManager({
-      rootFolder: pkiFolder,
-      automaticallyAcceptUnknownCertificate: true,
-      name: 'PKI',
-      keySize: 2048,
-    });
-
-    await certificateManager.initialize();
-
-    // ── Create self-signed certificate if missing ──────────
-    await this._ensureSelfSignedCertificate(certificateManager, pkiFolder, hash);
-
-    return certificateManager;
-  }
-
-  /**
-   * Create a self-signed certificate with the correct OPC UA
-   * shape if one does not already exist in the PKI folder.
-   *
-   * The certificate includes:
-   * - `applicationUri` in the Subject Alternative Name (SAN)
-   * - X.500 subject with CN = applicationName-hash
-   * - DNS hostname in the SAN
-   * - 10-year validity
-   */
-  private async _ensureSelfSignedCertificate(
-    certificateManager: OPCUACertificateManager,
-    pkiFolder: string,
-    hash: string,
-  ): Promise<void> {
-    const certFile = path.join(
-      pkiFolder,
-      'PKI',
-      'own',
-      'certs',
-      'client_certificate.pem',
-    );
-
-    if (fs.existsSync(certFile)) {
-      this.logger.debug(`Client certificate exists: ${certFile}`);
-      return;
-    }
-
-    const hostname = os.hostname();
-    const applicationUri =
-      this._opts.applicationUri ?? `urn:${hostname}:${this._opts.applicationName}`;
-
-    await certificateManager.createSelfSignedCertificate({
-      applicationUri,
-      subject:
-        this._opts.certificateSubject ??
-        `/CN=${this._opts.applicationName}-${hash}/O=Sterfive/L=Orleans/C=FR`,
-      dns: [hostname],
-      startDate: new Date(),
-      validity: 365 * 10, // 10 years
-    });
-
-    this.logger.info(`Created self-signed client certificate: ${certFile}`);
-  }
+  static selectBestEndpoint = selectBestEndpoint;
 
   isConnected(): boolean {
     return this._session !== null && !this._session.isReconnecting;
@@ -806,7 +565,6 @@ export class OpcUaClient {
     // concurrency. Each chunk fires N concurrent
     // _browseTypeMembers calls that the optimized client
     // coalesces into batched OPC UA operations.
-    const ENRICH_CHUNK_SIZE = 200;
     const memberResults: ObjectTypeInfo[] = [];
 
     for (let i = 0; i < nonStdTypes.length; i += ENRICH_CHUNK_SIZE) {
@@ -998,7 +756,7 @@ export class OpcUaClient {
     // ── Step 2: Coerce the JSON value to the target DataType ──
     let coercedValue: unknown = value;
     try {
-      coercedValue = this._coerceToDataType(value, targetDataType);
+      coercedValue = coerceToDataType(value, targetDataType);
     } catch (coerceErr) {
       const msg =
         `Write coercion failed for ${nodeId}: ` +
@@ -1018,7 +776,7 @@ export class OpcUaClient {
           dataType:
             targetDataType !== DataType.Null
               ? targetDataType
-              : this._inferDataType(coercedValue),
+              : inferDataType(coercedValue),
           value: coercedValue,
         }),
       },
@@ -1042,71 +800,6 @@ export class OpcUaClient {
       this.logger.warn(errMsg);
       throw new Error(errMsg);
     }
-  }
-
-  /**
-   * Coerce a JSON value to the expected OPC UA DataType.
-   * Handles the common built-in types (1..25).
-   */
-  private _coerceToDataType(value: unknown, dt: DataType): unknown {
-    switch (dt) {
-      // Boolean (1)
-      case DataType.Boolean:
-        if (typeof value === 'boolean') return value;
-        if (typeof value === 'number') return value !== 0;
-        if (typeof value === 'string')
-          return value.toLowerCase() === 'true' || value === '1';
-        return Boolean(value);
-
-      // Integer types (2-9)
-      case DataType.SByte:
-      case DataType.Byte:
-      case DataType.Int16:
-      case DataType.UInt16:
-      case DataType.Int32:
-      case DataType.UInt32:
-        return Math.trunc(Number(value));
-
-      case DataType.Int64:
-      case DataType.UInt64:
-        // node-opcua uses [high, low] arrays for 64-bit integers
-        if (Array.isArray(value)) return value;
-        return [0, Math.trunc(Number(value))];
-
-      // Floating point (10-11)
-      case DataType.Float:
-      case DataType.Double:
-        return Number(value);
-
-      // String (12)
-      case DataType.String:
-        return String(value);
-
-      // DateTime (13)
-      case DataType.DateTime:
-        if (value instanceof Date) return value;
-        if (typeof value === 'string' || typeof value === 'number') {
-          return new Date(value);
-        }
-        return value;
-
-      // ByteString (15)
-      case DataType.ByteString:
-        if (Buffer.isBuffer(value)) return value;
-        if (typeof value === 'string') return Buffer.from(value, 'base64');
-        return value;
-      default:
-        return value;
-    }
-  }
-
-  /** Fallback: infer DataType from JS value when server type is unknown. */
-  private _inferDataType(value: unknown): DataType {
-    if (typeof value === 'number') return DataType.Double;
-    if (typeof value === 'boolean') return DataType.Boolean;
-    if (typeof value === 'string') return DataType.String;
-    if (value instanceof Date) return DataType.DateTime;
-    return DataType.Null;
   }
 
   // ── History ────────────────────────────────────────────────
@@ -1156,11 +849,11 @@ export class OpcUaClient {
     // and ClientSessionOptimized (which returns ClientSubscription2).
     const sub = await this.session.createSubscription2({
       requestedPublishingInterval: options.publishingIntervalMs,
-      requestedLifetimeCount: 100,
-      requestedMaxKeepAliveCount: 10,
+      requestedLifetimeCount: SUBSCRIPTION_LIFETIME_COUNT,
+      requestedMaxKeepAliveCount: SUBSCRIPTION_KEEPALIVE_COUNT,
       maxNotificationsPerPublish: 0,
       publishingEnabled: true,
-      priority: 10,
+      priority: SUBSCRIPTION_PRIORITY,
     });
 
     let dataChangeCb: DataChangeCallback | null = null;
@@ -1192,7 +885,7 @@ export class OpcUaClient {
               {
                 samplingInterval: options.samplingIntervalMs,
                 discardOldest: true,
-                queueSize: 10,
+                queueSize: MONITORED_ITEM_QUEUE_SIZE,
               },
               TimestampsToReturn.Both,
             ),

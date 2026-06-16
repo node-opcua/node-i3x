@@ -127,4 +127,86 @@ describe('PollingMonitoredSubscription', () => {
       vi.useRealTimers();
     }
   });
+
+  it('removeItems silently ignores unknown nodeIds', async () => {
+    vi.useFakeTimers();
+    try {
+      const sub = new PollingMonitoredSubscription(session, 100, consoleLogger);
+      await sub.addItems([ctx.nodeIds.temperature]);
+
+      // Remove an unknown nodeId — should not throw
+      await sub.removeItems(['ns=99;s=DoesNotExist']);
+
+      // The subscription should still be monitoring temperature
+      let callCount = 0;
+      sub.onDataChange(() => {
+        callCount++;
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      expect(callCount).toBeGreaterThanOrEqual(1);
+
+      await sub.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('removeItems stops polling when all items removed', async () => {
+    vi.useFakeTimers();
+    try {
+      const sub = new PollingMonitoredSubscription(session, 100, consoleLogger);
+      await sub.addItems([ctx.nodeIds.temperature]);
+
+      let callCount = 0;
+      sub.onDataChange(() => {
+        callCount++;
+      });
+
+      // Let initial poll happen
+      await vi.advanceTimersByTimeAsync(100);
+      callCount = 0;
+
+      // Remove all items — should stop polling
+      await sub.removeItems([ctx.nodeIds.temperature]);
+
+      // Change the value and advance — should not fire
+      const variable = ctx.addressSpace.findNode(ctx.nodeIds.temperature)! as UAVariable;
+      variable.setValueFromSource(new Variant({ dataType: DataType.Double, value: 77 }));
+      await vi.advanceTimersByTimeAsync(100);
+      expect(callCount).toBe(0);
+
+      await sub.close();
+      variable.setValueFromSource(
+        new Variant({ dataType: DataType.Double, value: 42.5 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('handles poll errors gracefully', async () => {
+    vi.useFakeTimers();
+    try {
+      // Create a session mock that throws on read
+      const failSession = {
+        read: vi.fn().mockRejectedValue(new Error('read failure')),
+      } as unknown as PseudoSession;
+
+      const sub = new PollingMonitoredSubscription(failSession, 100, consoleLogger);
+      await sub.addItems([ctx.nodeIds.temperature]);
+
+      let callCount = 0;
+      sub.onDataChange(() => {
+        callCount++;
+      });
+
+      // Poll should fail but not throw
+      await vi.advanceTimersByTimeAsync(100);
+      expect(callCount).toBe(0);
+
+      await sub.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

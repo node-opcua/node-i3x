@@ -20,6 +20,13 @@ import type { IDataSourcePort, IMonitoredSubscription } from '../ports/data-sour
 import type { ILogger } from '../ports/logger.js';
 import type { SyncBatch } from '../types/api.js';
 import type { ModelService } from './model-service.js';
+import { startPollingLoop } from './subscription-polling.js';
+import {
+  clearActiveStream,
+  notifyWaiters,
+  registerActiveStream,
+  waitForUpdates,
+} from './subscription-streams.js';
 
 const MAX_QUEUE_SIZE = 10_000;
 const SLICE_QUEUE_SIZE = 5_000;
@@ -359,24 +366,7 @@ export class SubscriptionService {
     timeoutMs: number = 30_000,
   ): Promise<SubscriptionUpdate[]> {
     const sub = this._requireSub(subscriptionId);
-
-    const pending = sub.updates.filter((u) => u.sequenceNumber > afterSequence);
-    if (pending.length > 0) return Promise.resolve(pending);
-
-    return new Promise<SubscriptionUpdate[]>((resolve) => {
-      let settled = false;
-
-      const settle = (updates: SubscriptionUpdate[]) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        sub.waiters = sub.waiters.filter((w) => w !== settle);
-        resolve(updates);
-      };
-
-      const timer = setTimeout(() => settle([]), timeoutMs);
-      sub.waiters.push(settle);
-    });
+    return waitForUpdates(sub, afterSequence, timeoutMs);
   }
 
   // ── Active stream management ──────────────────────────────
@@ -389,14 +379,7 @@ export class SubscriptionService {
   registerActiveStream(subscriptionId: string, closeCallback: () => void): void {
     const sub = this._subs.get(subscriptionId);
     if (!sub) return;
-    if (sub.activeStreamClose) {
-      // Close the previous stream
-      sub.activeStreamClose();
-      // Wake up any blocked waitForUpdates so the old loop exits now
-      for (const w of sub.waiters) w([]);
-      sub.waiters = [];
-    }
-    sub.activeStreamClose = closeCallback;
+    registerActiveStream(sub, closeCallback);
   }
 
   /**
@@ -406,9 +389,7 @@ export class SubscriptionService {
   clearActiveStream(subscriptionId: string, closeCallback: () => void): void {
     const sub = this._subs.get(subscriptionId);
     if (!sub) return;
-    if (sub.activeStreamClose === closeCallback) {
-      sub.activeStreamClose = null;
-    }
+    clearActiveStream(sub, closeCallback);
   }
 
   // ── Delete ─────────────────────────────────────────────────
@@ -710,11 +691,7 @@ export class SubscriptionService {
     }
 
     // Wake any long-poll / stream waiters
-    const waiters = sub.waiters;
-    sub.waiters = [];
-    for (const resolve of waiters) {
-      resolve([update]);
-    }
+    notifyWaiters(sub, update);
   }
 
   /**
@@ -724,32 +701,16 @@ export class SubscriptionService {
    * @param sub The subscription state object.
    */
   private _startPolling(sub: SubState): void {
-    const poll = async () => {
-      while (this._subs.has(sub.subscriptionId) && sub.mode === 'polling') {
-        try {
-          const sourceIds = [...sub.sourceToAsset.keys()];
-          if (sourceIds.length > 0) {
-            const values = await this.dataSource.readValues(sourceIds);
-            const now = new Date().toISOString();
-            for (let i = 0; i < sourceIds.length; i++) {
-              const dv = values[i];
-              if (dv) {
-                this._onDataChange(
-                  sub,
-                  sourceIds[i]!,
-                  dv.value,
-                  dv.quality ?? 'Good',
-                  dv.timestamp ?? now,
-                );
-              }
-            }
-          }
-        } catch (err) {
-          this.logger.warn(`Poll error for subscription ${sub.subscriptionId}: ${err}`);
-        }
-        await new Promise((r) => setTimeout(r, this._publishIntervalMs));
-      }
-    };
-    poll().catch(() => {});
+    startPollingLoop(
+      sub.subscriptionId,
+      () => [...sub.sourceToAsset.keys()],
+      () => this._subs.has(sub.subscriptionId) && sub.mode === 'polling',
+      this.dataSource,
+      this.logger,
+      this._publishIntervalMs,
+      (sourceNodeId, value, quality, timestamp) => {
+        this._onDataChange(sub, sourceNodeId, value, quality, timestamp);
+      },
+    );
   }
 }

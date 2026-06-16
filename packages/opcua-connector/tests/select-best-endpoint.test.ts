@@ -4,7 +4,8 @@
 
 import { MessageSecurityMode } from 'node-opcua';
 import { describe, expect, it } from 'vitest';
-import { type EndpointLike, OpcUaClient } from '../src/opcua-client.js';
+import { type EndpointLike, selectBestEndpoint } from '../src/endpoint-discovery.js';
+import { OpcUaClient } from '../src/opcua-client.js';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -266,6 +267,16 @@ describe('OpcUaClient.selectBestEndpoint', () => {
       const result = OpcUaClient.selectBestEndpoint(endpoints);
       expect(result.securityMode).toBe(MessageSecurityMode.Sign);
       expect(result.securityPolicy).toContain('Basic256');
+    });
+  });
+
+  // ── selectBestEndpoint standalone function ────────────────
+
+  describe('standalone selectBestEndpoint function', () => {
+    it('works identically to the static method', () => {
+      const viaStatic = OpcUaClient.selectBestEndpoint(REALISTIC_ENDPOINTS);
+      const viaFunction = selectBestEndpoint(REALISTIC_ENDPOINTS);
+      expect(viaFunction).toEqual(viaStatic);
     });
   });
 });

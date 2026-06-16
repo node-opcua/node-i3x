@@ -568,6 +568,108 @@ describe('SubscriptionService', () => {
     expect(svc.list()).toHaveLength(0);
   });
 
+  // ── Sync with sentinel -1 ────────────────────────────────
+
+  it('sync(-1) clears all pending updates', async () => {
+    const { subscriptionId } = svc.create();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+    const sourceId = model.propertyToSource.get(propId)!;
+
+    await svc.register(subscriptionId, [propId], 1);
+    ds._triggerChange(sourceId, 5);
+    await waitForDebounce();
+
+    // Confirm updates exist
+    const before = svc.sync(subscriptionId, 0);
+    expect(before.length).toBeGreaterThan(0);
+
+    // sentinel -1: clear all
+    const result = svc.sync(subscriptionId, -1);
+    expect(result).toHaveLength(0);
+
+    // Subsequent sync also empty
+    const after = svc.sync(subscriptionId, 0);
+    expect(after).toHaveLength(0);
+  });
+
+  // ── registerActiveStream via service ───────────────────────
+
+  it('registerActiveStream closes previous stream and wakes waiters', async () => {
+    const { subscriptionId } = svc.create();
+    let closedOld = false;
+    svc.registerActiveStream(subscriptionId, () => {
+      closedOld = true;
+    });
+
+    // Start a long-poll waiter
+    const waiterPromise = svc.waitForUpdates(subscriptionId, 0, 30_000);
+
+    // Replace stream → old close is called, waiter is woken
+    svc.registerActiveStream(subscriptionId, () => {});
+    expect(closedOld).toBe(true);
+
+    const updates = await waiterPromise;
+    expect(updates).toHaveLength(0);
+  });
+
+  it('registerActiveStream is a no-op for unknown subscriptionId', () => {
+    // Should not throw
+    svc.registerActiveStream('nonexistent', () => {});
+  });
+
+  it('clearActiveStream is a no-op for unknown subscriptionId', () => {
+    svc.clearActiveStream('nonexistent', () => {});
+  });
+
+  // ── close() with active runtime ────────────────────────────
+
+  it('close() clears all subscriptions including those with runtime', async () => {
+    const { subscriptionId } = svc.create();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+
+    // Register to create a runtime
+    await svc.register(subscriptionId, [propId], 1);
+    expect(ds._subscriptionCreated).toBe(true);
+
+    await svc.close();
+    expect(svc.list()).toHaveLength(0);
+  });
+
+  // ── Acknowledge ────────────────────────────────────────────
+
+  it('acknowledge() trims updates up to the given sequence', async () => {
+    const { subscriptionId } = svc.create();
+    const model = await modelService.getOrBuildModel();
+    const propId = [...model.propertyToSource.keys()][0]!;
+    const sourceId = model.propertyToSource.get(propId)!;
+
+    await svc.register(subscriptionId, [propId], 1);
+    drainSeed(svc, subscriptionId);
+
+    ds._triggerChange(sourceId, 10);
+    await waitForDebounce();
+    ds._triggerChange(sourceId, 20);
+    await waitForDebounce();
+
+    const all = svc.sync(subscriptionId, 0);
+    expect(all.length).toBeGreaterThanOrEqual(2);
+
+    // Acknowledge the first update
+    const firstSeq = all[0]!.sequenceNumber;
+    svc.acknowledge(subscriptionId, firstSeq);
+
+    // Now sync should only return remaining updates
+    const remaining = svc.sync(subscriptionId, 0);
+    expect(remaining.length).toBeLessThan(all.length);
+  });
+
+  it('acknowledge() is a no-op for unknown subscriptionId', () => {
+    // Should not throw
+    svc.acknowledge('nonexistent', 5);
+  });
+
   // ── Server-like object (mixed Object + Variable children) ──
 
   describe('Server-like object subscription', () => {

@@ -1,5 +1,6 @@
+import type { BulkResultItem } from '@node-i3x/core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { getDeps } from '../app.js';
+import { getDeps, type RestServerDeps } from '../app.js';
 import { i3xError, rethrowAsI3x } from '../errors.js';
 import {
   bulkError,
@@ -16,7 +17,7 @@ function requireClientId(clientId?: string | null): string {
 }
 
 function requireSubscriptionOwnership(
-  deps: any,
+  deps: RestServerDeps,
   subscriptionId: string,
   clientId: string,
 ): void {
@@ -345,7 +346,7 @@ export default async function subscriptionRoutes(app: FastifyInstance): Promise<
       const cid = requireClientId(clientId);
       const details = deps.subscriptionService.list(subscriptionIds);
 
-      let results: any[];
+      let results: BulkResultItem<unknown>[];
       if (subscriptionIds && subscriptionIds.length > 0) {
         results = subscriptionIds.map((id) => {
           const d = details.find((x) => x.subscriptionId === id);

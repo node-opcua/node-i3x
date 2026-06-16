@@ -148,4 +148,63 @@ describe('refToSourceNode', () => {
     expect(result.namespaceUri).toBe('http://di.org/');
     expect(result.nsuQualifiedName).toBe('nsu=http://di.org/:DeviceSet');
   });
+
+  it('should set eventNotifier to false when eventNotifier is 0 on Object', () => {
+    const ref = makeRef({
+      nodeClass: NodeClass.Object,
+      eventNotifier: 0,
+    });
+
+    const result = refToSourceNode(ref, null, defaultNamespaceArray);
+
+    expect(result.eventNotifier).toBe(false);
+  });
+
+  it('should set eventNotifier to false for Variable nodes', () => {
+    const ref = makeRef({
+      nodeClass: NodeClass.Variable,
+      eventNotifier: 1, // should still be false for Variables
+    });
+
+    const result = refToSourceNode(ref, null, defaultNamespaceArray);
+
+    expect(result.eventNotifier).toBe(false);
+  });
+
+  it('should fall back to namespace array when nsu regex does not match', () => {
+    // Create a ref where qualifiedNameToNsu returns something
+    // that doesn't match the nsu= regex (e.g. empty string
+    // from null browseName). Fallback uses nsIdx from ref.
+    const ref = makeRef({
+      browseName: {
+        namespaceIndex: 1,
+        name: null, // empty name → qualifiedNameToNsu returns ''
+        toString: () => '1:',
+      },
+      nodeId: { toString: () => 'ns=1;s=Empty' },
+    });
+
+    const result = refToSourceNode(ref, null, defaultNamespaceArray);
+
+    // The nsu match fails on empty string, so it falls back
+    // to namespaceArray[1]
+    expect(result.namespaceUri).toBe('http://di.org/');
+  });
+
+  it('should fall back to empty string when namespace index is out of range', () => {
+    const ref = makeRef({
+      browseName: {
+        namespaceIndex: 99,
+        name: null,
+        toString: () => '99:',
+      },
+      nodeId: { toString: () => 'ns=99;s=Missing' },
+    });
+
+    const result = refToSourceNode(ref, null, defaultNamespaceArray);
+
+    // ns=99 doesn't exist in array, and nsu match also fails
+    // on empty name → fallback returns ''
+    expect(result.namespaceUri).toBe('');
+  });
 });

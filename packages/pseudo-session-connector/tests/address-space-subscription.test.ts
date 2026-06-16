@@ -103,4 +103,33 @@ describe('AddressSpaceMonitoredSubscription', () => {
     await sub.close();
     setTemp(42.5); // restore
   });
+
+  it('skips non-Variable nodes during addItems', async () => {
+    const sub = new AddressSpaceMonitoredSubscription(ctx.addressSpace, consoleLogger);
+    // testObject is an Object, not a Variable — should warn and skip
+    await sub.addItems([ctx.nodeIds.testObject]);
+
+    let callCount = 0;
+    sub.onDataChange(() => {
+      callCount++;
+    });
+
+    // Nothing should fire — no listener was attached
+    expect(callCount).toBe(0);
+    await sub.close();
+  });
+
+  it('skips non-existent nodes during addItems', async () => {
+    const sub = new AddressSpaceMonitoredSubscription(ctx.addressSpace, consoleLogger);
+    // Non-existent node — should warn and skip
+    await sub.addItems(['ns=99;s=DoesNotExist']);
+
+    let callCount = 0;
+    sub.onDataChange(() => {
+      callCount++;
+    });
+
+    expect(callCount).toBe(0);
+    await sub.close();
+  });
 });

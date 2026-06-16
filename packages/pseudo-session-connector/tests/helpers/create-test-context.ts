@@ -19,6 +19,11 @@ export interface TestContext {
     testObject: string;
     temperature: string;
     pressure: string;
+    nestedChild: string;
+    nestedVariable: string;
+    emptyObject: string;
+    testMachineType: string;
+    deepParent: string;
   };
 }
 
@@ -83,6 +88,69 @@ export async function createTestContext(): Promise<TestContext> {
   temperature.setValueFromSource(new Variant({ dataType: DataType.Double, value: 43.0 }));
   pressure.setValueFromSource(new Variant({ dataType: DataType.Double, value: 102.0 }));
 
+  // ── NestedChild object under TestObject (for nested browse / history) ──
+  const nestedChild = namespace.addObject({
+    componentOf: testObject,
+    browseName: 'NestedChild',
+    displayName: 'Nested Child',
+  });
+
+  const nestedVariable = namespace.addVariable({
+    componentOf: nestedChild,
+    browseName: 'NestedTemp',
+    displayName: 'Nested Temperature',
+    dataType: DataType.Double,
+    value: new Variant({ dataType: DataType.Double, value: 10.0 }),
+  });
+
+  // ── EmptyObject — no children (for fallback paths) ──
+  const emptyObject = namespace.addObject({
+    organizedBy: addressSpace.rootFolder.objects,
+    browseName: 'EmptyObject',
+    displayName: 'Empty Object',
+  });
+
+  // ── DeepParent — only Object children, grandchild has Variable ──
+  // Triggers the recursive loop in _findFirstChildVariable
+  const deepParent = namespace.addObject({
+    organizedBy: addressSpace.rootFolder.objects,
+    browseName: 'DeepParent',
+    displayName: 'Deep Parent',
+  });
+
+  const deepChild = namespace.addObject({
+    componentOf: deepParent,
+    browseName: 'DeepChild',
+    displayName: 'Deep Child',
+  });
+
+  namespace.addVariable({
+    componentOf: deepChild,
+    browseName: 'DeepVar',
+    displayName: 'Deep Variable',
+    dataType: DataType.Double,
+    value: new Variant({ dataType: DataType.Double, value: 5.0 }),
+  });
+
+  // ── Custom ObjectType with members (for getObjectTypes enrichment) ──
+  const testMachineType = namespace.addObjectType({
+    browseName: 'TestMachineType',
+    displayName: 'Test Machine Type',
+  });
+
+  namespace.addVariable({
+    propertyOf: testMachineType,
+    browseName: 'Speed',
+    displayName: 'Speed',
+    dataType: DataType.Double,
+    modellingRule: 'Mandatory',
+  });
+
+  namespace.addMethod(testMachineType, {
+    browseName: 'Start',
+    modellingRule: 'Mandatory',
+  });
+
   return {
     server,
     addressSpace,
@@ -91,6 +159,11 @@ export async function createTestContext(): Promise<TestContext> {
       testObject: testObject.nodeId.toString(),
       temperature: temperature.nodeId.toString(),
       pressure: pressure.nodeId.toString(),
+      nestedChild: nestedChild.nodeId.toString(),
+      nestedVariable: nestedVariable.nodeId.toString(),
+      emptyObject: emptyObject.nodeId.toString(),
+      testMachineType: testMachineType.nodeId.toString(),
+      deepParent: deepParent.nodeId.toString(),
     },
   };
 }

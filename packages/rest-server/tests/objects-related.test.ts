@@ -1,4 +1,3 @@
-import type { IDataSourcePort, SourceNodeInfo } from '@node-i3x/core';
 import {
   HistoryService,
   ModelService,
@@ -9,64 +8,7 @@ import {
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
 import { beforeAll, describe, expect, it } from 'vitest';
-
-class MockDataSource implements IDataSourcePort {
-  connected = true;
-  async connect() {
-    this.connected = true;
-  }
-  async disconnect() {
-    this.connected = false;
-  }
-  isConnected() {
-    return this.connected;
-  }
-  async browseTree(): Promise<SourceNodeInfo[]> {
-    return [
-      {
-        sourceNodeId: 'ns=2;s=Machine',
-        parentSourceNodeId: null,
-        browseName: 'Machine',
-        nsuQualifiedName: 'nsu=http://example.com/:Machine',
-        displayName: 'Machine',
-        nodeClass: 'Object',
-        typeDefinition: 'ns=1;i=1001',
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-      {
-        sourceNodeId: 'ns=2;s=Temperature',
-        parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Temperature',
-        nsuQualifiedName: 'nsu=http://example.com/:Temperature',
-        displayName: 'Temperature',
-        nodeClass: 'Variable',
-        typeDefinition: 'Double',
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-    ];
-  }
-  async getNamespaces() {
-    return [];
-  }
-  async getObjectTypes() {
-    return [];
-  }
-  async readValue() {
-    return { value: 12.3, quality: 'Good' as const, timestamp: '' };
-  }
-  async readValues() {
-    return [];
-  }
-  async writeValue() {}
-  async readHistory() {
-    return [];
-  }
-  async createMonitoredSubscription() {
-    return {} as any;
-  }
-}
+import { MockDataSource } from './helpers/mock-data-source.js';
 
 describe('Related Objects API', () => {
   let app: Awaited<ReturnType<typeof createApp>>;
@@ -114,9 +56,17 @@ describe('Related Objects API', () => {
     expect(body.results).toHaveLength(1);
     expect(body.results[0].success).toBe(true);
     expect(body.results[0].elementId).toBe(machineId);
-    expect(body.results[0].result).toHaveLength(1);
-    expect(body.results[0].result[0].sourceRelationship).toBe('HasComponent');
-    expect(body.results[0].result[0].object.displayName).toBe('Temperature');
+    expect(body.results[0].result).toHaveLength(2);
+    const names = body.results[0].result.map(
+      (r: Record<string, any>) => r.object.displayName,
+    );
+    expect(names).toContain('Temperature');
+    expect(names).toContain('Reset');
+    expect(
+      body.results[0].result.every(
+        (r: Record<string, any>) => r.sourceRelationship === 'HasComponent',
+      ),
+    ).toBe(true);
   });
 
   it('POST /v1/objects/related returns parent asset for child variable', async () => {

@@ -1,14 +1,3 @@
-import type {
-  DataChangeCallback,
-  IDataSourcePort,
-  IMonitoredSubscription,
-  MonitoredSubscriptionOptions,
-  NamespaceInfo,
-  ObjectTypeInfo,
-  SourceDataValue,
-  SourceHistoricalValue,
-  SourceNodeInfo,
-} from '@node-i3x/core';
 import {
   HistoryService,
   ModelService,
@@ -20,128 +9,7 @@ import {
 } from '@node-i3x/core';
 import { createApp } from '@node-i3x/rest-server';
 import { beforeAll, describe, expect, it } from 'vitest';
-
-// ── Mock data source ─────────────────────────────────────────
-
-class MockDataSource implements IDataSourcePort {
-  values: Record<string, unknown> = { 'ns=2;s=Temperature': 42.5 };
-  connected = true;
-
-  async connect() {
-    this.connected = true;
-  }
-  async disconnect() {
-    this.connected = false;
-  }
-  isConnected() {
-    return this.connected;
-  }
-
-  async browseTree(): Promise<SourceNodeInfo[]> {
-    return [
-      {
-        sourceNodeId: 'ns=2;s=Machine',
-        parentSourceNodeId: null,
-        browseName: 'Machine',
-        nsuQualifiedName: 'nsu=http://example.com/:Machine',
-        displayName: 'Machine',
-        nodeClass: 'Object',
-        typeDefinition: 'ns=1;i=1001',
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-      {
-        sourceNodeId: 'ns=2;s=Temperature',
-        parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Temperature',
-        nsuQualifiedName: 'nsu=http://example.com/:Temperature',
-        displayName: 'Temperature',
-        nodeClass: 'Variable',
-        typeDefinition: 'Double',
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-      {
-        sourceNodeId: 'ns=2;s=Reset',
-        parentSourceNodeId: 'ns=2;s=Machine',
-        browseName: 'Reset',
-        nsuQualifiedName: 'nsu=http://example.com/:Reset',
-        displayName: 'Reset',
-        nodeClass: 'Method',
-        typeDefinition: null,
-        namespaceUri: 'http://example.com/',
-        eventNotifier: false,
-      },
-    ];
-  }
-
-  async getNamespaces(): Promise<NamespaceInfo[]> {
-    return [
-      { uri: 'http://example.com/i3x', displayName: 'I3X' },
-      { uri: 'http://example.com/custom', displayName: 'Custom' },
-    ];
-  }
-
-  async getObjectTypes(): Promise<ObjectTypeInfo[]> {
-    return [
-      {
-        sourceNodeId: 'ns=1;i=1001',
-        parentSourceNodeId: null,
-        browseName: 'MachineType',
-        displayName: 'Machine Type',
-        namespaceUri: 'http://example.com/',
-        members: [
-          {
-            browseName: 'Temperature',
-            displayName: 'Temperature',
-            nodeClass: 'Variable',
-            dataType: 'Double',
-            modellingRule: 'Mandatory',
-          },
-        ],
-      },
-    ];
-  }
-
-  async readValue(nodeId: string): Promise<SourceDataValue> {
-    return {
-      value: this.values[nodeId] ?? null,
-      quality: 'Good',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  async readValues(nodeIds: string[]): Promise<SourceDataValue[]> {
-    return nodeIds.map((id) => ({
-      value: this.values[id] ?? null,
-      quality: 'Good',
-      timestamp: new Date().toISOString(),
-    }));
-  }
-
-  async writeValue(nodeId: string, value: unknown) {
-    this.values[nodeId] = value;
-  }
-
-  async readHistory(): Promise<SourceHistoricalValue[]> {
-    return [{ value: 42, quality: 'Good', timestamp: new Date().toISOString() }];
-  }
-
-  async createMonitoredSubscription(
-    _opts: MonitoredSubscriptionOptions,
-  ): Promise<IMonitoredSubscription> {
-    let _cb: DataChangeCallback | null = null;
-    return {
-      id: 'mock-sub',
-      async addItems() {},
-      async removeItems() {},
-      onDataChange(c) {
-        _cb = c;
-      },
-      async close() {},
-    };
-  }
-}
+import { MockDataSource } from './helpers/mock-data-source.js';
 
 // ── Tests ────────────────────────────────────────────────────
 
@@ -231,6 +99,30 @@ describe('REST API', () => {
     expect(body.result.length).toBeGreaterThanOrEqual(1);
     // Should contain at least one asset
     expect(body.result.some((r: any) => r.elementId.startsWith('asset-'))).toBe(true);
+  });
+
+  it('GET /v1/objects?root=true returns only root assets', async () => {
+    await modelService.preloadModel();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/objects',
+      query: { root: 'true' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    // Should return at least one root asset
+    expect(body.result.length).toBeGreaterThanOrEqual(1);
+    // All returned objects should be assets (root nodes)
+    for (const obj of body.result) {
+      expect(obj.elementId).toMatch(/^asset-/);
+      // Root nodes have no parent
+      expect(obj.parentId).toBeNull();
+    }
+    // The root result should be a subset of all objects
+    const allRes = await app.inject({ method: 'GET', url: '/v1/objects' });
+    const allBody = allRes.json();
+    expect(body.result.length).toBeLessThan(allBody.result.length);
   });
 
   it('QRY-03: object values conform to their type JSON schemas', async () => {

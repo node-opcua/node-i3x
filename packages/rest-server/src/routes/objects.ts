@@ -1,3 +1,4 @@
+import type { ModelNode } from '@node-i3x/core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getDeps } from '../app.js';
 import { i3xError } from '../errors.js';
@@ -41,22 +42,16 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       const model = await deps.modelService.getOrBuildModel();
       const { typeElementId, root } = req.query;
 
-      let nodes: Array<{
-        id: string;
-        name: string;
-        type?: string | null;
-        children: readonly string[];
-        kind: string;
-      }>;
+      let nodes: ModelNode[];
 
       if (root) {
         nodes = model.rootIds
           .map((id) => model.nodesById.get(id))
-          .filter((n) => n && n.kind === 'asset') as any;
+          .filter((n): n is ModelNode => n !== undefined && n.kind === 'asset');
       } else {
         nodes = Array.from(model.nodesById.values()).filter(
-          (n) => n.kind === 'asset' || n.kind === 'property',
-        ) as any;
+          (n): n is ModelNode => n.kind === 'asset' || n.kind === 'property',
+        );
       }
 
       if (typeElementId) {
