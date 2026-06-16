@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.8.1 (2026-06-16)
+
+- Version bump
+
 ## 0.8.0 (2026-06-16)
 
 - ci: consolidate GitLab CI pipeline into a single sequential job

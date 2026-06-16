@@ -93,6 +93,32 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     getOpcuaStats: () => opcuaClient.getStats(),
   });
 
+  // Graceful shutdown registration
+  let isListening = false;
+  const shutdown = async () => {
+    logger.info('Shutting down...');
+    if (isListening) {
+      try {
+        await app.close();
+      } catch (err) {
+        logger.debug(`Failed to close http server: ${(err as Error).message}`);
+      }
+    }
+    try {
+      await subscriptionService.close();
+    } catch (err) {
+      logger.debug(`Failed to close subscription service: ${(err as Error).message}`);
+    }
+    try {
+      await dataSource.disconnect();
+    } catch (err) {
+      logger.debug(`Failed to disconnect datasource: ${(err as Error).message}`);
+    }
+    process.exit(0);
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+
   // 4. Connect to OPC UA
   sendProgress('connecting', `Connecting to ${config.endpoint}...`);
   await dataSource.connect();
@@ -120,6 +146,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   // 6. Start HTTP server
   sendProgress('starting-http', 'Starting HTTP server...');
   await app.listen({ port: config.port, host: config.host });
+  isListening = true;
   sendProgress('ready', `Server listening on ${config.host}:${config.port}`, {
     port: config.port,
     host: config.host,
@@ -129,15 +156,4 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
 
   // 7. Banner
   printBanner(version, config, nodeCount);
-
-  // 8. Graceful shutdown
-  const shutdown = async () => {
-    logger.info('Shutting down...');
-    await app.close();
-    await subscriptionService.close();
-    await dataSource.disconnect();
-    process.exit(0);
-  };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
 }

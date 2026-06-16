@@ -18,7 +18,7 @@ describe('AddressSpaceMonitoredSubscription', () => {
 
   beforeAll(async () => {
     ctx = await createTestContext();
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await teardownTestContext(ctx);

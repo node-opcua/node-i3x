@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.8.1 (2026-06-16)
+
+- Version bump
+
 ## 0.8.0 (2026-06-16)
 
 - chore: fix Biome lint and formatting issues across workspace

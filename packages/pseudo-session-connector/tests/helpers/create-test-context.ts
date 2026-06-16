@@ -169,5 +169,7 @@ export async function createTestContext(): Promise<TestContext> {
 }
 
 export async function teardownTestContext(ctx: TestContext): Promise<void> {
-  ctx.addressSpace.dispose();
+  if (ctx?.addressSpace) {
+    ctx.addressSpace.dispose();
+  }
 }

@@ -4,7 +4,10 @@
 
 import compress from '@fastify/compress';
 import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyInstance } from 'fastify';
+import spec from './openapi.json';
 
 // Augment Fastify so `app.deps` is typed without casts.
 declare module 'fastify' {
@@ -68,6 +71,21 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
 
   // Register error handler
   registerErrorHandler(app);
+
+  // Register Swagger UI & static OpenAPI spec
+  await app.register(swagger, {
+    mode: 'static',
+    specification: {
+      document: spec as any,
+    },
+  });
+
+  await app.register(swaggerUi, {
+    routePrefix: '/docs',
+  });
+
+  // Expose static OpenAPI specification file at /openapi.json
+  app.get('/openapi.json', async () => spec);
 
   // Register auth middleware (no-op when apiKey is undefined)
   registerAuth(app, deps.apiKey);

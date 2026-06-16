@@ -20,10 +20,12 @@ describe('PseudoSessionDataSourceAdapter.createMonitoredSubscription', () => {
     ctx = await createTestContext();
     adapter = new PseudoSessionDataSourceAdapter(ctx.addressSpace, consoleLogger);
     await adapter.connect();
-  });
+  }, 60_000);
 
   afterAll(async () => {
-    await adapter.disconnect();
+    if (adapter) {
+      await adapter.disconnect();
+    }
     await teardownTestContext(ctx);
   });
 

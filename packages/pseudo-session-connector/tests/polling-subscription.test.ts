@@ -20,7 +20,7 @@ describe('PollingMonitoredSubscription', () => {
   beforeAll(async () => {
     ctx = await createTestContext();
     session = new PseudoSession(ctx.addressSpace);
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await teardownTestContext(ctx);

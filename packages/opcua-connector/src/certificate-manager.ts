@@ -73,7 +73,13 @@ async function ensureSelfSignedCertificate(
   hash: string,
   logger: ILogger,
 ): Promise<void> {
-  const certFile = path.join(pkiFolder, 'PKI', 'own', 'certs', 'client_certificate.pem');
+  let certFile = path.join(pkiFolder, 'PKI', 'own', 'certs', 'client_certificate.pem');
+  if (!fs.existsSync(certFile)) {
+    const fallbackFile = path.join(pkiFolder, 'own', 'certs', 'client_certificate.pem');
+    if (fs.existsSync(fallbackFile)) {
+      certFile = fallbackFile;
+    }
+  }
 
   if (fs.existsSync(certFile)) {
     logger.debug(`Client certificate exists: ${certFile}`);
