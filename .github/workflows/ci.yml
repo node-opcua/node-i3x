@@ -18,55 +18,7 @@ env:
   NODE_ENV: development
 
 jobs:
-  # -- Check ---------------------------------------------------
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Configure @sterfive registry
-        run: |
-          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
-          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
-            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
-          fi
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript type check
-        run: npm run typecheck
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Configure @sterfive registry
-        run: |
-          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
-          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
-            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
-          fi
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Biome lint & format check
-        run: npx biome check .
-
-  # -- Test ----------------------------------------------------
-  test:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +40,23 @@ jobs:
 
       - name: Build all packages
         run: npm run build
+
+      - name: Lint and Type Check (Concurrent)
+        run: |
+          npx biome check . &
+          PID_LINT=$!
+          npm run typecheck &
+          PID_TYPECHECK=$!
+          
+          wait $PID_LINT
+          EXIT_LINT=$?
+          wait $PID_TYPECHECK
+          EXIT_TYPECHECK=$?
+          
+          if [ $EXIT_LINT -ne 0 ] || [ $EXIT_TYPECHECK -ne 0 ]; then
+            echo "Lint or Typecheck failed"
+            exit 1
+          fi
 
       - name: Run tests with coverage
         run: npm run coverage
@@ -106,29 +75,6 @@ jobs:
           name: coverage
           path: coverage/
           retention-days: 7
-
-  test-no-optimized-client:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Configure @sterfive registry
-        run: |
-          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
-          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
-            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
-          fi
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build all packages
-        run: npm run build
 
       - name: Remove @sterfive/opcua-optimized-client
         run: |
