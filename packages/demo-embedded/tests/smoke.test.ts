@@ -30,12 +30,30 @@ describe('demo-embedded smoke test', () => {
       output += data.toString();
     });
 
+    // Detect early crash — if child exits before health check succeeds
+    let childExited = false;
+    let childExitCode: number | null = null;
+    child.on('exit', (code) => {
+      childExited = true;
+      childExitCode = code;
+    });
+
     const maxAttempts = 120;
     let success = false;
 
     // Poll the health endpoint
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Bail early if the child process crashed
+      if (childExited) {
+        console.error(
+          `Smoke test child exited early with code ${childExitCode}.\n` +
+            `Process output:\n${output}`,
+        );
+        break;
+      }
+
       try {
         const res = await fetch(`http://127.0.0.1:${restPort}/health`);
         if (res.ok) {
@@ -53,17 +71,20 @@ describe('demo-embedded smoke test', () => {
     // Terminate the child process
     child.kill('SIGTERM');
 
-    // Wait for child process to exit
-    await new Promise<void>((resolve) => {
-      child.on('exit', () => {
-        resolve();
-      });
-    });
+    // Wait for child process to exit (with a safety timeout)
+    if (!childExited) {
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          child.on('exit', () => resolve());
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+      ]);
+    }
 
     if (!success) {
       console.error('Smoke test process output:\n', output);
     }
 
     expect(success).toBe(true);
-  }, 65_000);
+  }, 90_000);
 });

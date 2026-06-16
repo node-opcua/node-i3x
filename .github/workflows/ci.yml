@@ -18,8 +18,55 @@ env:
   NODE_ENV: development
 
 jobs:
-  # -- Install & Build ------------------------------------------
-  install:
+  # -- Check ---------------------------------------------------
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configure @sterfive registry
+        run: |
+          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
+          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
+            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configure @sterfive registry
+        run: |
+          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
+          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
+            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Biome lint & format check
+        run: npx biome check .
+
+  # -- Test ----------------------------------------------------
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,80 +89,6 @@ jobs:
       - name: Build all packages
         run: npm run build
 
-      - name: Cache workspace
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/*/dist
-          key: workspace-${{ github.sha }}
-
-  # -- Check ---------------------------------------------------
-  typecheck:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore workspace
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/*/dist
-          key: workspace-${{ github.sha }}
-
-      - name: TypeScript type check
-        run: npm run typecheck
-
-  lint:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore workspace
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/*/dist
-          key: workspace-${{ github.sha }}
-
-      - name: Biome lint & format check
-        run: npx biome check .
-
-  # -- Test ----------------------------------------------------
-  test:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Restore workspace
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/*/dist
-          key: workspace-${{ github.sha }}
-
       - name: Run tests with coverage
         run: npm run coverage
 
@@ -135,7 +108,6 @@ jobs:
           retention-days: 7
 
   test-no-optimized-client:
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -143,15 +115,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - name: Restore workspace
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-            packages/*/dist
-          key: workspace-${{ github.sha }}
+      - name: Configure @sterfive registry
+        run: |
+          echo "@sterfive:registry=https://npm-registry.sterfive.fr" >> .npmrc
+          if [ -n "${{ secrets.NPM_STERFIVE_TOKEN }}" ]; then
+            echo "//npm-registry.sterfive.fr/:_authToken=${{ secrets.NPM_STERFIVE_TOKEN }}" >> .npmrc
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages
+        run: npm run build
 
       - name: Remove @sterfive/opcua-optimized-client
         run: |
