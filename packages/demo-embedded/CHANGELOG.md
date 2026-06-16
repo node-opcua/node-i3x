@@ -1,5 +1,20 @@
 # @node-i3x/demo-embedded
 
+## 0.7.0 (2026-06-16)
+
+- feat: boost coverage to 88%, add Coveralls CI + badges
+- feat(auth): fix 401 response compression and support auth in benchmark
+- fix: map all unregistered type definitions to UnknownType for EXP-13 compliance
+- test: add integration smoke test for demo-embedded CLI
+- refactor: remove acknowledgeSequence, standardize on lastSequenceNumber
+- Phase 5: Type safety and refactoring
+- Phase 2: DRY violations and shared code extraction
+- docs: replace ASCII hexagonal diagram with SVG
+- chore: remove scratch files from tracking
+- docs: add Architecture Decision Records (ADRs) for node-i3x
+- Phase 4: Test coverage and metrics
+- Phase 1: i3X V1.0 spec conformance
+
 ## 0.6.0 (2026-06-15)
 
 - refactor: align config keys with env vars, switch intervals to ms

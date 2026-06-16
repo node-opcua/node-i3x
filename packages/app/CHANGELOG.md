@@ -1,5 +1,20 @@
 # @node-i3x/app
 
+## 0.7.0 (2026-06-16)
+
+- feat: boost coverage to 88%, add Coveralls CI + badges
+- fix: map all unregistered type definitions to UnknownType for EXP-13 compliance
+- feat: gate convenience routes behind --experimental CLI and config flag
+- refactor: remove acknowledgeSequence, standardize on lastSequenceNumber
+- Phase 5: Type safety and refactoring
+- Phase 2: DRY violations and shared code extraction
+- Phase 1: i3X V1.0 spec conformance
+- feat(opcua-connector): Auto security policy discovery, policyFilter, certificate subject markers, and selectBestEndpoint tests
+- docs: replace ASCII hexagonal diagram with SVG
+- chore: remove scratch files from tracking
+- docs: add Architecture Decision Records (ADRs) for node-i3x
+- Phase 4: Test coverage and metrics
+
 ## 0.6.0 (2026-06-15)
 
 - feat(opcua-connector): add SecurityPolicy auto-discovery, dedicated PKI, and self-signed certificates

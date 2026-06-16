@@ -1,5 +1,20 @@
 # @node-i3x/core
 
+## 0.7.0 (2026-06-16)
+
+- feat: boost coverage to 88%, add Coveralls CI + badges
+- fix(core): set outer quality to Good for composition updates in subscription sync
+- fix: map all unregistered type definitions to UnknownType for EXP-13 compliance
+- docs: add JSDoc comments to private and helper methods in core services
+- refactor: remove acknowledgeSequence, standardize on lastSequenceNumber
+- Phase 5: Type safety and refactoring
+- Phase 4: Test coverage and metrics
+- Phase 2: DRY violations and shared code extraction
+- Phase 1: i3X V1.0 spec conformance
+- docs: replace ASCII hexagonal diagram with SVG
+- chore: remove scratch files from tracking
+- docs: add Architecture Decision Records (ADRs) for node-i3x
+
 ## 0.6.0 (2026-06-15)
 
 - refactor: align config keys with env vars, switch intervals to ms

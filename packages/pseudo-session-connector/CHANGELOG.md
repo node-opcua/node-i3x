@@ -1,5 +1,17 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.7.0 (2026-06-16)
+
+- feat: boost coverage to 88%, add Coveralls CI + badges
+- fix(connectors): filter out namespace index 0 nodes in application-only browse mode
+- Phase 5: Type safety and refactoring
+- Phase 2: DRY violations and shared code extraction
+- docs: replace ASCII hexagonal diagram with SVG
+- chore: remove scratch files from tracking
+- docs: add Architecture Decision Records (ADRs) for node-i3x
+- Phase 4: Test coverage and metrics
+- Phase 1: i3X V1.0 spec conformance
+
 ## 0.6.0 (2026-06-15)
 
 - feat(opcua-connector): add SecurityPolicy auto-discovery, dedicated PKI, and self-signed certificates

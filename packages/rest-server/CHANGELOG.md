@@ -1,5 +1,22 @@
 # @node-i3x/rest-server
 
+## 0.7.0 (2026-06-16)
+
+- feat: boost coverage to 88%, add Coveralls CI + badges
+- fix(rest-server): move PUT /objects/history out of experimental flag to support UPD-05
+- feat(auth): fix 401 response compression and support auth in benchmark
+- fix: map all unregistered type definitions to UnknownType for EXP-13 compliance
+- feat: gate convenience routes behind --experimental CLI and config flag
+- refactor: remove acknowledgeSequence, standardize on lastSequenceNumber
+- Phase 5: Type safety and refactoring
+- Phase 4: Test coverage and metrics
+- Phase 3: REST layer hardening
+- Phase 2: DRY violations and shared code extraction
+- Phase 1: i3X V1.0 spec conformance
+- docs: replace ASCII hexagonal diagram with SVG
+- chore: remove scratch files from tracking
+- docs: add Architecture Decision Records (ADRs) for node-i3x
+
 ## 0.6.0 (2026-06-15)
 
 - refactor: align config keys with env vars, switch intervals to ms

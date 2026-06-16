@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/opcua-connector",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "i3X OPC UA adapter — implements IDataSourcePort using node-opcua",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -58,7 +58,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@node-i3x/core": "0.6.0",
+    "@node-i3x/core": "0.7.0",
     "node-opcua": "^2.173.1",
     "node-opcua-certificate-manager": "^2.173.0",
     "node-opcua-client": "^2.173.1",
