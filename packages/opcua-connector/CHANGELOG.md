@@ -1,5 +1,10 @@
 # @node-i3x/opcua-connector
 
+## 0.7.2 (2026-06-16)
+
+- feat(opcua-connector): log OPC UA client & session options, add options validation
+- ci: retrigger v0.7.1
+
 ## 0.7.1 (2026-06-16)
 
 - Version bump
