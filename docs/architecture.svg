@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 520" font-family="Consolas, 'Courier New', monospace" font-size="13">
+  <defs>
+    <linearGradient id="gApp" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="gCore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f3460"/>
+      <stop offset="100%" stop-color="#1a3a5c"/>
+    </linearGradient>
+    <linearGradient id="gInbound" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#533483"/>
+      <stop offset="100%" stop-color="#4a2d73"/>
+    </linearGradient>
+    <linearGradient id="gOutbound" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#c73e54"/>
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- External: HTTP Client -->
+  <rect x="270" y="8" width="180" height="36" rx="18" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="360" y="31" text-anchor="middle" fill="#333" font-weight="600">☁  HTTP Client</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="44" x2="360" y2="68" stroke="#aaa" stroke-width="1.5"/>
+  <text x="370" y="60" fill="#888" font-size="10">HTTP / JSON</text>
+  <polygon points="355,68 365,68 360,76" fill="#aaa"/>
+
+  <!-- Outer box: @node-i3x/app -->
+  <rect x="30" y="78" width="660" height="360" rx="12" fill="url(#gApp)" stroke="#2a2a4a" stroke-width="2" filter="url(#shadow)"/>
+  <text x="360" y="102" text-anchor="middle" fill="#8892b0" font-size="12" font-weight="700" letter-spacing="1">@node-i3x/app  —  Composition Root</text>
+
+  <!-- Inbound adapter -->
+  <rect x="140" y="116" width="440" height="62" rx="8" fill="url(#gInbound)" stroke="#7b4daa" stroke-width="1.5"/>
+  <text x="360" y="138" text-anchor="middle" fill="#e0d0ff" font-size="11" font-weight="600" letter-spacing="0.5">INBOUND ADAPTER</text>
+  <text x="360" y="156" text-anchor="middle" fill="#cfc0e8" font-size="12" font-weight="700">@node-i3x/rest-server</text>
+  <text x="360" y="170" text-anchor="middle" fill="#a898c0" font-size="10">Fastify routes — i3X Beta API</text>
+
+  <!-- Arrow: REST → Core -->
+  <line x1="360" y1="178" x2="360" y2="198" stroke="#7b4daa" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="370" y="192" fill="#7b4daa" font-size="9">uses ports</text>
+  <polygon points="355,198 365,198 360,206" fill="#7b4daa"/>
+
+  <!-- Core -->
+  <rect x="60" y="208" width="600" height="90" rx="8" fill="url(#gCore)" stroke="#3a7bd5" stroke-width="1.5"/>
+  <text x="360" y="230" text-anchor="middle" fill="#64ffda" font-size="11" font-weight="600" letter-spacing="0.5">DOMAIN CORE  —  ZERO DEPENDENCIES</text>
+  <text x="360" y="252" text-anchor="middle" fill="#ccd6f6" font-size="14" font-weight="700">@node-i3x/core</text>
+  <text x="360" y="272" text-anchor="middle" fill="#8892b0" font-size="11">Domain Models · Services · Port Interfaces</text>
+  <text x="360" y="288" text-anchor="middle" fill="#8892b0" font-size="11">Stable IDs · Subscriptions · History · Types</text>
+
+  <!-- Arrows: Core → Outbound adapters -->
+  <line x1="230" y1="298" x2="230" y2="328" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="130" y="316" fill="#e94560" font-size="9">implements IDataSourcePort</text>
+  <polygon points="225,328 235,328 230,336" fill="#e94560"/>
+
+  <line x1="490" y1="298" x2="490" y2="328" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="395" y="316" fill="#e94560" font-size="9">implements IDataSourcePort</text>
+  <polygon points="485,328 495,328 490,336" fill="#e94560"/>
+
+  <!-- Outbound adapter: opcua-connector -->
+  <rect x="60" y="338" width="290" height="82" rx="8" fill="url(#gOutbound)" stroke="#e94560" stroke-width="1.5"/>
+  <text x="205" y="358" text-anchor="middle" fill="#ffe0e6" font-size="11" font-weight="600" letter-spacing="0.5">OUTBOUND ADAPTER</text>
+  <text x="205" y="378" text-anchor="middle" fill="#ffd0d8" font-size="12" font-weight="700">@node-i3x/opcua-connector</text>
+  <text x="205" y="396" text-anchor="middle" fill="#e0a0a8" font-size="10">node-opcua client (remote)</text>
+  <text x="205" y="412" text-anchor="middle" fill="#c08088" font-size="10">TCP / Binary transport</text>
+
+  <!-- Outbound adapter: pseudo-session-connector -->
+  <rect x="370" y="338" width="290" height="82" rx="8" fill="url(#gOutbound)" stroke="#e94560" stroke-width="1.5"/>
+  <text x="515" y="358" text-anchor="middle" fill="#ffe0e6" font-size="11" font-weight="600" letter-spacing="0.5">OUTBOUND ADAPTER</text>
+  <text x="515" y="378" text-anchor="middle" fill="#ffd0d8" font-size="12" font-weight="700">@node-i3x/pseudo-session</text>
+  <text x="515" y="396" text-anchor="middle" fill="#e0a0a8" font-size="10">PseudoSession adapter (embedded)</text>
+  <text x="515" y="412" text-anchor="middle" fill="#c08088" font-size="10">In-process, zero network</text>
+
+  <!-- Arrows down from outbound adapters -->
+  <line x1="205" y1="420" x2="205" y2="448" stroke="#aaa" stroke-width="1.5"/>
+  <line x1="515" y1="420" x2="515" y2="448" stroke="#aaa" stroke-width="1.5"/>
+
+  <!-- Converging lines -->
+  <line x1="205" y1="448" x2="360" y2="478" stroke="#aaa" stroke-width="1.5"/>
+  <line x1="515" y1="448" x2="360" y2="478" stroke="#aaa" stroke-width="1.5"/>
+  <polygon points="355,476 365,476 360,484" fill="#aaa"/>
+
+  <!-- Labels on outbound arrows -->
+  <text x="160" y="460" fill="#888" font-size="9">OPC UA TCP</text>
+  <text x="475" y="460" fill="#888" font-size="9">In-process</text>
+
+  <!-- External: OPC UA Server -->
+  <rect x="270" y="484" width="180" height="36" rx="18" fill="#e0e0e0" stroke="#999" stroke-width="1.5"/>
+  <text x="360" y="507" text-anchor="middle" fill="#333" font-weight="600">⚙  OPC UA Server</text>
+</svg>

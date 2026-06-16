@@ -32,60 +32,49 @@ Built with [node-opcua](https://node-opcua.github.io/), [Fastify](https://fastif
 
 <!-- mermaid-img -->
 <p align="center">
-  <img src="https://mermaid.ink/svg/Z3JhcGggVEIKICAgIENsaWVudFsiSFRUUCBDbGllbnQiXQoKICAgIHN1YmdyYXBoIGkzeDJ1YS1ub2RlCiAgICAgICAgUkVTVFsiQG5vZGUtaTN4L3Jlc3Qtc2VydmVyPGJyLz5GYXN0aWZ5IHJvdXRlcyDigJQgaTNYIEJldGEgQVBJIl0KICAgICAgICBDb3JlWyJAbm9kZS1pM3gvY29yZTxici8+RG9tYWluIHNlcnZpY2VzIMK3IE1vZGVscyDCtyBTdGFibGUgSURzIl0KICAgICAgICBPUENbIkBub2RlLWkzeC9vcGN1YS1jb25uZWN0b3I8YnIvPk9QQyBVQSBjbGllbnQgYWRhcHRlciAocmVtb3RlKSJdCiAgICAgICAgUHNldWRvWyJAbm9kZS1pM3gvcHNldWRvLXNlc3Npb24tY29ubmVjdG9yPGJyLz5Qc2V1ZG9TZXNzaW9uIGFkYXB0ZXIgKGVtYmVkZGVkKSJdCiAgICAgICAgQXBwWyJAbm9kZS1pM3gvYXBwPGJyLz5Db21wb3NpdGlvbiBSb290Il0KICAgIGVuZAoKICAgIE9QQ1VBWyJPUEMgVUEgU2VydmVyIl0KCiAgICBDbGllbnQgPC0tPnxIVFRQIC8gSlNPTnwgUkVTVAogICAgUkVTVCAtLT4gQ29yZQogICAgQ29yZSAtLT58SURhdGFTb3VyY2VQb3J0fCBPUEMKICAgIENvcmUgLS0+fElEYXRhU291cmNlUG9ydHwgUHNldWRvCiAgICBPUEMgPC0tPnxPUEMgVUEgVENQIC8gQmluYXJ5fCBPUENVQQogICAgUHNldWRvIDwtLT58SW4tcHJvY2Vzc3wgT1BDVUEKICAgIEFwcCAtLi0+fHdpcmVzfCBSRVNUCiAgICBBcHAgLS4tPnx3aXJlc3wgQ29yZQogICAgQXBwIC0uLT58d2lyZXN8IE9QQwogICAgQXBwIC0uLT58d2lyZXN8IFBzZXVkbw==" alt="diagram" />
+  <img src="https://mermaid.ink/svg/Z3JhcGggVEIKICAgIENsaWVudChbIuKYgSBIVFRQIENsaWVudCJdKQoKICAgIHN1YmdyYXBoIEFQUFsiQG5vZGUtaTN4L2FwcCDigJQgQ29tcG9zaXRpb24gUm9vdCJdCiAgICAgICAgZGlyZWN0aW9uIFRCCgogICAgICAgIHN1YmdyYXBoIElOQk9VTkRbIklOQk9VTkQgQURBUFRFUiJdCiAgICAgICAgICAgIFJFU1RbIkBub2RlLWkzeC9yZXN0LXNlcnZlcjxici8+RmFzdGlmeSByb3V0ZXMg4oCUIGkzWCBCZXRhIEFQSSJdCiAgICAgICAgZW5kCgogICAgICAgIHN1YmdyYXBoIENPUkVbIkRPTUFJTiBDT1JFIOKAlCBaRVJPIERFUEVOREVOQ0lFUyJdCiAgICAgICAgICAgIENvcmVbIkBub2RlLWkzeC9jb3JlPGJyLz5Eb21haW4gTW9kZWxzIMK3IFNlcnZpY2VzIMK3IFBvcnQgSW50ZXJmYWNlczxici8+U3RhYmxlIElEcyDCtyBTdWJzY3JpcHRpb25zIMK3IEhpc3RvcnkiXQogICAgICAgIGVuZAoKICAgICAgICBzdWJncmFwaCBPVVRCT1VORFsiT1VUQk9VTkQgQURBUFRFUlMiXQogICAgICAgICAgICBPUENbIkBub2RlLWkzeC9vcGN1YS1jb25uZWN0b3I8YnIvPm5vZGUtb3BjdWEgY2xpZW50IChyZW1vdGUpIl0KICAgICAgICAgICAgUHNldWRvWyJAbm9kZS1pM3gvcHNldWRvLXNlc3Npb24tY29ubmVjdG9yPGJyLz5Qc2V1ZG9TZXNzaW9uIChlbWJlZGRlZCkiXQogICAgICAgIGVuZAogICAgZW5kCgogICAgT1BDVUEoWyLimqkgT1BDIFVBIFNlcnZlciJdKQoKICAgIENsaWVudCA8LS0+fCJIVFRQIC8gSlNPTiJ8IFJFU1QKICAgIFJFU1QgLS0+fCJ1c2VzIHBvcnRzInwgQ29yZQogICAgQ29yZSAtLT58IklEYXRhU291cmNlUG9ydCJ8IE9QQwogICAgQ29yZSAtLT58IklEYXRhU291cmNlUG9ydCJ8IFBzZXVkbwogICAgT1BDIDwtLT58Ik9QQyBVQSBUQ1AiPHwgT1BDVUEKICAgIFBzZXVkbyA8LS0+fCJJbi1wcm9jZXNzInwgT1BDVUE=" alt="node-i3x architecture" />
 </p>
 
 <details><summary>Diagram source (mermaid)</summary>
 
 ```mermaid
 graph TB
-    Client["HTTP Client"]
+    Client(["☁ HTTP Client"])
 
-    subgraph node-i3x
-        REST["@node-i3x/rest-server<br/>Fastify routes — i3X Beta API"]
-        Core["@node-i3x/core<br/>Domain services · Models · Stable IDs"]
-        OPC["@node-i3x/opcua-connector<br/>OPC UA client adapter (remote)"]
-        Pseudo["@node-i3x/pseudo-session-connector<br/>PseudoSession adapter (embedded)"]
-        App["@node-i3x/app<br/>Composition Root"]
+    subgraph APP["@node-i3x/app — Composition Root"]
+        direction TB
+
+        subgraph INBOUND["INBOUND ADAPTER"]
+            REST["@node-i3x/rest-server<br/>Fastify routes — i3X Beta API"]
+        end
+
+        subgraph CORE["DOMAIN CORE — ZERO DEPENDENCIES"]
+            Core["@node-i3x/core<br/>Domain Models · Services · Port Interfaces<br/>Stable IDs · Subscriptions · History"]
+        end
+
+        subgraph OUTBOUND["OUTBOUND ADAPTERS"]
+            OPC["@node-i3x/opcua-connector<br/>node-opcua client (remote)"]
+            Pseudo["@node-i3x/pseudo-session-connector<br/>PseudoSession (embedded)"]
+        end
     end
 
-    OPCUA["OPC UA Server"]
+    OPCUA(["⚙ OPC UA Server"])
 
-    Client <-->|HTTP / JSON| REST
-    REST --> Core
-    Core -->|IDataSourcePort| OPC
-    Core -->|IDataSourcePort| Pseudo
-    OPC <-->|OPC UA TCP / Binary| OPCUA
-    Pseudo <-->|In-process| OPCUA
-    App -.->|wires| REST
-    App -.->|wires| Core
-    App -.->|wires| OPC
-    App -.->|wires| Pseudo
+    Client <-->|"HTTP / JSON"| REST
+    REST -->|"uses ports"| Core
+    Core -->|"IDataSourcePort"| OPC
+    Core -->|"IDataSourcePort"| Pseudo
+    OPC <-->|"OPC UA TCP"| OPCUA
+    Pseudo <-->|"In-process"| OPCUA
 ```
 
 </details>
 
 ### Hexagonal Layers
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     @node-i3x/app                       │
-│               (Composition Root / Wiring)               │
-│                                                         │
-│  ┌─────────────────────┐   ┌──────────────────────────┐ │
-│  │ @node-i3x/rest-server│   │ @node-i3x/opcua-connector│ │
-│  │   Fastify routes     │   │   node-opcua client      │ │
-│  │   INBOUND ADAPTER    │   │   OUTBOUND ADAPTER       │ │
-│  └──────────┬──────────┘   └─────────────┬───────────┘ │
-│             │  uses ports       implements│  ports      │
-│             ▼                             ▼             │
-│  ┌─────────────────────────────────────────────────────┐│
-│  │                  @node-i3x/core                     ││
-│  │    Domain Models · Services · Port Interfaces       ││
-│  │                 ZERO DEPENDENCIES                   ││
-│  └─────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="Hexagonal architecture layers" width="720" />
+</p>
 
 ---
 
