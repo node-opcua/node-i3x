@@ -132,7 +132,7 @@ export class ValueService {
     maxDepth: number,
     currentDepth: number,
   ): Promise<Map<string, VQT>> {
-    if (maxDepth > 0 && currentDepth >= maxDepth - 1) return new Map();
+    if (maxDepth > 0 && currentDepth >= maxDepth) return new Map();
 
     const childIds = model.childrenById.get(parent.id) ?? [];
     const propIds: string[] = [];

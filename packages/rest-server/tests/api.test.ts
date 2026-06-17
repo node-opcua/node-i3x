@@ -706,10 +706,17 @@ describe('REST API', () => {
   it('POST /v1/objects/history failed items include responseDetail', async () => {
     await modelService.preloadModel();
 
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 3_600_000);
+
     const res = await app.inject({
       method: 'POST',
       url: '/v1/objects/history',
-      payload: { elementIds: ['no-such-element'] },
+      payload: {
+        elementIds: ['no-such-element'],
+        startTime: oneHourAgo.toISOString(),
+        endTime: now.toISOString(),
+      },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();

@@ -192,11 +192,11 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       schema: {
         body: {
           type: 'object',
-          required: ['elementIds'],
+          required: ['elementIds', 'startTime', 'endTime'],
           properties: {
             elementIds: { type: 'array', items: { type: 'string' } },
-            startTime: { type: 'string' },
-            endTime: { type: 'string' },
+            startTime: { type: 'string', format: 'date-time' },
+            endTime: { type: 'string', format: 'date-time' },
             maxDepth: { type: 'integer', minimum: 0 },
           },
         },
@@ -212,11 +212,24 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         };
       }>,
     ) => {
-      const { elementIds, startTime, endTime } = req.body;
+      const { elementIds, startTime, endTime, maxDepth } = req.body;
+
+      if (!startTime || !endTime) {
+        throw i3xError(400, 'Both startTime and endTime are required.');
+      }
+
+      // RFC 3339 / ISO 8601 validation regex
+      const rfc3339Regex =
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i;
+      if (!rfc3339Regex.test(startTime) || !rfc3339Regex.test(endTime)) {
+        throw i3xError(400, 'startTime and endTime must be in RFC 3339 format.');
+      }
+
       const results = await deps.historyService.readHistory(
         elementIds,
-        startTime ? new Date(startTime) : null,
-        endTime ? new Date(endTime) : null,
+        new Date(startTime),
+        new Date(endTime),
+        maxDepth ?? 1,
       );
       return bulkResponse(results);
     },

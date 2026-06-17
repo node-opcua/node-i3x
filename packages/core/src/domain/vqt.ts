@@ -25,4 +25,7 @@ export interface CurrentValueResult {
 export interface HistoricalValueResult {
   readonly isComposition: boolean;
   readonly values: readonly VQT[];
+  readonly components?: Readonly<
+    Record<string, { readonly values: readonly VQT[] }>
+  > | null;
 }

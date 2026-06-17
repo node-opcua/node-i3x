@@ -120,4 +120,30 @@ describe('HistoryService', () => {
     expect(results[0]!.responseDetail!.status).toBe(501);
     expect(results[0]!.responseDetail!.title).toBe('Not Implemented');
   });
+
+  it('handles composition history queries with maxDepth', async () => {
+    const ds = mockDataSource(mockNodes, mockHistory);
+    const modelService = new ModelService(ds, nullLogger);
+    const historyService = new HistoryService(ds, modelService, nullLogger);
+
+    const rootId = stableI3xId(rootNsu, 'asset');
+    const tempId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
+
+    // Test maxDepth = 1 (default): should return isComposition: true but no components
+    const results1 = await historyService.readHistory([rootId], null, null, 1);
+    expect(results1).toHaveLength(1);
+    expect(results1[0]!.success).toBe(true);
+    expect(results1[0]!.result!.isComposition).toBe(true);
+    expect(results1[0]!.result!.components).toBeUndefined();
+
+    // Test maxDepth = 2: should return components map containing child history
+    const results2 = await historyService.readHistory([rootId], null, null, 2);
+    expect(results2).toHaveLength(1);
+    expect(results2[0]!.success).toBe(true);
+    expect(results2[0]!.result!.isComposition).toBe(true);
+    expect(results2[0]!.result!.components).toBeDefined();
+    expect(results2[0]!.result!.components![tempId]).toBeDefined();
+    expect(results2[0]!.result!.components![tempId]!.values).toHaveLength(2);
+    expect(results2[0]!.result!.components![tempId]!.values[0]!.value).toBe(20.5);
+  });
 });
