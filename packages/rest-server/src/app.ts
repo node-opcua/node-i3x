@@ -81,7 +81,7 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
   });
 
   await app.register(swaggerUi, {
-    routePrefix: '/docs',
+    routePrefix: '/v1/docs',
   });
 
   // Expose static OpenAPI specification file at /openapi.json

@@ -11,7 +11,7 @@ const PUBLIC_PATHS = new Set(['/v1/info', '/health', '/ready']);
  * Register a Bearer-token auth hook on the Fastify instance.
  *
  * When `apiKey` is provided, every request (except public paths
- * and the /docs Swagger UI) must include a valid
+ * and the /v1/docs Swagger UI) must include a valid
  * `Authorization: Bearer <key>` header. Requests without a
  * valid token receive a 401 response with an i3X error envelope.
  *
@@ -28,7 +28,12 @@ export function registerAuth(app: FastifyInstance, apiKey: string | undefined): 
     if (PUBLIC_PATHS.has(path)) return;
 
     // Allow Swagger / OpenAPI docs
-    if (path.startsWith('/docs') || path.endsWith('/openapi.json')) return;
+    if (
+      path.startsWith('/v1/docs') ||
+      path.startsWith('/docs') ||
+      path.endsWith('/openapi.json')
+    )
+      return;
 
     // Check Authorization header
     const authHeader = request.headers.authorization;

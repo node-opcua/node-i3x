@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.8.3 (2026-06-17)
+
+- Version bump
+
 ## 0.8.2 (2026-06-16)
 
 - Version bump
