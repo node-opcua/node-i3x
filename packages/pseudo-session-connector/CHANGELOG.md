@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.8.5 (2026-06-17)
+
+- feat: enforce Bearer token authentication by default
+
 ## 0.8.4 (2026-06-17)
 
 - Version bump
