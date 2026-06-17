@@ -173,12 +173,79 @@ describe('startServer', () => {
     }
   });
 
-  it('registers SIGINT and SIGTERM handlers', async () => {
+  it('registers SIGINT and SIGTERM handlers and handles graceful shutdown', async () => {
+    let sigintHandler: (() => Promise<void>) | undefined;
+    processOnSpy.mockImplementation(((event: string, handler: () => Promise<void>) => {
+      if (event === 'SIGINT') {
+        sigintHandler = handler;
+      }
+      return process;
+    }) as never);
+
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+
+    try {
+      await startServer(makeConfig(), '1.0.0');
+
+      const signals = processOnSpy.mock.calls.map((c) => c[0]);
+      expect(signals).toContain('SIGINT');
+      expect(signals).toContain('SIGTERM');
+
+      expect(sigintHandler).toBeDefined();
+      if (sigintHandler) {
+        await sigintHandler();
+      }
+
+      expect(mockClose).toHaveBeenCalledOnce();
+      expect(mockSubClose).toHaveBeenCalledOnce();
+      expect(mockDisconnect).toHaveBeenCalledOnce();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      exitSpy.mockRestore();
+    }
+  });
+
+  it('graceful shutdown handles errors in closing resources', async () => {
+    let sigintHandler: (() => Promise<void>) | undefined;
+    processOnSpy.mockImplementation(((event: string, handler: () => Promise<void>) => {
+      if (event === 'SIGINT') {
+        sigintHandler = handler;
+      }
+      return process;
+    }) as never);
+
+    mockClose.mockRejectedValueOnce(new Error('close error'));
+    mockSubClose.mockRejectedValueOnce(new Error('sub close error'));
+    mockDisconnect.mockRejectedValueOnce(new Error('disconnect error'));
+
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+
+    try {
+      await startServer(makeConfig(), '1.0.0');
+
+      if (sigintHandler) {
+        await sigintHandler();
+      }
+
+      expect(mockClose).toHaveBeenCalledOnce();
+      expect(mockSubClose).toHaveBeenCalledOnce();
+      expect(mockDisconnect).toHaveBeenCalledOnce();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      exitSpy.mockRestore();
+    }
+  });
+
+  it('invokes getOpcuaStats in createApp configuration', async () => {
+    const { createApp } = await import('@node-i3x/rest-server');
     await startServer(makeConfig(), '1.0.0');
 
-    const signals = processOnSpy.mock.calls.map((c) => c[0]);
-    expect(signals).toContain('SIGINT');
-    expect(signals).toContain('SIGTERM');
+    const call = (createApp as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(call.getOpcuaStats).toBeDefined();
+    if (call.getOpcuaStats) {
+      call.getOpcuaStats();
+      expect(mockGetStats).toHaveBeenCalled();
+    }
   });
 
   it('preloads model when config.preload is true', async () => {
