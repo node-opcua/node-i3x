@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.8.6 (2026-06-17)
+
+- Version bump
+
 ## 0.8.5 (2026-06-17)
 
 - feat: enforce Bearer token authentication by default
