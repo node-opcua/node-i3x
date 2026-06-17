@@ -67,7 +67,7 @@ describe('resolveConfig', () => {
     expect(config.preload).toBe(true);
     expect(config.preloadStrict).toBe(false);
     expect(config.readOnly).toBe(false);
-    expect(config.requireAuth).toBe(false);
+    expect(config.requireAuth).toBe(true);
     expect(config.experimental).toBe(false);
   });
 
@@ -121,10 +121,10 @@ describe('resolveConfig', () => {
     expect(config.logLevel).toBe('error');
   });
 
-  // ── 5. requireAuth defaults to false ─────────────────────
-  it('requireAuth defaults to false', async () => {
+  // ── 5. requireAuth defaults to true ──────────────────────
+  it('requireAuth defaults to true', async () => {
     const config = await resolveConfig({});
-    expect(config.requireAuth).toBe(false);
+    expect(config.requireAuth).toBe(true);
   });
 
   // ── 6. requireAuth can be set via env var ────────────────

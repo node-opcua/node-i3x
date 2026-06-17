@@ -36,7 +36,7 @@ const DEFAULTS: I3xConfig = {
   preload: true,
   preloadStrict: false,
   readOnly: false,
-  requireAuth: false,
+  requireAuth: true,
   experimental: false,
 };
 

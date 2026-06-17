@@ -46,6 +46,7 @@ export interface RestServerDeps {
   logger: ILogger;
   readOnly?: boolean;
   apiKey?: string;
+  requireAuth?: boolean;
   experimental?: boolean;
   getOpcuaStats?: () => {
     transactionsPerformed: number;
@@ -88,7 +89,7 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
   app.get('/openapi.json', async () => spec);
 
   // Register auth middleware (no-op when apiKey is undefined)
-  registerAuth(app, deps.apiKey);
+  registerAuth(app, deps.apiKey, deps.requireAuth);
 
   // Brand every response with X-Powered-By header
   app.addHook('onRequest', async (_req, reply) => {

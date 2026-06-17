@@ -25,7 +25,7 @@ const { values: args } = parseArgs({
     'rest-port': { type: 'string', default: '8080' },
     'opcua-port': { type: 'string', default: '48410' },
     'api-key': { type: 'string' },
-    'require-auth': { type: 'boolean', default: false },
+    'require-auth': { type: 'boolean', default: true },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -38,7 +38,7 @@ Options:
   --rest-port <port>   REST API port (default: 8080)
   --opcua-port <port>  OPC UA server port (default: 48410)
   --api-key <key>      API key for Bearer token auth
-  --require-auth       Require Bearer token auth (exit if no api-key is configured)
+  --no-require-auth    Allow requests without Bearer token when api-key is configured
   -h, --help           Show this help
 `);
   process.exit(0);
@@ -435,6 +435,7 @@ async function main() {
     subscriptionService,
     logger,
     apiKey,
+    requireAuth: args['require-auth'],
   });
   await app.listen({ port: REST_PORT, host: '127.0.0.1' });
 

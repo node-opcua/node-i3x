@@ -89,6 +89,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     logger,
     readOnly: config.readOnly,
     apiKey,
+    requireAuth: config.requireAuth,
     experimental: config.experimental,
     getOpcuaStats: () => opcuaClient.getStats(),
   });

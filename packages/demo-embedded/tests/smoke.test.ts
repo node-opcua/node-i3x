@@ -20,6 +20,8 @@ describe('demo-embedded smoke test', () => {
       String(restPort),
       '--opcua-port',
       String(opcuaPort),
+      '--api-key',
+      'smoke-test-secret-key',
     ]);
 
     let output = '';

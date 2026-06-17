@@ -18,7 +18,11 @@ const PUBLIC_PATHS = new Set(['/v1/info', '/health', '/ready']);
  * When `apiKey` is undefined/empty, the hook is a no-op and the
  * server runs in open mode (no auth required).
  */
-export function registerAuth(app: FastifyInstance, apiKey: string | undefined): void {
+export function registerAuth(
+  app: FastifyInstance,
+  apiKey: string | undefined,
+  requireAuth = true,
+): void {
   if (!apiKey) return; // open mode — no auth
 
   app.addHook('onRequest', async (request, reply) => {
@@ -38,6 +42,10 @@ export function registerAuth(app: FastifyInstance, apiKey: string | undefined): 
     // Check Authorization header
     const authHeader = request.headers.authorization;
     if (!authHeader) {
+      if (!requireAuth) {
+        // Devmode / allow no bearer
+        return;
+      }
       reply.status(401).send({
         success: false,
         responseDetail: {

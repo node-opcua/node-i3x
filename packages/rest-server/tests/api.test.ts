@@ -858,3 +858,62 @@ describe('Bearer token auth', () => {
     expect(res.statusCode).toBe(200);
   });
 });
+
+describe('Bearer token auth - devmode (requireAuth = false)', () => {
+  let devmodeApp: Awaited<ReturnType<typeof createApp>>;
+  const TEST_API_KEY = 'test-secret-key-12345';
+
+  beforeAll(async () => {
+    const ds = new MockDataSource();
+    const logger = nullLogger;
+    const modelService = new ModelService(ds, logger);
+    const valueService = new ValueService(ds, modelService, logger);
+    const historyService = new HistoryService(ds, modelService, logger);
+    const subscriptionService = new SubscriptionService(
+      ds,
+      modelService,
+      logger,
+      1000,
+      250,
+    );
+    const typeService = new TypeService(ds, logger);
+
+    devmodeApp = await createApp({
+      dataSource: ds,
+      modelService,
+      typeService,
+      valueService,
+      historyService,
+      subscriptionService,
+      logger,
+      apiKey: TEST_API_KEY,
+      requireAuth: false,
+      experimental: true,
+    });
+
+    await typeService.preloadTypes();
+  });
+
+  it('GET /v1/namespaces returns 200 without auth (devmode allowed)', async () => {
+    const res = await devmodeApp.inject({ method: 'GET', url: '/v1/namespaces' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('GET /v1/namespaces returns 401 with wrong token even in devmode', async () => {
+    const res = await devmodeApp.inject({
+      method: 'GET',
+      url: '/v1/namespaces',
+      headers: { authorization: 'Bearer wrong-key' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('GET /v1/namespaces returns 200 with valid Bearer token', async () => {
+    const res = await devmodeApp.inject({
+      method: 'GET',
+      url: '/v1/namespaces',
+      headers: { authorization: `Bearer ${TEST_API_KEY}` },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+});
