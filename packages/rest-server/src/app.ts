@@ -73,11 +73,26 @@ export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> 
   // Register error handler
   registerErrorHandler(app);
 
+  // Dynamically inject Bearer token auth in Swagger UI specification
+  const swaggerSpec = {
+    ...spec,
+    security: [{ BearerAuth: [] }],
+    components: {
+      ...spec.components,
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+        },
+      },
+    },
+  };
+
   // Register Swagger UI & static OpenAPI spec
   await app.register(swagger, {
     mode: 'static',
     specification: {
-      document: spec as any,
+      document: swaggerSpec as any,
     },
   });
 

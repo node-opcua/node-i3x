@@ -10,7 +10,7 @@ export function printBanner(
     `  i3X Server v${version}`,
     '',
     `  OPC UA:  ${config.endpoint}`,
-    `  REST:    http://${config.host}:${config.port}`,
+    `  REST:    http://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${config.port}`,
     `  Auth:    ${config.apiKey ? `Bearer${config.requireAuth ? ' (required)' : ''}` : 'none (open)'}`,
   ];
 
