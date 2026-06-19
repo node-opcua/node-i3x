@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.8.7 (2026-06-19)
+
+- Version bump
+
 ## 0.8.6 (2026-06-17)
 
 - feat: display localhost in banner and dynamically inject BearerAuth to Swagger UI

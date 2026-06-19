@@ -152,6 +152,25 @@ describe('OpcUaClient', () => {
     });
   });
 
+  describe('getNamespaces()', () => {
+    it('returns formatted namespace array with clean display names', async () => {
+      const client = new OpcUaClient({ endpointUrl: 'opc.tcp://localhost:4840' }, logger);
+      (client as any)._namespaceArray = [
+        'http://opcfoundation.org/UA/',
+        'http://opcfoundation.org/UA/Scales/V2/',
+        '/UA/Scales/V3/',
+        'urn:some:other:uri',
+      ];
+      const ns = await client.getNamespaces();
+      expect(ns).toEqual([
+        { uri: 'http://opcfoundation.org/UA/', displayName: 'UA' },
+        { uri: 'http://opcfoundation.org/UA/Scales/V2/', displayName: 'V2' },
+        { uri: '/UA/Scales/V3/', displayName: 'V3' },
+        { uri: 'urn:some:other:uri', displayName: 'urn:some:other:uri' },
+      ]);
+    });
+  });
+
   describe('disconnect()', () => {
     it('succeeds even when not connected', async () => {
       const client = new OpcUaClient({ endpointUrl: 'opc.tcp://localhost:4840' }, logger);

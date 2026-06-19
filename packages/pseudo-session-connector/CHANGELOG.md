@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.8.7 (2026-06-19)
+
+- Version bump
+
 ## 0.8.6 (2026-06-17)
 
 - Version bump

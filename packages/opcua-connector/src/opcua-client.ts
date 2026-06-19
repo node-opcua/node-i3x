@@ -810,7 +810,7 @@ export class OpcUaClient {
   async getNamespaces(): Promise<NamespaceInfo[]> {
     return this._namespaceArray.map((uri, idx) => ({
       uri,
-      displayName: uri.split('/').pop() ?? `ns${idx}`,
+      displayName: uri.split('/').filter(Boolean).pop() ?? `ns${idx}`,
     }));
   }
 
