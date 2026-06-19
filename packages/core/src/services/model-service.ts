@@ -130,13 +130,68 @@ export class ModelService {
     const propertyToSource = new Map<string, string>();
     const actionToMethod = new Map<string, readonly [string, string]>();
 
+    const findParentAsset = (node: SourceNodeInfo): SourceNodeInfo | null => {
+      let curr = node;
+      while (curr.parentSourceNodeId) {
+        const parent = bySourceId.get(curr.parentSourceNodeId);
+        if (!parent) break;
+        if (parent.nodeClass === 'Object') {
+          return parent;
+        }
+        curr = parent;
+      }
+      return null;
+    };
+
+    const idCache = new Map<string, string>();
+    const getNodeId = (sourceId: string): string => {
+      const cached = idCache.get(sourceId);
+      if (cached) return cached;
+
+      const node = bySourceId.get(sourceId)!;
+      const kind = inferKind(node);
+      const browsePath = browsePathBySourceId.get(sourceId) ?? node.sourceNodeId;
+
+      if (kind === 'property') {
+        const parentAsset = findParentAsset(node);
+        if (parentAsset) {
+          const parentAssetPath =
+            browsePathBySourceId.get(parentAsset.sourceNodeId) ??
+            parentAsset.sourceNodeId;
+          const parentAssetId = stableI3xId(parentAssetPath, inferKind(parentAsset));
+
+          const relativePath = browsePath.slice(parentAssetPath.length + 1);
+          const cleanSegments = relativePath.split('/').map((segment) => {
+            const colonIdx = segment.indexOf(':');
+            const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
+            return name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+          });
+          const relativePathCleaned = cleanSegments.filter(Boolean).join('-');
+
+          const parentName = parentAsset.displayName || parentAsset.browseName;
+          const parentNameCleaned = parentName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+          const hashPart = parentAssetId.split('-')[1];
+          const propertyId = `property-${hashPart}-${parentNameCleaned}-${relativePathCleaned}`;
+          idCache.set(sourceId, propertyId);
+          return propertyId;
+        }
+      }
+
+      const standardId = stableI3xId(browsePath, kind);
+      idCache.set(sourceId, standardId);
+      return standardId;
+    };
+
     for (const [sourceId, srcNode] of bySourceId) {
       const childSources = childSourcesByParent.get(sourceId) ?? [];
-      const childIds = childSources.map((cId) => {
-        const cNode = bySourceId.get(cId)!;
-        const cPath = browsePathBySourceId.get(cId) ?? cNode.sourceNodeId;
-        return stableI3xId(cPath, inferKind(cNode));
-      });
+      const childIds = childSources.map((cId) => getNodeId(cId));
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
       let typeOverride: string | null = null;
@@ -146,15 +201,20 @@ export class ModelService {
       } else {
         typeOverride = 'UnknownType';
       }
-      const mapped = mapNode(srcNode, childIds, browsePath, typeOverride);
-      nodesById.set(mapped.id, mapped);
-      childrenById.set(mapped.id, childIds);
 
-      if (srcNode.parentSourceNodeId == null) rootIds.push(mapped.id);
-      if (mapped.kind === 'property')
-        propertyToSource.set(mapped.id, srcNode.sourceNodeId);
+      const nodeId = getNodeId(sourceId);
+      const mapped = {
+        ...mapNode(srcNode, childIds, browsePath, typeOverride),
+        id: nodeId,
+      };
+
+      nodesById.set(nodeId, mapped);
+      childrenById.set(nodeId, childIds);
+
+      if (srcNode.parentSourceNodeId == null) rootIds.push(nodeId);
+      if (mapped.kind === 'property') propertyToSource.set(nodeId, srcNode.sourceNodeId);
       if (mapped.kind === 'action' && srcNode.parentSourceNodeId != null) {
-        actionToMethod.set(mapped.id, [srcNode.parentSourceNodeId, srcNode.sourceNodeId]);
+        actionToMethod.set(nodeId, [srcNode.parentSourceNodeId, srcNode.sourceNodeId]);
       }
     }
 

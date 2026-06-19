@@ -83,7 +83,10 @@ describe('HistoryService', () => {
     const modelService = new ModelService(ds, nullLogger);
     const historyService = new HistoryService(ds, modelService, nullLogger);
 
-    const tempId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
+    const model = await modelService.getOrBuildModel();
+    const tempId = [...model.nodesById.values()].find(
+      (n) => n.name === 'Temperature',
+    )!.id;
 
     const results = await historyService.readHistory([tempId], null, null);
     expect(results).toHaveLength(1);
@@ -112,7 +115,8 @@ describe('HistoryService', () => {
     const modelService = new ModelService(ds, nullLogger);
     const historyService = new HistoryService(ds, modelService, nullLogger);
 
-    const errorId = stableI3xId(`${rootNsu}/${errorNsu}`, 'property');
+    const model = await modelService.getOrBuildModel();
+    const errorId = [...model.nodesById.values()].find((n) => n.name === 'ErrorNode')!.id;
 
     const results = await historyService.readHistory([errorId], null, null);
     expect(results).toHaveLength(1);
@@ -126,8 +130,11 @@ describe('HistoryService', () => {
     const modelService = new ModelService(ds, nullLogger);
     const historyService = new HistoryService(ds, modelService, nullLogger);
 
+    const model = await modelService.getOrBuildModel();
     const rootId = stableI3xId(rootNsu, 'asset');
-    const tempId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
+    const tempId = [...model.nodesById.values()].find(
+      (n) => n.name === 'Temperature',
+    )!.id;
 
     // Test maxDepth = 1 (default): should return isComposition: true but no components
     const results1 = await historyService.readHistory([rootId], null, null, 1);

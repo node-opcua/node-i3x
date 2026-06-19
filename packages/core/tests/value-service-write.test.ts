@@ -52,8 +52,11 @@ describe('ValueService writeValue', () => {
     const writeValueSpy = vi.spyOn(ds, 'writeValue');
     const modelService = new ModelService(ds, nullLogger);
     const valueService = new ValueService(ds, modelService, nullLogger);
+    const model = await modelService.getOrBuildModel();
 
-    const tempId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
+    const tempId = [...model.nodesById.values()].find(
+      (n) => n.name === 'Temperature',
+    )!.id;
 
     await valueService.writeValue(tempId, 23.8);
 

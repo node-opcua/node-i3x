@@ -4,6 +4,32 @@ import { describe, expect, it } from 'vitest';
 
 // ── Helpers ──────────────────────────────────────────────────
 
+function expectedPropertyId(
+  parentPath: string,
+  parentBrowseName: string,
+  relativePath: string,
+): string {
+  const parentAssetId = stableI3xId(parentPath, 'asset');
+  const hashPart = parentAssetId.split('-')[1];
+
+  const cleanSegments = relativePath.split('/').map((segment) => {
+    const colonIdx = segment.indexOf(':');
+    const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  });
+  const relativePathCleaned = cleanSegments.filter(Boolean).join('-');
+
+  const parentNameCleaned = parentBrowseName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return `property-${hashPart}-${parentNameCleaned}-${relativePathCleaned}`;
+}
+
 function mockDataSource(nodes: SourceNodeInfo[]): IDataSourcePort {
   return {
     browseTree: async () => nodes,
@@ -80,8 +106,7 @@ describe('ModelService – browse path construction', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const expectedChildPath = `${rootNsu}/${childNsu}`;
-    const childId = stableI3xId(expectedChildPath, 'property');
+    const childId = expectedPropertyId(rootNsu, 'Root', childNsu);
 
     expect(model.nodesById.has(childId)).toBe(true);
     expect(model.nodesById.get(childId)!.kind).toBe('property');
@@ -109,8 +134,7 @@ describe('ModelService – browse path construction', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const expectedPath = `${rootNsu}/${assetNsu}/${propNsu}`;
-    const propId = stableI3xId(expectedPath, 'property');
+    const propId = expectedPropertyId(`${rootNsu}/${assetNsu}`, 'Boiler', propNsu);
 
     expect(model.nodesById.has(propId)).toBe(true);
     expect(model.nodesById.get(propId)?.kind).toBe('property');
@@ -242,8 +266,8 @@ describe('ModelService – uniqueness', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const idChildA = stableI3xId(`${parentA}/${childName}`, 'property');
-    const idChildB = stableI3xId(`${parentB}/${childName}`, 'property');
+    const idChildA = expectedPropertyId(parentA, 'BoilerA', childName);
+    const idChildB = expectedPropertyId(parentB, 'BoilerB', childName);
 
     expect(idChildA).not.toBe(idChildB);
     expect(model.nodesById.has(idChildA)).toBe(true);
@@ -303,7 +327,7 @@ describe('ModelService – property and action mapping', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const varId = stableI3xId(`${rootNsu}/${varNsu}`, 'property');
+    const varId = expectedPropertyId(rootNsu, 'Root', varNsu);
     expect(model.propertyToSource.has(varId)).toBe(true);
     expect(model.propertyToSource.get(varId)).toBe('ns=2;i=2');
   });
@@ -374,9 +398,10 @@ describe('ModelService – edge cases', () => {
     expect(rootChildren).toHaveLength(5);
 
     // Verify each child has the correct element ID
+    const rootBrowseName = rootNsu.split(':').pop() ?? '';
     for (const name of childNames) {
       const childNsu = `nsu=http://test.org/:${name}`;
-      const expectedId = stableI3xId(`${rootNsu}/${childNsu}`, 'property');
+      const expectedId = expectedPropertyId(rootNsu, rootBrowseName, childNsu);
       expect(rootChildren).toContain(expectedId);
       expect(model.nodesById.has(expectedId)).toBe(true);
     }
