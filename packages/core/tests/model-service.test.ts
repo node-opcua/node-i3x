@@ -826,5 +826,67 @@ describe('ModelService – edge cases', () => {
       expect(pressureNode).toBeDefined();
       expect(pressureNode?.engUnit).toBe('BAR');
     });
+
+    it('Variable with nested EngineeringUnits (plural) property maps engUnit and translates mm correctly', async () => {
+      const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
+      const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
+      const levelPath = `${paramSetPath}/nsu=http://test.org/:WaterTankLevel`;
+      const engUnitsPath = `${levelPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnits`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: parentAssetPath,
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=101',
+          nsuQualifiedName: 'nsu=http://test.org/:ParameterSet',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=201',
+          nsuQualifiedName: 'nsu=http://test.org/:WaterTankLevel',
+          parentSourceNodeId: 'ns=2;i=101',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=202',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnits',
+          parentSourceNodeId: 'ns=2;i=201',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const customDataSource = mockDataSource(nodes);
+      customDataSource.readValues = async (ids) => {
+        if (ids.includes('ns=2;i=202')) {
+          return [
+            {
+              value: {
+                displayName: { text: 'mm' },
+              },
+              quality: 'Good',
+              timestamp: '',
+            },
+          ];
+        }
+        return [];
+      };
+
+      const svc = new ModelService(customDataSource, nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedLevelId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/WaterTankLevel',
+      );
+
+      const levelNode = model.nodesById.get(expectedLevelId);
+      expect(levelNode).toBeDefined();
+      expect(levelNode?.engUnit).toBe('MMT');
+    });
   });
 });

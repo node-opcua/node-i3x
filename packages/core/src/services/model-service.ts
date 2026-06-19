@@ -246,10 +246,12 @@ export class ModelService {
       if (node.kind === 'property') {
         for (const childId of node.children) {
           const childNode = nodesById.get(childId);
+          const childNameLower = childNode?.name.toLowerCase();
           if (
             childNode &&
             childNode.kind === 'property' &&
-            childNode.name.toLowerCase() === 'engineeringunit'
+            (childNameLower === 'engineeringunit' ||
+              childNameLower === 'engineeringunits')
           ) {
             engUnitReqs.push({
               propertyId: node.id,
@@ -306,6 +308,42 @@ export class ModelService {
 
 function mapSymbolToUnece(symbol: string): string | null {
   const clean = symbol.trim().toLowerCase();
+  if (
+    clean === 'm' ||
+    clean === 'meter' ||
+    clean === 'meters' ||
+    clean === 'metre' ||
+    clean === 'metres'
+  )
+    return 'MTR';
+  if (
+    clean === 'mm' ||
+    clean === 'millimeter' ||
+    clean === 'millimeters' ||
+    clean === 'millimetre' ||
+    clean === 'millimetres'
+  )
+    return 'MMT';
+  if (
+    clean === 'l' ||
+    clean === 'liter' ||
+    clean === 'liters' ||
+    clean === 'litre' ||
+    clean === 'litres'
+  )
+    return 'LTR';
+  if (
+    clean === 'ml' ||
+    clean === 'milliliter' ||
+    clean === 'milliliters' ||
+    clean === 'millilitre' ||
+    clean === 'millilitres'
+  )
+    return 'MLT';
+  if (clean === 'g' || clean === 'gram' || clean === 'grams') return 'GRM';
+  if (clean === 'pa' || clean === 'pascal' || clean === 'pascals') return 'PAL';
+  if (clean === 'w' || clean === 'watt' || clean === 'watts') return 'WTT';
+
   if (clean === '°c' || clean === 'cel' || clean === 'celsius') return 'CEL';
   if (clean === '°f' || clean === 'fah' || clean === 'fahrenheit') return 'FAH';
   if (clean === 'bar') return 'BAR';
