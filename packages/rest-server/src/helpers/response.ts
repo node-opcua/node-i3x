@@ -92,7 +92,9 @@ export function toObjectInstance(
           metadata: {
             typeNamespaceUri,
             sourceTypeId,
-            engUnit: node.engUnit ?? null,
+            ...(node.engUnit !== undefined && node.engUnit !== null
+              ? { engUnit: node.engUnit }
+              : {}),
           },
         }
       : {}),
