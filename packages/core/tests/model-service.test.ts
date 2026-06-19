@@ -12,20 +12,30 @@ function expectedPropertyId(
   const parentAssetId = stableI3xId(parentPath, 'asset');
   const hashPart = parentAssetId.split('-')[1];
 
-  const cleanSegments = relativePath.split('/').map((segment) => {
-    const colonIdx = segment.indexOf(':');
-    const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
-    return name
+  const cleanName = (name: string): string => {
+    let cleaned = name;
+    const cttIndex = cleaned.toLowerCase().indexOf('-for-ctt-');
+    if (cttIndex >= 0) {
+      cleaned = cleaned.slice(cttIndex + 9);
+    }
+    return cleaned
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  };
+
+  const segments = relativePath.includes('nsu=')
+    ? relativePath.split('/nsu=')
+    : relativePath.split('/');
+
+  const cleanSegments = segments.map((segment) => {
+    const colonIdx = segment.lastIndexOf(':');
+    const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
+    return cleanName(name);
   });
   const relativePathCleaned = cleanSegments.filter(Boolean).join('-');
 
-  const parentNameCleaned = parentBrowseName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const parentNameCleaned = cleanName(parentBrowseName);
 
   return `property-${hashPart}-${parentNameCleaned}-${relativePathCleaned}`;
 }
@@ -579,6 +589,80 @@ describe('ModelService – edge cases', () => {
       );
       expect(map.get('ns=1;i=1006')).toBe(
         'datatype:customdatatype [ nsu=http://test.org/;i=1006 ]',
+      );
+    });
+  });
+
+  describe('ModelService - property nesting (EURange/EngineeringUnit)', () => {
+    it('Variable with nested properties (EURange, EngineeringUnit) maps to correct property IDs under the parent asset', async () => {
+      const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
+      const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
+      const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
+      const euRangePath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EURange`;
+      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: parentAssetPath,
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=101',
+          nsuQualifiedName: 'nsu=http://test.org/:ParameterSet',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=102',
+          nsuQualifiedName: 'nsu=http://test.org/:Temperature',
+          parentSourceNodeId: 'ns=2;i=101',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=103',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EURange',
+          parentSourceNodeId: 'ns=2;i=102',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=104',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit',
+          parentSourceNodeId: 'ns=2;i=102',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const svc = new ModelService(mockDataSource(nodes), nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedTempId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Temperature',
+      );
+      const expectedEURangeId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Temperature/EURange',
+      );
+      const expectedEngUnitId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Temperature/EngineeringUnit',
+      );
+
+      expect(model.nodesById.has(expectedTempId)).toBe(true);
+      expect(model.nodesById.has(expectedEURangeId)).toBe(true);
+      expect(model.nodesById.has(expectedEngUnitId)).toBe(true);
+
+      // Verify human-readable pattern
+      expect(expectedTempId).toMatch(/-coffeemachinea-parameterset-temperature$/);
+      expect(expectedEURangeId).toMatch(
+        /-coffeemachinea-parameterset-temperature-eurange$/,
+      );
+      expect(expectedEngUnitId).toMatch(
+        /-coffeemachinea-parameterset-temperature-engineeringunit$/,
       );
     });
   });

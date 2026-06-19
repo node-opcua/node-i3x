@@ -137,6 +137,14 @@ export class ModelService {
       while (curr.parentSourceNodeId) {
         const parent = bySourceId.get(curr.parentSourceNodeId);
         if (!parent) break;
+        if (
+          parent.browseName === 'DeviceSet' ||
+          parent.browseName === 'Objects' ||
+          parent.browseName === 'ObjectsFolder' ||
+          parent.browseName === 'Server'
+        ) {
+          break;
+        }
         if (parent.nodeClass === 'Object') {
           topmostObject = parent;
         }
@@ -163,21 +171,32 @@ export class ModelService {
           const parentAssetId = stableI3xId(parentAssetPath, inferKind(parentAsset));
 
           const relativePath = browsePath.slice(parentAssetPath.length + 1);
-          const cleanSegments = relativePath.split('/').map((segment) => {
-            const colonIdx = segment.indexOf(':');
-            const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
-            return name
+
+          const cleanName = (name: string): string => {
+            let cleaned = name;
+            const cttIndex = cleaned.toLowerCase().indexOf('-for-ctt-');
+            if (cttIndex >= 0) {
+              cleaned = cleaned.slice(cttIndex + 9);
+            }
+            return cleaned
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '-')
               .replace(/^-+|-+$/g, '');
+          };
+
+          const segments = relativePath.includes('nsu=')
+            ? relativePath.split('/nsu=')
+            : relativePath.split('/');
+
+          const cleanSegments = segments.map((segment) => {
+            const colonIdx = segment.lastIndexOf(':');
+            const name = colonIdx >= 0 ? segment.slice(colonIdx + 1) : segment;
+            return cleanName(name);
           });
           const relativePathCleaned = cleanSegments.filter(Boolean).join('-');
 
           const parentName = parentAsset.displayName || parentAsset.browseName;
-          const parentNameCleaned = parentName
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+          const parentNameCleaned = cleanName(parentName);
 
           const hashPart = parentAssetId.split('-')[1];
           const propertyId = `property-${hashPart}-${parentNameCleaned}-${relativePathCleaned}`;
