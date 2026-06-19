@@ -29,11 +29,21 @@ const DATA_TYPE_MAP: Record<string, Record<string, unknown>> = {
   'i=8': { type: 'integer' },
   'i=9': { type: 'integer' },
 
-  // Float / Double
+  // Float / Double / Number / Duration
   float: { type: 'number' },
   double: { type: 'number' },
+  number: { type: 'number' },
+  duration: { type: 'number' },
   'i=10': { type: 'number' },
   'i=11': { type: 'number' },
+  'i=26': { type: 'number' },
+  'i=290': { type: 'number' },
+
+  // Integer types (base & uinteger)
+  integer: { type: 'integer' },
+  uinteger: { type: 'integer' },
+  'i=27': { type: 'integer' },
+  'i=28': { type: 'integer' },
 
   // String types
   string: { type: 'string' },
@@ -43,9 +53,11 @@ const DATA_TYPE_MAP: Record<string, Record<string, unknown>> = {
   xmlelement: { type: 'string' },
   'i=12': { type: 'string' },
 
-  // DateTime
+  // DateTime / UtcTime
   datetime: { type: 'string', format: 'date-time' },
+  utctime: { type: 'string', format: 'date-time' },
   'i=13': { type: 'string', format: 'date-time' },
+  'i=294': { type: 'string', format: 'date-time' },
 
   // GUID / NodeId / StatusCode
   guid: { type: 'string' },
@@ -79,15 +91,20 @@ export function jsonSchemaForDataType(dataType: string | null): Record<string, u
 
   // Keyword-based fallback
   if (normalized.includes('boolean')) return { type: 'boolean' };
-  if (normalized.includes('double') || normalized.includes('float'))
+  if (
+    normalized.includes('double') ||
+    normalized.includes('float') ||
+    normalized.includes('duration') ||
+    normalized.includes('number')
+  )
     return { type: 'number' };
   if (
-    normalized.includes('int') &&
+    (normalized.includes('int') || normalized.includes('enumeration')) &&
     !normalized.includes('interval') &&
     !normalized.includes('interface')
   )
     return { type: 'integer' };
-  if (normalized.includes('datetime')) {
+  if (normalized.includes('datetime') || normalized.includes('utctime')) {
     return { type: 'string', format: 'date-time' };
   }
 

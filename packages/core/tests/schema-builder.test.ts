@@ -125,6 +125,52 @@ describe('schema-builder', () => {
     expect(props.V.type).toBe('number');
   });
 
+  it('maps Duration data type (i=290) to number', () => {
+    const type = objectType({
+      members: [member({ browseName: 'Dur', displayName: 'Dur', dataType: 'i=290' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.Dur.type).toBe('number');
+  });
+
+  it('maps UtcTime data type (i=294) to string with date-time format', () => {
+    const type = objectType({
+      members: [member({ browseName: 'Utc', displayName: 'Utc', dataType: 'i=294' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.Utc.type).toBe('string');
+    expect(props.Utc.format).toBe('date-time');
+  });
+
+  it('maps Number data type (i=26) to number', () => {
+    const type = objectType({
+      members: [member({ browseName: 'Num', displayName: 'Num', dataType: 'i=26' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.Num.type).toBe('number');
+  });
+
+  it('maps Integer data type (i=27) to integer', () => {
+    const type = objectType({
+      members: [member({ browseName: 'Int', displayName: 'Int', dataType: 'i=27' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.Int.type).toBe('integer');
+  });
+
+  it('maps UInteger data type (i=28) to integer', () => {
+    const type = objectType({
+      members: [member({ browseName: 'UInt', displayName: 'UInt', dataType: 'i=28' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.UInt.type).toBe('integer');
+  });
+
   it('falls back to string for unknown data types', () => {
     const type = objectType({
       members: [
@@ -233,6 +279,38 @@ describe('schema-builder', () => {
     const props = schema.properties as Record<string, Record<string, unknown>>;
     expect(props.X.type).toBe('string');
     expect(props.X.format).toBe('date-time');
+  });
+
+  it('keyword fallback: "MyDuration" maps to number', () => {
+    const type = objectType({
+      members: [
+        member({ browseName: 'X', displayName: 'X', dataType: 'MyDurationType' }),
+      ],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.X.type).toBe('number');
+  });
+
+  it('keyword fallback: "MyUtcTime" maps to date-time string', () => {
+    const type = objectType({
+      members: [member({ browseName: 'X', displayName: 'X', dataType: 'MyUtcTime' })],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.X.type).toBe('string');
+    expect(props.X.format).toBe('date-time');
+  });
+
+  it('keyword fallback: "MyEnumeration" maps to integer', () => {
+    const type = objectType({
+      members: [
+        member({ browseName: 'X', displayName: 'X', dataType: 'MyEnumerationType' }),
+      ],
+    });
+    const schema = buildObjectTypeSchema(type, [type]);
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.X.type).toBe('integer');
   });
 
   // ── Member nodeClass filtering ─────────────────────────────

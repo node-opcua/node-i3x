@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.9.3 (2026-06-19)
+
+- Version bump
+
 ## 0.9.2 (2026-06-19)
 
 - Version bump
