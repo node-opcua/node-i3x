@@ -21,6 +21,7 @@ export interface I3xConfig {
   username?: string;
   password?: string;
   apiKey?: string;
+  typeIdFormat: 'hash' | 'name' | 'prefixed-name';
 }
 
 const DEFAULTS: I3xConfig = {
@@ -38,6 +39,7 @@ const DEFAULTS: I3xConfig = {
   readOnly: false,
   requireAuth: true,
   experimental: false,
+  typeIdFormat: 'prefixed-name',
 };
 
 // ── Environment variable helpers ───────────────────────────
@@ -113,6 +115,14 @@ function fromEnv(): Partial<I3xConfig> {
 
   const apiKey = envStr('NODE_I3X_API_KEY');
   if (apiKey) result.apiKey = apiKey;
+
+  const typeIdFormat = envStr('NODE_I3X_TYPE_ID_FORMAT');
+  if (
+    typeIdFormat === 'hash' ||
+    typeIdFormat === 'name' ||
+    typeIdFormat === 'prefixed-name'
+  )
+    result.typeIdFormat = typeIdFormat;
 
   return result;
 }

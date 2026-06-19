@@ -53,6 +53,7 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
     createI3xStack(dataSource, logger, {
       publishIntervalMs: config.publishIntervalMs,
       samplingIntervalMs: config.samplingIntervalMs,
+      typeIdFormat: config.typeIdFormat,
     });
 
   // 3. Inbound adapter (REST)

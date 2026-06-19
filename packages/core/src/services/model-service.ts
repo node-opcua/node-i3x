@@ -18,6 +18,7 @@ export class ModelService {
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly logger: ILogger,
+    private readonly options?: { typeIdFormat?: 'hash' | 'name' | 'prefixed-name' },
   ) {}
 
   async getOrBuildModel(): Promise<BuildResult> {
@@ -229,7 +230,7 @@ export class ModelService {
    * @returns Map of type IDs to their mapped string names.
    */
   private _buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
-    return buildTypeIdMap(types);
+    return buildTypeIdMap(types, this.options?.typeIdFormat);
   }
 }
 
@@ -241,7 +242,10 @@ export class ModelService {
  * This guarantees unique elementIds even when multiple types
  * share the same browseName (siblings are always unique).
  */
-export function buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
+export function buildTypeIdMap(
+  types: readonly ObjectTypeInfo[],
+  format: 'hash' | 'name' | 'prefixed-name' = 'prefixed-name',
+): Map<string, string> {
   // Index types by sourceNodeId for fast parent lookups
   const bySourceId = new Map<string, ObjectTypeInfo>();
   for (const t of types) bySourceId.set(t.sourceNodeId, t);
@@ -253,7 +257,7 @@ export function buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, st
     const cached = pathCache.get(t.sourceNodeId);
     if (cached) return cached;
 
-    const segment = `nsu=${t.namespaceUri}:${t.browseName}`;
+    const segment = `nsu=${t.namespaceUri}:${t.browseName || t.displayName || ''}`;
     let path: string;
     if (t.parentSourceNodeId == null) {
       // Root type (e.g. BaseObjectType)
@@ -266,9 +270,59 @@ export function buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, st
     return path;
   };
 
+  const getPrefix = (t: ObjectTypeInfo): string => {
+    const lineage = new Set<string>();
+    let curr: ObjectTypeInfo | undefined = t;
+    while (curr) {
+      lineage.add(curr.browseName || curr.displayName || '');
+      lineage.add(curr.sourceNodeId);
+      if (curr.parentSourceNodeId) {
+        curr = bySourceId.get(curr.parentSourceNodeId);
+      } else {
+        break;
+      }
+    }
+
+    if (lineage.has('BaseInterfaceType') || lineage.has('ns=0;i=17602')) {
+      return 'interface-type';
+    }
+    if (lineage.has('AlarmConditionType') || lineage.has('ns=0;i=2915')) {
+      return 'alarm-type';
+    }
+    if (lineage.has('ConditionType') || lineage.has('ns=0;i=2782')) {
+      return 'condition-type';
+    }
+    if (lineage.has('BaseEventType') || lineage.has('ns=0;i=2041')) {
+      return 'event-type';
+    }
+    if (lineage.has('StateMachineType') || lineage.has('ns=0;i=2299')) {
+      return 'state-machine-type';
+    }
+    if (lineage.has('BaseVariableType') || lineage.has('ns=0;i=62')) {
+      return 'variable-type';
+    }
+    if (lineage.has('BaseDataType') || lineage.has('ns=0;i=24')) {
+      return 'datatype';
+    }
+    return 'object-type';
+  };
+
   const map = new Map<string, string>();
   for (const t of types) {
-    map.set(t.sourceNodeId, stableI3xId(resolvePath(t), 'type'));
+    if (format === 'hash') {
+      map.set(t.sourceNodeId, stableI3xId(resolvePath(t), 'type'));
+    } else {
+      const match = t.sourceNodeId.match(/^(?:ns=\d+;)?(.+)$/);
+      const identifier = match ? match[1] : t.sourceNodeId;
+      const nsuPart = `nsu=${t.namespaceUri};${identifier}`;
+      const lowercaseName = (t.browseName || t.displayName || '').toLowerCase();
+      if (format === 'prefixed-name') {
+        const prefix = getPrefix(t);
+        map.set(t.sourceNodeId, `${prefix}:${lowercaseName} [ ${nsuPart} ]`);
+      } else {
+        map.set(t.sourceNodeId, `${lowercaseName} [ ${nsuPart} ]`);
+      }
+    }
   }
   return map;
 }

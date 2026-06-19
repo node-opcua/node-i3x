@@ -471,7 +471,7 @@ describe('REST API', () => {
   it('POST /v1/objecttypes/query returns bulk object types details', async () => {
     // MachineType elementId — browse path uses browseName (not displayName)
     // Mock has parentSourceNodeId=null, so path = just the root segment
-    const machineTypeId = stableI3xId('nsu=http://example.com/:MachineType', 'type');
+    const machineTypeId = 'object-type:machinetype [ nsu=http://example.com/;i=1001 ]';
 
     const res = await app.inject({
       method: 'POST',

@@ -29,6 +29,7 @@ export class TypeService {
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly logger: ILogger,
+    private readonly options?: { typeIdFormat?: 'hash' | 'name' | 'prefixed-name' },
   ) {}
 
   // ── Public API ─────────────────────────────────────────────
@@ -90,7 +91,7 @@ export class TypeService {
 
   private async _build(): Promise<TypeCache> {
     const rawTypes = await this.dataSource.getObjectTypes();
-    const idMap = buildTypeIdMap(rawTypes);
+    const idMap = buildTypeIdMap(rawTypes, this.options?.typeIdFormat);
     const schemas = buildAllObjectTypeSchemas(rawTypes);
 
     const types: ObjectType[] = rawTypes.map((t) => ({

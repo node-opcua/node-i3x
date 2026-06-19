@@ -13,6 +13,7 @@ import { ValueService } from './services/value-service.js';
 export interface I3xStackOptions {
   publishIntervalMs?: number;
   samplingIntervalMs?: number;
+  typeIdFormat?: 'hash' | 'name' | 'prefixed-name';
 }
 
 export interface I3xStack {
@@ -32,7 +33,9 @@ export function createI3xStack(
   logger: ILogger,
   options?: I3xStackOptions,
 ): I3xStack {
-  const modelService = new ModelService(dataSource, logger);
+  const modelService = new ModelService(dataSource, logger, {
+    typeIdFormat: options?.typeIdFormat,
+  });
   const valueService = new ValueService(dataSource, modelService, logger);
   const historyService = new HistoryService(dataSource, modelService, logger);
   const subscriptionService = new SubscriptionService(
@@ -42,7 +45,9 @@ export function createI3xStack(
     options?.publishIntervalMs,
     options?.samplingIntervalMs,
   );
-  const typeService = new TypeService(dataSource, logger);
+  const typeService = new TypeService(dataSource, logger, {
+    typeIdFormat: options?.typeIdFormat,
+  });
 
   return {
     modelService,

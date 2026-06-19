@@ -49,6 +49,10 @@ program
     'Allow requests without Bearer token when apiKey is configured',
   )
   .option('--api-key <key>', 'API key for Bearer token auth (use "auto" to generate)')
+  .option(
+    '--type-id-format <format>',
+    'Type element ID format: hash | name | prefixed-name',
+  )
   .option('-c, --config <path>', 'Path to config file')
   .action(async (opts) => {
     // Build partial config from CLI args
@@ -74,6 +78,7 @@ program
     if (opts.experimental) cliArgs.experimental = true;
     if (opts.requireAuth === false) cliArgs.requireAuth = false;
     if (opts.apiKey) cliArgs.apiKey = opts.apiKey;
+    if (opts.typeIdFormat) cliArgs.typeIdFormat = opts.typeIdFormat;
 
     const config = await resolveConfig(cliArgs, opts.config);
     await startServer(config, pkg.version);

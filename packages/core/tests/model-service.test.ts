@@ -1,5 +1,5 @@
 import type { IDataSourcePort, SourceNodeInfo } from '@node-i3x/core';
-import { ModelService, nullLogger, stableI3xId } from '@node-i3x/core';
+import { buildTypeIdMap, ModelService, nullLogger, stableI3xId } from '@node-i3x/core';
 import { describe, expect, it } from 'vitest';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -441,10 +441,145 @@ describe('ModelService – edge cases', () => {
 
     const rootId = stableI3xId(rootNsu, 'asset');
     const rootNode = model.nodesById.get(rootId);
-    expect(rootNode?.type).toBe(stableI3xId('nsu=http://test.org/:MachineType', 'type'));
+    expect(rootNode?.type).toBe(
+      'object-type:machinetype [ nsu=http://test.org/;i=1001 ]',
+    );
 
     const danglingId = stableI3xId('ns=2;i=2', 'asset');
     const danglingNode = model.nodesById.get(danglingId);
     expect(danglingNode?.type).toBe('UnknownType');
+  });
+
+  describe('buildTypeIdMap options and prefixes', () => {
+    const mockTypes = [
+      {
+        sourceNodeId: 'ns=1;i=1001',
+        parentSourceNodeId: null,
+        browseName: 'MachineType',
+        displayName: 'Machine Type',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=1;i=1002',
+        parentSourceNodeId: 'ns=0;i=17602', // parent is BaseInterfaceType
+        browseName: 'ICoffeeInterface',
+        displayName: 'ICoffeeInterface',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=17602',
+        parentSourceNodeId: null,
+        browseName: 'BaseInterfaceType',
+        displayName: 'BaseInterfaceType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=1;i=1003',
+        parentSourceNodeId: 'ns=0;i=2915', // parent is AlarmConditionType
+        browseName: 'TemperatureAlarm',
+        displayName: 'TemperatureAlarm',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=2915',
+        parentSourceNodeId: 'ns=0;i=2782',
+        browseName: 'AlarmConditionType',
+        displayName: 'AlarmConditionType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=2782',
+        parentSourceNodeId: 'ns=0;i=2041',
+        browseName: 'ConditionType',
+        displayName: 'ConditionType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=2041',
+        parentSourceNodeId: null,
+        browseName: 'BaseEventType',
+        displayName: 'BaseEventType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=1;i=1004',
+        parentSourceNodeId: 'ns=0;i=2299', // parent is StateMachineType
+        browseName: 'BrewingStateMachine',
+        displayName: 'BrewingStateMachine',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=2299',
+        parentSourceNodeId: null,
+        browseName: 'StateMachineType',
+        displayName: 'StateMachineType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=1;i=1005',
+        parentSourceNodeId: 'ns=0;i=62', // parent is BaseVariableType
+        browseName: 'AnalogItemType',
+        displayName: 'AnalogItemType',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=62',
+        parentSourceNodeId: null,
+        browseName: 'BaseVariableType',
+        displayName: 'BaseVariableType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+      {
+        sourceNodeId: 'ns=1;i=1006',
+        parentSourceNodeId: 'ns=0;i=24', // parent is BaseDataType
+        browseName: 'CustomDataType',
+        displayName: 'CustomDataType',
+        namespaceUri: 'http://test.org/',
+      },
+      {
+        sourceNodeId: 'ns=0;i=24',
+        parentSourceNodeId: null,
+        browseName: 'BaseDataType',
+        displayName: 'BaseDataType',
+        namespaceUri: 'http://opcfoundation.org/UA/',
+      },
+    ];
+
+    it('supports hash format', () => {
+      const map = buildTypeIdMap(mockTypes, 'hash');
+      expect(map.get('ns=1;i=1001')).toBe(
+        stableI3xId('nsu=http://test.org/:MachineType', 'type'),
+      );
+    });
+
+    it('supports name format', () => {
+      const map = buildTypeIdMap(mockTypes, 'name');
+      expect(map.get('ns=1;i=1001')).toBe('machinetype [ nsu=http://test.org/;i=1001 ]');
+      expect(map.get('ns=1;i=1002')).toBe(
+        'icoffeeinterface [ nsu=http://test.org/;i=1002 ]',
+      );
+    });
+
+    it('supports prefixed-name format with proper inheritance mapping', () => {
+      const map = buildTypeIdMap(mockTypes, 'prefixed-name');
+      expect(map.get('ns=1;i=1001')).toBe(
+        'object-type:machinetype [ nsu=http://test.org/;i=1001 ]',
+      );
+      expect(map.get('ns=1;i=1002')).toBe(
+        'interface-type:icoffeeinterface [ nsu=http://test.org/;i=1002 ]',
+      );
+      expect(map.get('ns=1;i=1003')).toBe(
+        'alarm-type:temperaturealarm [ nsu=http://test.org/;i=1003 ]',
+      );
+      expect(map.get('ns=1;i=1004')).toBe(
+        'state-machine-type:brewingstatemachine [ nsu=http://test.org/;i=1004 ]',
+      );
+      expect(map.get('ns=1;i=1005')).toBe(
+        'variable-type:analogitemtype [ nsu=http://test.org/;i=1005 ]',
+      );
+      expect(map.get('ns=1;i=1006')).toBe(
+        'datatype:customdatatype [ nsu=http://test.org/;i=1006 ]',
+      );
+    });
   });
 });
