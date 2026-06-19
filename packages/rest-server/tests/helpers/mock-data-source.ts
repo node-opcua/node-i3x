@@ -53,6 +53,7 @@ export class MockDataSource implements IDataSourcePort {
         nodeClass: 'Variable',
         typeDefinition: 'Double',
         dataType: 'Double',
+        dataTypeName: 'Double',
         namespaceUri: 'http://example.com/',
         eventNotifier: false,
       },

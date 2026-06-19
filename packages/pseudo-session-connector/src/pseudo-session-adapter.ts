@@ -163,11 +163,42 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
       try {
         const dvs = await this.session.read(readItems);
         const dvsArr = Array.isArray(dvs) ? dvs : [dvs];
+
+        const uniqueDtIds = new Set<string>();
+        for (let i = 0; i < variables.length; i++) {
+          const rawDt = dvsArr[i]?.value?.value;
+          if (rawDt) {
+            uniqueDtIds.add(rawDt.toString());
+          }
+        }
+
+        const uniqueDtIdsArr = Array.from(uniqueDtIds);
+        const dtBrowseNames = new Map<string, string>();
+        if (uniqueDtIdsArr.length > 0) {
+          const readBrowseNames = uniqueDtIdsArr.map((id) => ({
+            nodeId: id,
+            attributeId: AttributeIds.BrowseName,
+          }));
+          const bnResults = await this.session.read(readBrowseNames);
+          const bnResultsArr = Array.isArray(bnResults) ? bnResults : [bnResults];
+          for (let i = 0; i < uniqueDtIdsArr.length; i++) {
+            const bn = bnResultsArr[i]?.value?.value;
+            if (bn && typeof bn.name === 'string') {
+              dtBrowseNames.set(uniqueDtIdsArr[i]!, bn.name);
+            }
+          }
+        }
+
         for (let i = 0; i < variables.length; i++) {
           const v = variables[i]!;
           const rawDt = dvsArr[i]?.value?.value;
           if (rawDt) {
-            (v as any).dataType = toNsuNodeId(rawDt.toString(), this._namespaceArray);
+            const rawDtStr = rawDt.toString();
+            (v as any).dataType = toNsuNodeId(rawDtStr, this._namespaceArray);
+            const name = dtBrowseNames.get(rawDtStr);
+            if (name) {
+              (v as any).dataTypeName = name;
+            }
           }
         }
       } catch (err) {

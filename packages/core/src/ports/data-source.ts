@@ -26,6 +26,7 @@ export interface SourceNodeInfo {
   readonly namespaceUri: string;
   readonly eventNotifier: boolean;
   readonly dataType?: string | null;
+  readonly dataTypeName?: string | null;
 }
 
 /**

@@ -239,6 +239,7 @@ export class ModelService {
             dataType,
             this.options?.typeIdFormat || 'prefixed-name',
             namespaceArray,
+            srcNode.dataTypeName,
           );
         } else {
           typeOverride = 'UnknownType';
@@ -332,6 +333,7 @@ export class ModelService {
     dataTypeNodeId: string,
     format: 'hash' | 'name' | 'prefixed-name',
     namespaceArray: readonly string[],
+    dataTypeName?: string | null,
   ): string {
     let resolvedDataTypeNodeId = dataTypeNodeId;
     if (dataTypeNodeId.toLowerCase() === 'double') {
@@ -363,7 +365,7 @@ export class ModelService {
       }
     }
 
-    let name = getStandardDataTypeName(identifier, nsu);
+    let name = dataTypeName || getStandardDataTypeName(identifier, nsu);
     if (!name) {
       name = identifier.replace(/[^a-zA-Z0-9]/g, '_');
       if (name.startsWith('i_')) {
