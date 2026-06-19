@@ -132,15 +132,16 @@ export class ModelService {
 
     const findParentAsset = (node: SourceNodeInfo): SourceNodeInfo | null => {
       let curr = node;
+      let topmostObject: SourceNodeInfo | null = null;
       while (curr.parentSourceNodeId) {
         const parent = bySourceId.get(curr.parentSourceNodeId);
         if (!parent) break;
         if (parent.nodeClass === 'Object') {
-          return parent;
+          topmostObject = parent;
         }
         curr = parent;
       }
-      return null;
+      return topmostObject;
     };
 
     const idCache = new Map<string, string>();

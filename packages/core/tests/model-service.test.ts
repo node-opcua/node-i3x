@@ -134,7 +134,7 @@ describe('ModelService – browse path construction', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const propId = expectedPropertyId(`${rootNsu}/${assetNsu}`, 'Boiler', propNsu);
+    const propId = expectedPropertyId(rootNsu, 'Plant', `${assetNsu}/${propNsu}`);
 
     expect(model.nodesById.has(propId)).toBe(true);
     expect(model.nodesById.get(propId)?.kind).toBe('property');
