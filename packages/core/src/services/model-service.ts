@@ -137,11 +137,12 @@ export class ModelService {
       while (curr.parentSourceNodeId) {
         const parent = bySourceId.get(curr.parentSourceNodeId);
         if (!parent) break;
+        const namePart = parent.browseName.split(':').pop() ?? parent.browseName;
         if (
-          parent.browseName === 'DeviceSet' ||
-          parent.browseName === 'Objects' ||
-          parent.browseName === 'ObjectsFolder' ||
-          parent.browseName === 'Server'
+          namePart === 'DeviceSet' ||
+          namePart === 'Objects' ||
+          namePart === 'ObjectsFolder' ||
+          namePart === 'Server'
         ) {
           break;
         }

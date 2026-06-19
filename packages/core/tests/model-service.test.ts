@@ -665,5 +665,44 @@ describe('ModelService – edge cases', () => {
         /-coffeemachinea-parameterset-temperature-engineeringunit$/,
       );
     });
+
+    it('correctly stops parent asset lookup when encountering namespace-prefixed containers like 2:DeviceSet', async () => {
+      const deviceSetPath = 'nsu=http://opcfoundation.org/UA/DI/:DeviceSet';
+      const coffeeMachinePath = `${deviceSetPath}/nsu=http://example.com/:CoffeeMachineA`;
+      const tempPath = `${coffeeMachinePath}/nsu=http://example.com/:Temperature`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=5001',
+          nsuQualifiedName: deviceSetPath,
+          browseName: '2:DeviceSet',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: 'nsu=http://example.com/:CoffeeMachineA',
+          parentSourceNodeId: 'ns=2;i=5001',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=102',
+          nsuQualifiedName: 'nsu=http://example.com/:Temperature',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const svc = new ModelService(mockDataSource(nodes), nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedTempId = expectedPropertyId(
+        coffeeMachinePath,
+        'CoffeeMachineA',
+        'Temperature',
+      );
+      expect(model.nodesById.has(expectedTempId)).toBe(true);
+      expect(expectedTempId).toMatch(/-coffeemachinea-temperature$/);
+      expect(expectedTempId).not.toContain('deviceset');
+    });
   });
 });
