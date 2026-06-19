@@ -1042,24 +1042,40 @@ export class OpcUaClient {
         const newIds = sourceNodeIds.filter((id) => !monitored.has(id));
         if (newIds.length === 0) return;
 
-        // sub.monitor() works with both ClientSubscription
-        // and ClientSubscription2 (optimized client).
-        const items = await Promise.all(
-          newIds.map((nodeId) =>
-            sub.monitor(
-              {
-                nodeId: coerceNodeId(nodeId),
-                attributeId: AttributeIds.Value,
-              },
-              {
-                samplingInterval: options.samplingIntervalMs,
-                discardOldest: true,
-                queueSize: MONITORED_ITEM_QUEUE_SIZE,
-              },
-              TimestampsToReturn.Both,
+        let items: any[];
+        if (typeof (sub as any).monitorItems === 'function') {
+          const itemsToMonitor = newIds.map((nodeId) => ({
+            nodeId: coerceNodeId(nodeId),
+            attributeId: AttributeIds.Value,
+          }));
+          const group = await (sub as any).monitorItems(
+            itemsToMonitor,
+            {
+              samplingInterval: options.samplingIntervalMs,
+              discardOldest: true,
+              queueSize: MONITORED_ITEM_QUEUE_SIZE,
+            },
+            TimestampsToReturn.Both,
+          );
+          items = group.monitoredItems;
+        } else {
+          items = await Promise.all(
+            newIds.map((nodeId) =>
+              sub.monitor(
+                {
+                  nodeId: coerceNodeId(nodeId),
+                  attributeId: AttributeIds.Value,
+                },
+                {
+                  samplingInterval: options.samplingIntervalMs,
+                  discardOldest: true,
+                  queueSize: MONITORED_ITEM_QUEUE_SIZE,
+                },
+                TimestampsToReturn.Both,
+              ),
             ),
-          ),
-        );
+          );
+        }
 
         for (let i = 0; i < newIds.length; i++) {
           const nodeId = newIds[i]!;
