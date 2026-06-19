@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.9.2 (2026-06-19)
+
+- perf(connector): batch monitored items creation using monitorItems
+
 ## 0.9.1 (2026-06-19)
 
 - Version bump

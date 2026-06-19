@@ -26,6 +26,7 @@ const { values: args } = parseArgs({
     'opcua-port': { type: 'string', default: '48410' },
     'api-key': { type: 'string' },
     'require-auth': { type: 'boolean', default: true },
+    'no-require-auth': { type: 'boolean' },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -420,7 +421,8 @@ async function main() {
   await typeService.preloadTypes();
 
   const apiKey = args['api-key'];
-  if (args['require-auth'] && !apiKey) {
+  const requireAuth = !!args['require-auth'] && !args['no-require-auth'];
+  if (requireAuth && !apiKey) {
     logger.error('require-auth is enabled but no api-key is configured.');
     process.exit(1);
   }
@@ -435,7 +437,7 @@ async function main() {
     subscriptionService,
     logger,
     apiKey,
-    requireAuth: args['require-auth'],
+    requireAuth,
   });
   await app.listen({ port: REST_PORT, host: '127.0.0.1' });
 
