@@ -101,6 +101,75 @@ describe('REST API', () => {
     expect(body.result.some((r: any) => r.elementId.startsWith('asset-'))).toBe(true);
   });
 
+  it('GET /v1/objects respects includeMetadata query parameter', async () => {
+    await modelService.preloadModel();
+
+    // 1. Without includeMetadata, metadata should be undefined
+    const resDefault = await app.inject({ method: 'GET', url: '/v1/objects' });
+    expect(resDefault.statusCode).toBe(200);
+    const bodyDefault = resDefault.json();
+    expect(bodyDefault.result.length).toBeGreaterThanOrEqual(1);
+    expect(bodyDefault.result[0].metadata).toBeUndefined();
+
+    // 2. With includeMetadata=true, metadata should be present
+    const resMeta = await app.inject({
+      method: 'GET',
+      url: '/v1/objects',
+      query: { includeMetadata: 'true' },
+    });
+    expect(resMeta.statusCode).toBe(200);
+    const bodyMeta = resMeta.json();
+    expect(bodyMeta.result.length).toBeGreaterThanOrEqual(1);
+    expect(bodyMeta.result[0].metadata).toBeDefined();
+    expect(bodyMeta.result[0].metadata.sourceTypeId).toBeDefined();
+  });
+
+  it('POST /v1/objects/list and POST /v1/objects/related respect includeMetadata', async () => {
+    await modelService.preloadModel();
+    const model = await modelService.getOrBuildModel();
+    const rootId = model.rootIds[0]!;
+
+    // 1. POST /v1/objects/list without includeMetadata
+    const resListDefault = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/list',
+      payload: { elementIds: [rootId] },
+    });
+    expect(resListDefault.statusCode).toBe(200);
+    const bodyListDefault = resListDefault.json();
+    expect(bodyListDefault.results[0].result.metadata).toBeUndefined();
+
+    // 2. POST /v1/objects/list with includeMetadata: true
+    const resListMeta = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/list',
+      payload: { elementIds: [rootId], includeMetadata: true },
+    });
+    expect(resListMeta.statusCode).toBe(200);
+    const bodyListMeta = resListMeta.json();
+    expect(bodyListMeta.results[0].result.metadata).toBeDefined();
+
+    // 3. POST /v1/objects/related without includeMetadata
+    const resRelatedDefault = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/related',
+      payload: { elementIds: [rootId] },
+    });
+    expect(resRelatedDefault.statusCode).toBe(200);
+    const bodyRelatedDefault = resRelatedDefault.json();
+    expect(bodyRelatedDefault.results[0].result[0].object.metadata).toBeUndefined();
+
+    // 4. POST /v1/objects/related with includeMetadata: true
+    const resRelatedMeta = await app.inject({
+      method: 'POST',
+      url: '/v1/objects/related',
+      payload: { elementIds: [rootId], includeMetadata: true },
+    });
+    expect(resRelatedMeta.statusCode).toBe(200);
+    const bodyRelatedMeta = resRelatedMeta.json();
+    expect(bodyRelatedMeta.results[0].result[0].object.metadata).toBeDefined();
+  });
+
   it('GET /v1/objects?root=true returns only root assets', async () => {
     await modelService.preloadModel();
     const res = await app.inject({

@@ -60,6 +60,7 @@ export function toObjectInstance(
     sourceNodeId?: string;
   },
   parentId: string | null,
+  includeMetadata?: boolean,
 ): ObjectInstanceResponse {
   return {
     elementId: node.id,
@@ -68,9 +69,13 @@ export function toObjectInstance(
     parentId,
     isComposition: node.children.length > 0,
     isExtended: false,
-    metadata: {
-      typeNamespaceUri: node.namespaceUri ?? null,
-      sourceTypeId: node.sourceNodeId ?? null,
-    },
+    ...(includeMetadata
+      ? {
+          metadata: {
+            typeNamespaceUri: node.namespaceUri ?? null,
+            sourceTypeId: node.sourceNodeId ?? null,
+          },
+        }
+      : {}),
   };
 }

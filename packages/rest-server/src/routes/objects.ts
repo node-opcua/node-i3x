@@ -40,7 +40,8 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       }>,
     ) => {
       const model = await deps.modelService.getOrBuildModel();
-      const { typeElementId, root } = req.query;
+      const { typeElementId, root, includeMetadata } = req.query;
+      const incMeta = includeMetadata === true || includeMetadata === 'true';
 
       let nodes: ModelNode[];
 
@@ -59,7 +60,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       }
 
       const result = nodes.map((node) =>
-        toObjectInstance(node, deps.modelService.parentIdOf(model, node.id)),
+        toObjectInstance(node, deps.modelService.parentIdOf(model, node.id), incMeta),
       );
       return successResponse(result);
     },
@@ -75,19 +76,25 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           required: ['elementIds'],
           properties: {
             elementIds: { type: 'array', items: { type: 'string' } },
+            includeMetadata: { type: 'boolean' },
           },
         },
       },
     },
-    async (req: FastifyRequest<{ Body: { elementIds: string[] } }>) => {
-      const { elementIds } = req.body;
+    async (
+      req: FastifyRequest<{
+        Body: { elementIds: string[]; includeMetadata?: boolean };
+      }>,
+    ) => {
+      const { elementIds, includeMetadata } = req.body;
+      const incMeta = includeMetadata === true;
       const model = await deps.modelService.getOrBuildModel();
       const results = elementIds.map((id) => {
         const node = deps.modelService.findNode(model, id);
         if (!node) return bulkError(id, 404, 'Not found');
         return bulkSuccess(
           id,
-          toObjectInstance(node, deps.modelService.parentIdOf(model, node.id)),
+          toObjectInstance(node, deps.modelService.parentIdOf(model, node.id), incMeta),
         );
       });
       return bulkResponse(results);
@@ -120,7 +127,8 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         };
       }>,
     ) => {
-      const { elementIds } = req.body;
+      const { elementIds, includeMetadata } = req.body;
+      const incMeta = includeMetadata === true;
       const model = await deps.modelService.getOrBuildModel();
 
       const results = elementIds.map((eid) => {
@@ -136,7 +144,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           .filter(Boolean)
           .map((child) => ({
             sourceRelationship: 'HasComponent',
-            object: toObjectInstance(child!, node.id),
+            object: toObjectInstance(child!, node.id, incMeta),
           }));
 
         // Also include parent as reverse relationship
@@ -149,6 +157,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
               object: toObjectInstance(
                 parent,
                 deps.modelService.parentIdOf(model, parent.id),
+                incMeta,
               ),
             });
           }
