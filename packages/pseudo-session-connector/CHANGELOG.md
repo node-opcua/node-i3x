@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.9.1 (2026-06-19)
+
+- Version bump
+
 ## 0.9.0 (2026-06-19)
 
 - fix(core,connector): resolve and format Variable DataType BrowseNames correctly

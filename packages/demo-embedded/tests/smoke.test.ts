@@ -12,7 +12,7 @@ describe('demo-embedded smoke test', () => {
 
     // Spawn the demo process with custom ports to avoid conflicts
     const restPort = 8899;
-    const opcuaPort = 48499;
+    const opcuaPort = 48999;
 
     const child = spawn('node', [
       scriptPath,

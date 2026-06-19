@@ -34,18 +34,19 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       req: FastifyRequest<{
         Querystring: {
           typeElementId?: string;
-          includeMetadata?: boolean;
-          root?: boolean;
+          includeMetadata?: boolean | string;
+          root?: boolean | string;
         };
       }>,
     ) => {
       const model = await deps.modelService.getOrBuildModel();
       const { typeElementId, root, includeMetadata } = req.query;
       const incMeta = includeMetadata === true || includeMetadata === 'true';
+      const isRoot = root === true || root === 'true';
 
       let nodes: ModelNode[];
 
-      if (root) {
+      if (isRoot) {
         nodes = model.rootIds
           .map((id) => model.nodesById.get(id))
           .filter((n): n is ModelNode => n !== undefined && n.kind === 'asset');

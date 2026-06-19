@@ -1,5 +1,9 @@
 # @node-i3x/core
 
+## 0.9.1 (2026-06-19)
+
+- chore: fix lint warnings in test files
+
 ## 0.9.0 (2026-06-19)
 
 - test(core): add coverage tests for DataType registration and formatting

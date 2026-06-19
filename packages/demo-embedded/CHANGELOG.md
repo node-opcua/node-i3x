@@ -1,5 +1,9 @@
 # @node-i3x/demo-embedded
 
+## 0.9.1 (2026-06-19)
+
+- Version bump
+
 ## 0.9.0 (2026-06-19)
 
 - feat(core,rest): auto-map and serialize engineering units
