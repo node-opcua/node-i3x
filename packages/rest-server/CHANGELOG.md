@@ -1,5 +1,15 @@
 # @node-i3x/rest-server
 
+## 0.9.0 (2026-06-19)
+
+- fix(core,connector): resolve and format Variable DataType BrowseNames correctly
+- feat(core,rest): implement variable DataType & sourceTypeId mapping
+- refactor(rest-server): omit engUnit from response metadata if undefined or null
+- feat(core,rest): auto-map and serialize engineering units
+- feat(rest-server): use namespace-URI qualified NodeIDs for conformant sourceTypeId
+- feat: implement startup-configurable type ID format for types
+- fix(rest-server): support conditional includeMetadata for objects endpoints
+
 ## 0.8.7 (2026-06-19)
 
 - Version bump

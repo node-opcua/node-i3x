@@ -1,5 +1,20 @@
 # @node-i3x/core
 
+## 0.9.0 (2026-06-19)
+
+- test(core): add coverage tests for DataType registration and formatting
+- fix(core,connector): resolve and format Variable DataType BrowseNames correctly
+- feat(core,rest): implement variable DataType & sourceTypeId mapping
+- feat(core): decode standard UNECE Rec 20 codes from OPC UA unitId
+- feat(core): support plural EngineeringUnits child and add mm/ml mappings
+- feat(core,rest): auto-map and serialize engineering units
+- feat(rest-server): use namespace-URI qualified NodeIDs for conformant sourceTypeId
+- fix: handle namespace prefix in standard container boundary matching
+- feat: shorten and clean up property element IDs
+- feat: implement startup-configurable type ID format for types
+- feat: resolve parent asset to depth 1 root asset for properties
+- feat: implement human-readable property IDs
+
 ## 0.8.7 (2026-06-19)
 
 - Version bump

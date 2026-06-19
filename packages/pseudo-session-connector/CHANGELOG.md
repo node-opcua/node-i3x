@@ -1,5 +1,11 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.9.0 (2026-06-19)
+
+- fix(core,connector): resolve and format Variable DataType BrowseNames correctly
+- feat(core,rest): implement variable DataType & sourceTypeId mapping
+- feat(core,rest): auto-map and serialize engineering units
+
 ## 0.8.7 (2026-06-19)
 
 - Version bump

@@ -1,5 +1,10 @@
 # @node-i3x/app
 
+## 0.9.0 (2026-06-19)
+
+- feat: implement startup-configurable type ID format for types
+- feat(core,rest): auto-map and serialize engineering units
+
 ## 0.8.7 (2026-06-19)
 
 - Version bump
