@@ -276,8 +276,13 @@ export class ModelService {
               unitCode = mapSymbolToUnece(rawVal);
             } else if (rawVal && typeof rawVal === 'object') {
               const rawObj = rawVal as any;
-              const symbol = rawObj.displayName?.text || rawObj.displayName || '';
-              unitCode = mapSymbolToUnece(symbol.toString());
+              if (typeof rawObj.unitId === 'number' && rawObj.unitId > 0) {
+                unitCode = decodeUnitId(rawObj.unitId);
+              }
+              if (!unitCode) {
+                const symbol = rawObj.displayName?.text || rawObj.displayName || '';
+                unitCode = mapSymbolToUnece(symbol.toString());
+              }
             }
             if (unitCode) {
               const propertyNode = nodesById.get(req.propertyId);
@@ -362,6 +367,30 @@ function mapSymbolToUnece(symbol: string): string | null {
 
   if (/^[a-z0-9]{2,3}$/i.test(clean)) {
     return clean.toUpperCase();
+  }
+  return null;
+}
+
+function decodeUnitId(unitId: number): string | null {
+  if (typeof unitId !== 'number' || unitId <= 0) return null;
+  const bytes = [
+    (unitId >> 24) & 0xff,
+    (unitId >> 16) & 0xff,
+    (unitId >> 8) & 0xff,
+    unitId & 0xff,
+  ];
+  let res = '';
+  for (const b of bytes) {
+    if (b === 0) continue;
+    if (b >= 32 && b <= 126) {
+      res += String.fromCharCode(b);
+    } else {
+      return null;
+    }
+  }
+  const upper = res.toUpperCase();
+  if (/^[A-Z0-9]{2,3}$/.test(upper)) {
+    return upper;
   }
   return null;
 }

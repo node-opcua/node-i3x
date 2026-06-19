@@ -888,5 +888,69 @@ describe('ModelService – edge cases', () => {
       expect(levelNode).toBeDefined();
       expect(levelNode?.engUnit).toBe('MMT');
     });
+
+    it('Variable with nested EngineeringUnit property decodes standard unitId correctly', async () => {
+      const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
+      const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
+      const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
+      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: parentAssetPath,
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=101',
+          nsuQualifiedName: 'nsu=http://test.org/:ParameterSet',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=102',
+          nsuQualifiedName: 'nsu=http://test.org/:Temperature',
+          parentSourceNodeId: 'ns=2;i=101',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=104',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit',
+          parentSourceNodeId: 'ns=2;i=102',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const customDataSource = mockDataSource(nodes);
+      customDataSource.readValues = async (ids) => {
+        if (ids.includes('ns=2;i=104')) {
+          return [
+            {
+              value: {
+                namespaceUri: 'http://www.opcfoundation.org/UA/units/un/cefact',
+                unitId: 4408652, // CEL
+                displayName: { text: 'custom_or_empty' }, // should be ignored in favor of unitId
+              },
+              quality: 'Good',
+              timestamp: '',
+            },
+          ];
+        }
+        return [];
+      };
+
+      const svc = new ModelService(customDataSource, nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedTempId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Temperature',
+      );
+
+      const tempNode = model.nodesById.get(expectedTempId);
+      expect(tempNode).toBeDefined();
+      expect(tempNode?.engUnit).toBe('CEL');
+    });
   });
 });
