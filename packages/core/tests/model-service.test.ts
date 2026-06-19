@@ -598,8 +598,8 @@ describe('ModelService – edge cases', () => {
       const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
       const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
       const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
-      const euRangePath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EURange`;
-      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+      const _euRangePath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EURange`;
+      const _engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
 
       const nodes = [
         sourceNode({
@@ -669,7 +669,7 @@ describe('ModelService – edge cases', () => {
     it('correctly stops parent asset lookup when encountering namespace-prefixed containers like 2:DeviceSet', async () => {
       const deviceSetPath = 'nsu=http://opcfoundation.org/UA/DI/:DeviceSet';
       const coffeeMachinePath = `${deviceSetPath}/nsu=http://example.com/:CoffeeMachineA`;
-      const tempPath = `${coffeeMachinePath}/nsu=http://example.com/:Temperature`;
+      const _tempPath = `${coffeeMachinePath}/nsu=http://example.com/:Temperature`;
 
       const nodes = [
         sourceNode({
@@ -709,7 +709,7 @@ describe('ModelService – edge cases', () => {
       const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
       const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
       const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
-      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+      const _engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
 
       const nodes = [
         sourceNode({
@@ -771,7 +771,7 @@ describe('ModelService – edge cases', () => {
       const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
       const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
       const tempPath = `${paramSetPath}/nsu=http://test.org/:Pressure`;
-      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+      const _engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
 
       const nodes = [
         sourceNode({
@@ -831,7 +831,7 @@ describe('ModelService – edge cases', () => {
       const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
       const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
       const levelPath = `${paramSetPath}/nsu=http://test.org/:WaterTankLevel`;
-      const engUnitsPath = `${levelPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnits`;
+      const _engUnitsPath = `${levelPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnits`;
 
       const nodes = [
         sourceNode({
@@ -893,7 +893,7 @@ describe('ModelService – edge cases', () => {
       const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
       const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
       const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
-      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+      const _engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
 
       const nodes = [
         sourceNode({

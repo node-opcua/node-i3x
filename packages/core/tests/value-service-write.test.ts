@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { IDataSourcePort, SourceNodeInfo } from '../src/index.js';
-import { ModelService, nullLogger, stableI3xId, ValueService } from '../src/index.js';
+import { ModelService, nullLogger, ValueService } from '../src/index.js';
 
 function mockDataSource(nodes: SourceNodeInfo[]): IDataSourcePort {
   return {
