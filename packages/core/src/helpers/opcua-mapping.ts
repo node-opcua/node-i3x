@@ -26,6 +26,27 @@ export function qualifiedNameToNsu(
   return `nsu=${nsUri}:${browseName.name}`;
 }
 
+/** Convert an index-based NodeId string (e.g. "ns=17;i=1008") to its namespace-URI-qualified (nsu) form. */
+export function toNsuNodeId(
+  nodeIdStr: string,
+  namespaceArray: readonly string[],
+): string {
+  if (!nodeIdStr) return '';
+  if (nodeIdStr.startsWith('nsu=')) return nodeIdStr;
+
+  let nsIdx = 0;
+  let rest = nodeIdStr;
+
+  const nsMatch = nodeIdStr.match(/^ns=(\d+);(.+)$/);
+  if (nsMatch) {
+    nsIdx = parseInt(nsMatch[1]!, 10);
+    rest = nsMatch[2]!;
+  }
+
+  const nsUri = namespaceArray[nsIdx] ?? `ns=${nsIdx}`;
+  return `nsu=${nsUri};${rest}`;
+}
+
 /** Convert a DataValue-like object to a SourceDataValue. */
 export function dataValueToSource(dv: {
   statusCode?: { value: number } | null;

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { ObjectType } from '../domain/object-type.js';
+import { toNsuNodeId } from '../helpers/opcua-mapping.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import { buildTypeIdMap } from './model-service.js';
@@ -91,6 +92,9 @@ export class TypeService {
 
   private async _build(): Promise<TypeCache> {
     const rawTypes = await this.dataSource.getObjectTypes();
+    const namespaces = await this.dataSource.getNamespaces();
+    const namespaceArray = namespaces.map((ns) => ns.uri);
+
     const idMap = buildTypeIdMap(rawTypes, this.options?.typeIdFormat);
     const schemas = buildAllObjectTypeSchemas(rawTypes);
 
@@ -98,7 +102,7 @@ export class TypeService {
       elementId: idMap.get(t.sourceNodeId)!,
       displayName: t.displayName,
       namespaceUri: t.namespaceUri,
-      sourceTypeId: t.sourceNodeId,
+      sourceTypeId: toNsuNodeId(t.sourceNodeId, namespaceArray),
       version: null,
       schema: schemas.get(t.sourceNodeId) ?? {},
       related: null,
@@ -109,7 +113,7 @@ export class TypeService {
       elementId: 'UnknownType',
       displayName: 'UnknownType',
       namespaceUri: 'http://opcfoundation.org/UA/',
-      sourceTypeId: 'ns=0;i=58',
+      sourceTypeId: 'nsu=http://opcfoundation.org/UA/;i=58',
       version: null,
       schema: {},
       related: null,

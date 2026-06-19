@@ -1,4 +1,4 @@
-import type { ModelNode } from '@node-i3x/core';
+import type { ModelNode, ObjectType } from '@node-i3x/core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getDeps } from '../app.js';
 import { i3xError } from '../errors.js';
@@ -59,8 +59,19 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
         nodes = nodes.filter((n) => n.type === typeElementId);
       }
 
+      let typeMap: Map<string, ObjectType> | undefined;
+      if (incMeta) {
+        const types = await deps.typeService.getObjectTypes();
+        typeMap = new Map(types.map((t) => [t.elementId, t]));
+      }
+
       const result = nodes.map((node) =>
-        toObjectInstance(node, deps.modelService.parentIdOf(model, node.id), incMeta),
+        toObjectInstance(
+          node,
+          deps.modelService.parentIdOf(model, node.id),
+          incMeta,
+          typeMap,
+        ),
       );
       return successResponse(result);
     },
@@ -89,12 +100,23 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       const { elementIds, includeMetadata } = req.body;
       const incMeta = includeMetadata === true;
       const model = await deps.modelService.getOrBuildModel();
+      let typeMap: Map<string, ObjectType> | undefined;
+      if (incMeta) {
+        const types = await deps.typeService.getObjectTypes();
+        typeMap = new Map(types.map((t) => [t.elementId, t]));
+      }
+
       const results = elementIds.map((id) => {
         const node = deps.modelService.findNode(model, id);
         if (!node) return bulkError(id, 404, 'Not found');
         return bulkSuccess(
           id,
-          toObjectInstance(node, deps.modelService.parentIdOf(model, node.id), incMeta),
+          toObjectInstance(
+            node,
+            deps.modelService.parentIdOf(model, node.id),
+            incMeta,
+            typeMap,
+          ),
         );
       });
       return bulkResponse(results);
@@ -131,6 +153,12 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       const incMeta = includeMetadata === true;
       const model = await deps.modelService.getOrBuildModel();
 
+      let typeMap: Map<string, ObjectType> | undefined;
+      if (incMeta) {
+        const types = await deps.typeService.getObjectTypes();
+        typeMap = new Map(types.map((t) => [t.elementId, t]));
+      }
+
       const results = elementIds.map((eid) => {
         const node = deps.modelService.findNode(model, eid);
         if (!node) {
@@ -144,7 +172,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
           .filter(Boolean)
           .map((child) => ({
             sourceRelationship: 'HasComponent',
-            object: toObjectInstance(child!, node.id, incMeta),
+            object: toObjectInstance(child!, node.id, incMeta, typeMap),
           }));
 
         // Also include parent as reverse relationship
@@ -158,6 +186,7 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
                 parent,
                 deps.modelService.parentIdOf(model, parent.id),
                 incMeta,
+                typeMap,
               ),
             });
           }

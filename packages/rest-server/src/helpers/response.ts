@@ -9,6 +9,7 @@ import type {
   BulkResponse,
   BulkResultItem,
   ObjectInstanceResponse,
+  ObjectType,
   SuccessResponse,
 } from '@node-i3x/core';
 
@@ -61,7 +62,23 @@ export function toObjectInstance(
   },
   parentId: string | null,
   includeMetadata?: boolean,
+  typeMap?: ReadonlyMap<string, ObjectType>,
 ): ObjectInstanceResponse {
+  let typeNamespaceUri: string | null = null;
+  let sourceTypeId: string | null = null;
+
+  if (includeMetadata) {
+    const typeElementId = node.type || 'UnknownType';
+    const typeInfo = typeMap?.get(typeElementId);
+    if (typeInfo) {
+      typeNamespaceUri = typeInfo.namespaceUri;
+      sourceTypeId = typeInfo.sourceTypeId;
+    } else {
+      typeNamespaceUri = node.namespaceUri ?? null;
+      sourceTypeId = node.sourceNodeId ?? null;
+    }
+  }
+
   return {
     elementId: node.id,
     displayName: node.name,
@@ -72,8 +89,8 @@ export function toObjectInstance(
     ...(includeMetadata
       ? {
           metadata: {
-            typeNamespaceUri: node.namespaceUri ?? null,
-            sourceTypeId: node.sourceNodeId ?? null,
+            typeNamespaceUri,
+            sourceTypeId,
           },
         }
       : {}),

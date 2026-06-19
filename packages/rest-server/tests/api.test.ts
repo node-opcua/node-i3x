@@ -120,8 +120,18 @@ describe('REST API', () => {
     expect(resMeta.statusCode).toBe(200);
     const bodyMeta = resMeta.json();
     expect(bodyMeta.result.length).toBeGreaterThanOrEqual(1);
-    expect(bodyMeta.result[0].metadata).toBeDefined();
-    expect(bodyMeta.result[0].metadata.sourceTypeId).toBeDefined();
+
+    const machine = bodyMeta.result.find((r: any) => r.displayName === 'Machine');
+    expect(machine).toBeDefined();
+    expect(machine.metadata).toBeDefined();
+    expect(machine.metadata.sourceTypeId).toBe('nsu=http://example.com/custom;i=1001');
+    expect(machine.metadata.typeNamespaceUri).toBe('http://example.com/');
+
+    const temp = bodyMeta.result.find((r: any) => r.displayName === 'Temperature');
+    expect(temp).toBeDefined();
+    expect(temp.metadata).toBeDefined();
+    expect(temp.metadata.sourceTypeId).toBe('nsu=http://opcfoundation.org/UA/;i=58');
+    expect(temp.metadata.typeNamespaceUri).toBe('http://opcfoundation.org/UA/');
   });
 
   it('POST /v1/objects/list and POST /v1/objects/related respect includeMetadata', async () => {
