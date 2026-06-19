@@ -47,6 +47,56 @@ export function toNsuNodeId(
   return `nsu=${nsUri};${rest}`;
 }
 
+/** Convert a value from node-opcua to a JSON-compatible type. */
+export function cleanOpcuaValue(val: unknown): unknown {
+  if (val === null || val === undefined) {
+    return null;
+  }
+
+  if (typeof val === 'bigint') {
+    return Number(val);
+  }
+
+  // Handle TypedArrays (Float64Array, etc.) and Buffers
+  if (ArrayBuffer.isView(val) && !(val instanceof DataView)) {
+    if (Buffer.isBuffer(val)) {
+      return val.toString('base64');
+    }
+    const arr = Array.from(val as unknown as ArrayLike<unknown>);
+    return arr.map(cleanOpcuaValue);
+  }
+
+  // Handle LocalizedText / QualifiedName / NodeId object types from node-opcua
+  if (typeof val === 'object' && val !== null) {
+    // LocalizedText check
+    if ('text' in val && 'locale' in val) {
+      return (val as { text: unknown }).text;
+    }
+    // QualifiedName check
+    if ('name' in val && 'namespaceIndex' in val) {
+      return (val as { name: unknown }).name;
+    }
+    // NodeId check
+    if ('identifier' in val && 'namespace' in val) {
+      return val.toString();
+    }
+    // Int64 / UInt64 high-low object helper
+    const cName = val.constructor?.name;
+    if (cName === 'Int64' || cName === 'UInt64') {
+      if (typeof (val as any).toNumber === 'function') {
+        return (val as any).toNumber();
+      }
+    }
+  }
+
+  // Handle standard JS Arrays (recursively clean items)
+  if (Array.isArray(val)) {
+    return val.map(cleanOpcuaValue);
+  }
+
+  return val;
+}
+
 /** Convert a DataValue-like object to a SourceDataValue. */
 export function dataValueToSource(dv: {
   statusCode?: { value: number } | null;
@@ -56,7 +106,7 @@ export function dataValueToSource(dv: {
 }): SourceDataValue {
   const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
-    value: dv.value?.value ?? null,
+    value: cleanOpcuaValue(dv.value?.value),
     quality: isGood ? 'Good' : 'Bad',
     timestamp:
       dv.sourceTimestamp?.toISOString() ??
@@ -75,7 +125,7 @@ export function dataValueToHistorical(dv: {
 }): SourceHistoricalValue {
   const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
-    value: dv.value?.value ?? null,
+    value: cleanOpcuaValue(dv.value?.value),
     quality: isGood ? 'Good' : 'Bad',
     timestamp:
       dv.sourceTimestamp?.toISOString() ??

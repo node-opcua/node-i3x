@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  cleanOpcuaValue,
   dataValueToHistorical,
   dataValueToSource,
   NODE_CLASS_NAMES,
@@ -154,5 +155,86 @@ describe('NODE_CLASS_NAMES', () => {
     expect(NODE_CLASS_NAMES[2]).toBe('Variable');
     expect(NODE_CLASS_NAMES[4]).toBe('Method');
     expect(NODE_CLASS_NAMES[8]).toBe('ObjectType');
+  });
+});
+
+describe('cleanOpcuaValue', () => {
+  it('coerces Float64Array to array of numbers', () => {
+    const arr = new Float64Array([1.1, 2.2, 3.3]);
+    const res = cleanOpcuaValue(arr);
+    expect(res).toEqual([1.1, 2.2, 3.3]);
+    expect(Array.isArray(res)).toBe(true);
+  });
+
+  it('coerces Buffer to base64 string', () => {
+    const buf = Buffer.from('hello world');
+    const res = cleanOpcuaValue(buf);
+    expect(res).toBe('aGVsbG8gd29ybGQ=');
+  });
+
+  it('extracts name from QualifiedName', () => {
+    const qname = { name: 'MyBrowseName', namespaceIndex: 2 };
+    const res = cleanOpcuaValue(qname);
+    expect(res).toBe('MyBrowseName');
+  });
+
+  it('extracts text from LocalizedText', () => {
+    const ltext = { text: 'MyDisplayVal', locale: 'en-US' };
+    const res = cleanOpcuaValue(ltext);
+    expect(res).toBe('MyDisplayVal');
+  });
+
+  it('converts NodeId object to string via toString()', () => {
+    const mockNodeId = {
+      identifier: 'my_id',
+      namespace: 1,
+      toString() {
+        return 'ns=1;s=my_id';
+      },
+    };
+    const res = cleanOpcuaValue(mockNodeId);
+    expect(res).toBe('ns=1;s=my_id');
+  });
+
+  it('coerces bigint to number', () => {
+    expect(cleanOpcuaValue(123456789n)).toBe(123456789);
+  });
+
+  it('coerces custom Int64 / UInt64 high-low objects to number', () => {
+    class Int64 {
+      constructor(
+        public high: number,
+        public low: number,
+      ) {}
+      toNumber() {
+        return 42;
+      }
+    }
+    const val = new Int64(0, 42);
+    expect(cleanOpcuaValue(val)).toBe(42);
+  });
+
+  it('coerces BigInt64Array / BigUint64Array to array of numbers', () => {
+    const arr = new BigInt64Array([10n, 20n, 30n]);
+    const res = cleanOpcuaValue(arr);
+    expect(res).toEqual([10, 20, 30]);
+  });
+
+  it('coerces multi-dimensional array matrix to JS arrays', () => {
+    const matrix = [new Float64Array([1, 2]), new BigInt64Array([3n, 4n]), [5n, 6n]];
+    const res = cleanOpcuaValue(matrix);
+    expect(res).toEqual([
+      [1, 2],
+      [3, 4],
+      [5, 6],
+    ]);
+  });
+
+  it('returns primitives and normal arrays directly', () => {
+    expect(cleanOpcuaValue(42)).toBe(42);
+    expect(cleanOpcuaValue('hello')).toBe('hello');
+    expect(cleanOpcuaValue(true)).toBe(true);
+    expect(cleanOpcuaValue(null)).toBeNull();
+    expect(cleanOpcuaValue([1, 'two', { x: 1 }])).toEqual([1, 'two', { x: 1 }]);
   });
 });
