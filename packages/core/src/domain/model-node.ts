@@ -23,6 +23,7 @@ export interface ModelNode {
   readonly children: readonly string[];
   readonly sourceNodeId: string;
   readonly namespaceUri: string;
+  readonly engUnit?: string | null;
 }
 
 /**

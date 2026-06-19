@@ -59,6 +59,7 @@ export function toObjectInstance(
     children: readonly string[];
     namespaceUri?: string;
     sourceNodeId?: string;
+    engUnit?: string | null;
   },
   parentId: string | null,
   includeMetadata?: boolean,
@@ -91,6 +92,7 @@ export function toObjectInstance(
           metadata: {
             typeNamespaceUri,
             sourceTypeId,
+            engUnit: node.engUnit ?? null,
           },
         }
       : {}),

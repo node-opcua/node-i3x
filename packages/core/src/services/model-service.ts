@@ -240,6 +240,56 @@ export class ModelService {
       }
     }
 
+    // ── Pre-fetch and map engineering units automatically ──
+    const engUnitReqs: { propertyId: string; engUnitSourceId: string }[] = [];
+    for (const node of nodesById.values()) {
+      if (node.kind === 'property') {
+        for (const childId of node.children) {
+          const childNode = nodesById.get(childId);
+          if (
+            childNode &&
+            childNode.kind === 'property' &&
+            childNode.name.toLowerCase() === 'engineeringunit'
+          ) {
+            engUnitReqs.push({
+              propertyId: node.id,
+              engUnitSourceId: childNode.sourceNodeId,
+            });
+          }
+        }
+      }
+    }
+
+    if (engUnitReqs.length > 0) {
+      try {
+        const sourceIds = engUnitReqs.map((r) => r.engUnitSourceId);
+        const values = await this.dataSource.readValues(sourceIds);
+        for (let i = 0; i < values.length; i++) {
+          const req = engUnitReqs[i]!;
+          const dataValue = values[i];
+          if (dataValue && dataValue.quality === 'Good' && dataValue.value) {
+            const rawVal = dataValue.value;
+            let unitCode: string | null = null;
+            if (typeof rawVal === 'string') {
+              unitCode = mapSymbolToUnece(rawVal);
+            } else if (rawVal && typeof rawVal === 'object') {
+              const rawObj = rawVal as any;
+              const symbol = rawObj.displayName?.text || rawObj.displayName || '';
+              unitCode = mapSymbolToUnece(symbol.toString());
+            }
+            if (unitCode) {
+              const propertyNode = nodesById.get(req.propertyId);
+              if (propertyNode) {
+                (propertyNode as any).engUnit = unitCode;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to auto-map engineering units: ${err}`);
+      }
+    }
+
     return { nodesById, rootIds, childrenById, propertyToSource, actionToMethod };
   }
 
@@ -252,6 +302,30 @@ export class ModelService {
   private _buildTypeIdMap(types: readonly ObjectTypeInfo[]): Map<string, string> {
     return buildTypeIdMap(types, this.options?.typeIdFormat);
   }
+}
+
+function mapSymbolToUnece(symbol: string): string | null {
+  const clean = symbol.trim().toLowerCase();
+  if (clean === '°c' || clean === 'cel' || clean === 'celsius') return 'CEL';
+  if (clean === '°f' || clean === 'fah' || clean === 'fahrenheit') return 'FAH';
+  if (clean === 'bar') return 'BAR';
+  if (clean === 'v' || clean === 'volt' || clean === 'volts') return 'VLT';
+  if (clean === 'a' || clean === 'amp' || clean === 'ampere' || clean === 'amperes')
+    return 'AMP';
+  if (clean === 'hz' || clean === 'hertz') return 'HTZ';
+  if (clean === '%' || clean === 'percent' || clean === 'percentage') return 'P1';
+  if (clean === 'm/s') return 'MTS';
+  if (clean === 'kg' || clean === 'kilogram') return 'KGM';
+  if (clean === 's' || clean === 'sec' || clean === 'second' || clean === 'seconds')
+    return 'SEC';
+  if (clean === 'min' || clean === 'minute' || clean === 'minutes') return 'MIN';
+  if (clean === 'h' || clean === 'hur' || clean === 'hour' || clean === 'hours')
+    return 'HUR';
+
+  if (/^[a-z0-9]{2,3}$/i.test(clean)) {
+    return clean.toUpperCase();
+  }
+  return null;
 }
 
 /**

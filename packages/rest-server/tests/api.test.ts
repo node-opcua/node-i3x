@@ -20,6 +20,19 @@ describe('REST API', () => {
 
   beforeAll(async () => {
     const ds = new MockDataSource();
+    ds.extraNodes.push({
+      sourceNodeId: 'ns=2;s=EngineeringUnit',
+      parentSourceNodeId: 'ns=2;s=Temperature',
+      browseName: 'EngineeringUnit',
+      nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit',
+      displayName: 'EngineeringUnit',
+      nodeClass: 'Variable',
+      typeDefinition: 'Double',
+      namespaceUri: 'http://opcfoundation.org/UA/DI/',
+      eventNotifier: false,
+    });
+    ds.values['ns=2;s=EngineeringUnit'] = { displayName: { text: '°C' } };
+
     const logger = nullLogger;
     modelService = new ModelService(ds, logger);
     const valueService = new ValueService(ds, modelService, logger);
@@ -132,6 +145,7 @@ describe('REST API', () => {
     expect(temp.metadata).toBeDefined();
     expect(temp.metadata.sourceTypeId).toBe('nsu=http://opcfoundation.org/UA/;i=58');
     expect(temp.metadata.typeNamespaceUri).toBe('http://opcfoundation.org/UA/');
+    expect(temp.metadata.engUnit).toBe('CEL');
   });
 
   it('POST /v1/objects/list and POST /v1/objects/related respect includeMetadata', async () => {

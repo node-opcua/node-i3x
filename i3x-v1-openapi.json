@@ -1998,6 +1998,17 @@
             ],
             "title": "Sourcetypeid"
           },
+          "engUnit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engunit"
+          },
           "description": {
             "anyOf": [
               {

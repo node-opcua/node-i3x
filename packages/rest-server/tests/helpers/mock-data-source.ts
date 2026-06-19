@@ -19,6 +19,7 @@ import type {
 export class MockDataSource implements IDataSourcePort {
   values: Record<string, unknown> = { 'ns=2;s=Temperature': 42.5 };
   connected = true;
+  extraNodes: SourceNodeInfo[] = [];
 
   async connect() {
     this.connected = true;
@@ -65,6 +66,7 @@ export class MockDataSource implements IDataSourcePort {
         namespaceUri: 'http://example.com/',
         eventNotifier: false,
       },
+      ...this.extraNodes,
     ];
   }
 

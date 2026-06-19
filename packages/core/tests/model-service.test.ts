@@ -704,5 +704,127 @@ describe('ModelService – edge cases', () => {
       expect(expectedTempId).toMatch(/-coffeemachinea-temperature$/);
       expect(expectedTempId).not.toContain('deviceset');
     });
+
+    it('Variable with nested EngineeringUnit property maps engUnit correctly from data source', async () => {
+      const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
+      const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
+      const tempPath = `${paramSetPath}/nsu=http://test.org/:Temperature`;
+      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: parentAssetPath,
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=101',
+          nsuQualifiedName: 'nsu=http://test.org/:ParameterSet',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=102',
+          nsuQualifiedName: 'nsu=http://test.org/:Temperature',
+          parentSourceNodeId: 'ns=2;i=101',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=104',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit',
+          parentSourceNodeId: 'ns=2;i=102',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const customDataSource = mockDataSource(nodes);
+      customDataSource.readValues = async (ids) => {
+        if (ids.includes('ns=2;i=104')) {
+          return [
+            {
+              value: {
+                displayName: { text: '°C' },
+              },
+              quality: 'Good',
+              timestamp: '',
+            },
+          ];
+        }
+        return [];
+      };
+
+      const svc = new ModelService(customDataSource, nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedTempId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Temperature',
+      );
+
+      const tempNode = model.nodesById.get(expectedTempId);
+      expect(tempNode).toBeDefined();
+      expect(tempNode?.engUnit).toBe('CEL');
+    });
+
+    it('Variable with nested EngineeringUnit property maps engUnit from raw string representation', async () => {
+      const parentAssetPath = 'nsu=http://test.org/:CoffeeMachineA';
+      const paramSetPath = `${parentAssetPath}/nsu=http://test.org/:ParameterSet`;
+      const tempPath = `${paramSetPath}/nsu=http://test.org/:Pressure`;
+      const engUnitPath = `${tempPath}/nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit`;
+
+      const nodes = [
+        sourceNode({
+          sourceNodeId: 'ns=2;i=100',
+          nsuQualifiedName: parentAssetPath,
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=101',
+          nsuQualifiedName: 'nsu=http://test.org/:ParameterSet',
+          parentSourceNodeId: 'ns=2;i=100',
+          nodeClass: 'Object',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=105',
+          nsuQualifiedName: 'nsu=http://test.org/:Pressure',
+          parentSourceNodeId: 'ns=2;i=101',
+          nodeClass: 'Variable',
+        }),
+        sourceNode({
+          sourceNodeId: 'ns=2;i=106',
+          nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/DI/:EngineeringUnit',
+          parentSourceNodeId: 'ns=2;i=105',
+          nodeClass: 'Variable',
+        }),
+      ];
+
+      const customDataSource = mockDataSource(nodes);
+      customDataSource.readValues = async (ids) => {
+        if (ids.includes('ns=2;i=106')) {
+          return [
+            {
+              value: 'bar',
+              quality: 'Good',
+              timestamp: '',
+            },
+          ];
+        }
+        return [];
+      };
+
+      const svc = new ModelService(customDataSource, nullLogger);
+      const model = await svc.getOrBuildModel();
+
+      const expectedPressureId = expectedPropertyId(
+        parentAssetPath,
+        'CoffeeMachineA',
+        'ParameterSet/Pressure',
+      );
+
+      const pressureNode = model.nodesById.get(expectedPressureId);
+      expect(pressureNode).toBeDefined();
+      expect(pressureNode?.engUnit).toBe('BAR');
+    });
   });
 });

@@ -64,6 +64,7 @@ export interface ServerInfo {
 export interface ObjectInstanceMetadata {
   typeNamespaceUri?: string | null;
   sourceTypeId?: string | null;
+  engUnit?: string | null;
   description?: string | null;
   relationships?: Record<string, unknown> | null;
   schemaExtensions?: Record<string, unknown> | null;
