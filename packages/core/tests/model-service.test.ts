@@ -953,4 +953,82 @@ describe('ModelService – edge cases', () => {
       expect(tempNode?.engUnit).toBe('CEL');
     });
   });
+
+  describe('ModelService - _formatDataTypeAndRegister coverage', () => {
+    it('covers all paths of _formatDataTypeAndRegister', () => {
+      const customDataSource = mockDataSource([]);
+      const svc = new ModelService(customDataSource, nullLogger);
+
+      // 1. Standard DataType Name mapping
+      const t1 = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://opcfoundation.org/UA/;i=11',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+      );
+      expect(t1).toBe('Double');
+
+      // 2. Custom dataTypeName parameter
+      const t2 = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://opcfoundation.org/UA/;i=887',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+        'EUInformation',
+      );
+      expect(t2).toBe('EUInformation');
+
+      // 2b. Custom dataTypeName parameter (custom namespace)
+      const t2_custom = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://test.org/;i=1007',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+        'CustomDataType',
+      );
+      expect(t2_custom).toBe('CustomDataType [ nsu=http://test.org/;i=1007 ]');
+
+      // 3. Non-namespace 0 URI and fallback name
+      const t3 = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://test.org/;i=1006',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+      );
+      expect(t3).toBe('DataType_1006 [ nsu=http://test.org/;i=1006 ]');
+
+      // 4. Non-namespace 0 URI with non-integer identifier matching i_ pattern
+      const t4 = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://test.org/;i_some_id',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+      );
+      expect(t4).toBe('DataType_some_id [ nsu=http://test.org/;i_some_id ]');
+
+      // 5. Non-namespace 0 URI with string identifier (no i_ prefix)
+      const t5 = (svc as any)._formatDataTypeAndRegister(
+        'nsu=http://test.org/;s=SomeString',
+        'prefixed-name',
+        ['http://opcfoundation.org/UA/'],
+      );
+      expect(t5).toBe('DataType_s_SomeString [ nsu=http://test.org/;s=SomeString ]');
+
+      // 6. Identifier starting with double/boolean/string/int32 keywords
+      const t6 = (svc as any)._formatDataTypeAndRegister('Double', 'prefixed-name', [
+        'http://opcfoundation.org/UA/',
+      ]);
+      expect(t6).toBe('Double');
+
+      const t7 = (svc as any)._formatDataTypeAndRegister('Boolean', 'prefixed-name', [
+        'http://opcfoundation.org/UA/',
+      ]);
+      expect(t7).toBe('Boolean');
+
+      const t8 = (svc as any)._formatDataTypeAndRegister('String', 'prefixed-name', [
+        'http://opcfoundation.org/UA/',
+      ]);
+      expect(t8).toBe('String');
+
+      const t9 = (svc as any)._formatDataTypeAndRegister('Int32', 'prefixed-name', [
+        'http://opcfoundation.org/UA/',
+      ]);
+      expect(t9).toBe('Int32');
+    });
+  });
 });
