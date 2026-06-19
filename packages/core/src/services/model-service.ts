@@ -3,6 +3,8 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { BuildResult, ModelNode } from '../domain/model-node.js';
+import type { ObjectType } from '../domain/object-type.js';
+import { toNsuNodeId } from '../helpers/opcua-mapping.js';
 import type {
   IDataSourcePort,
   ObjectTypeInfo,
@@ -10,10 +12,12 @@ import type {
 } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
 import { inferKind, mapNode, stableI3xId } from './mapper.js';
+import { jsonSchemaForDataType } from './schema-builder.js';
 
 export class ModelService {
   private _cache: BuildResult | null = null;
   private _buildPromise: Promise<BuildResult> | null = null;
+  readonly dataTypeTypes = new Map<string, ObjectType>();
 
   constructor(
     private readonly dataSource: IDataSourcePort,
@@ -85,6 +89,8 @@ export class ModelService {
   private async _build(): Promise<BuildResult> {
     const sourceTypes = await this.dataSource.getObjectTypes();
     const typeIdMap = this._buildTypeIdMap(sourceTypes);
+    const namespaces = await this.dataSource.getNamespaces();
+    const namespaceArray = namespaces.map((ns) => ns.uri);
 
     const sourceNodes = await this.dataSource.browseTree();
     const bySourceId = new Map<string, SourceNodeInfo>();
@@ -217,17 +223,39 @@ export class ModelService {
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
       let typeOverride: string | null = null;
+      let sourceTypeId: string | null = null;
+
       const typeDef = srcNode.typeDefinition;
-      if (typeDef && typeIdMap.has(typeDef)) {
-        typeOverride = typeIdMap.get(typeDef)!;
+      if (typeDef) {
+        sourceTypeId = toNsuNodeId(typeDef, namespaceArray);
       } else {
-        typeOverride = 'UnknownType';
+        sourceTypeId = toNsuNodeId(srcNode.sourceNodeId, namespaceArray);
+      }
+
+      if (srcNode.nodeClass === 'Variable') {
+        const dataType = srcNode.dataType || srcNode.typeDefinition;
+        if (dataType) {
+          typeOverride = this._formatDataTypeAndRegister(
+            dataType,
+            this.options?.typeIdFormat || 'prefixed-name',
+            namespaceArray,
+          );
+        } else {
+          typeOverride = 'UnknownType';
+        }
+      } else {
+        if (typeDef && typeIdMap.has(typeDef)) {
+          typeOverride = typeIdMap.get(typeDef)!;
+        } else {
+          typeOverride = 'UnknownType';
+        }
       }
 
       const nodeId = getNodeId(sourceId);
       const mapped = {
         ...mapNode(srcNode, childIds, browsePath, typeOverride),
         id: nodeId,
+        sourceTypeId,
       };
 
       nodesById.set(nodeId, mapped);
@@ -298,6 +326,78 @@ export class ModelService {
     }
 
     return { nodesById, rootIds, childrenById, propertyToSource, actionToMethod };
+  }
+
+  private _formatDataTypeAndRegister(
+    dataTypeNodeId: string,
+    format: 'hash' | 'name' | 'prefixed-name',
+    namespaceArray: readonly string[],
+  ): string {
+    let resolvedDataTypeNodeId = dataTypeNodeId;
+    if (dataTypeNodeId.toLowerCase() === 'double') {
+      resolvedDataTypeNodeId = 'nsu=http://opcfoundation.org/UA/;i=11';
+    } else if (dataTypeNodeId.toLowerCase() === 'boolean') {
+      resolvedDataTypeNodeId = 'nsu=http://opcfoundation.org/UA/;i=1';
+    } else if (dataTypeNodeId.toLowerCase() === 'string') {
+      resolvedDataTypeNodeId = 'nsu=http://opcfoundation.org/UA/;i=12';
+    } else if (dataTypeNodeId.toLowerCase() === 'int32') {
+      resolvedDataTypeNodeId = 'nsu=http://opcfoundation.org/UA/;i=6';
+    }
+
+    let nsu = 'http://opcfoundation.org/UA/';
+    let identifier = 'i=11';
+    if (resolvedDataTypeNodeId.startsWith('nsu=')) {
+      const semiIdx = resolvedDataTypeNodeId.indexOf(';');
+      if (semiIdx > 0) {
+        nsu = resolvedDataTypeNodeId.slice(4, semiIdx);
+        identifier = resolvedDataTypeNodeId.slice(semiIdx + 1);
+      }
+    } else {
+      const nsMatch = resolvedDataTypeNodeId.match(/^ns=(\d+);(.+)$/);
+      if (nsMatch) {
+        const nsIdx = parseInt(nsMatch[1]!, 10);
+        nsu = namespaceArray[nsIdx] ?? `ns=${nsIdx}`;
+        identifier = nsMatch[2]!;
+      } else {
+        identifier = resolvedDataTypeNodeId;
+      }
+    }
+
+    let name = getStandardDataTypeName(identifier, nsu);
+    if (!name) {
+      name = identifier.replace(/[^a-zA-Z0-9]/g, '_');
+      if (name.startsWith('i_')) {
+        name = `DataType_${name.slice(2)}`;
+      } else {
+        name = `DataType_${name}`;
+      }
+    }
+
+    let typeElementId = '';
+    if (format === 'hash') {
+      typeElementId = stableI3xId(`nsu=${nsu}:${name}`, 'type');
+    } else {
+      if (nsu === 'http://opcfoundation.org/UA/') {
+        typeElementId = name;
+      } else {
+        typeElementId = `${name} [ nsu=${nsu};${identifier} ]`;
+      }
+    }
+
+    if (!this.dataTypeTypes.has(typeElementId)) {
+      const schema = jsonSchemaForDataType(identifier);
+      this.dataTypeTypes.set(typeElementId, {
+        elementId: typeElementId,
+        displayName: name,
+        namespaceUri: nsu,
+        sourceTypeId: `nsu=${nsu};${identifier}`,
+        version: null,
+        schema,
+        related: null,
+      });
+    }
+
+    return typeElementId;
   }
 
   /**
@@ -486,6 +586,41 @@ export function buildTypeIdMap(
     }
   }
   return map;
+}
+
+const STANDARD_DATATYPES: Record<string, string> = {
+  'i=1': 'Boolean',
+  'i=2': 'SByte',
+  'i=3': 'Byte',
+  'i=4': 'Int16',
+  'i=5': 'UInt16',
+  'i=6': 'Int32',
+  'i=7': 'UInt32',
+  'i=8': 'Int64',
+  'i=9': 'UInt64',
+  'i=10': 'Float',
+  'i=11': 'Double',
+  'i=12': 'String',
+  'i=13': 'DateTime',
+  'i=14': 'Guid',
+  'i=15': 'ByteString',
+  'i=16': 'XmlElement',
+  'i=17': 'NodeId',
+  'i=18': 'ExpandedNodeId',
+  'i=19': 'StatusCode',
+  'i=20': 'QualifiedName',
+  'i=21': 'LocalizedText',
+  'i=22': 'Structure',
+  'i=23': 'DataValue',
+  'i=24': 'BaseDataType',
+  'i=25': 'DiagnosticInfo',
+};
+
+function getStandardDataTypeName(identifier: string, nsu: string): string | null {
+  if (nsu === 'http://opcfoundation.org/UA/') {
+    return STANDARD_DATATYPES[identifier] ?? null;
+  }
+  return null;
 }
 
 export function emptyBuildResult(): BuildResult {

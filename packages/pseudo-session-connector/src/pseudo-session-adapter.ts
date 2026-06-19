@@ -18,6 +18,7 @@ import {
   type SourceDataValue,
   type SourceHistoricalValue,
   type SourceNodeInfo,
+  toNsuNodeId,
 } from '@node-i3x/core';
 import type { IAddressSpace, UAVariable } from 'node-opcua-address-space-base';
 import { AttributeIds, BrowseDirection, NodeClass } from 'node-opcua-data-model';
@@ -153,6 +154,29 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         return true;
       },
     );
+    const variables = items.filter((item) => item.nodeClass === 'Variable');
+    if (variables.length > 0) {
+      const readItems = variables.map((v) => ({
+        nodeId: v.sourceNodeId,
+        attributeId: AttributeIds.DataType,
+      }));
+      try {
+        const dvs = await this.session.read(readItems);
+        const dvsArr = Array.isArray(dvs) ? dvs : [dvs];
+        for (let i = 0; i < variables.length; i++) {
+          const v = variables[i]!;
+          const rawDt = dvsArr[i]?.value?.value;
+          if (rawDt) {
+            (v as any).dataType = toNsuNodeId(rawDt.toString(), this._namespaceArray);
+          }
+        }
+      } catch (err) {
+        this._logger.warn(
+          `Failed to batch-read Variable DataTypes in PseudoSession: ${err}`,
+        );
+      }
+    }
+
     this._logger.info(`PseudoSession browseTree: ${items.length} nodes`);
     return items;
   }

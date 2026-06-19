@@ -60,7 +60,7 @@ const DATA_TYPE_MAP: Record<string, Record<string, unknown>> = {
  * Falls back to `{ type: 'string' }` for unknown types,
  * and `{ type: 'object' }` for ExtensionObject / Structure types.
  */
-function jsonSchemaForDataType(dataType: string | null): Record<string, unknown> {
+export function jsonSchemaForDataType(dataType: string | null): Record<string, unknown> {
   if (!dataType) return { type: 'string' };
 
   const normalized = dataType.toLowerCase().trim();

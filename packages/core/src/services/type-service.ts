@@ -9,7 +9,7 @@ import type { ObjectType } from '../domain/object-type.js';
 import { toNsuNodeId } from '../helpers/opcua-mapping.js';
 import type { IDataSourcePort } from '../ports/data-source.js';
 import type { ILogger } from '../ports/logger.js';
-import { buildTypeIdMap } from './model-service.js';
+import { buildTypeIdMap, type ModelService } from './model-service.js';
 import { buildAllObjectTypeSchemas } from './schema-builder.js';
 
 // ── Cached result ────────────────────────────────────────────
@@ -30,7 +30,10 @@ export class TypeService {
   constructor(
     private readonly dataSource: IDataSourcePort,
     private readonly logger: ILogger,
-    private readonly options?: { typeIdFormat?: 'hash' | 'name' | 'prefixed-name' },
+    private readonly options?: {
+      typeIdFormat?: 'hash' | 'name' | 'prefixed-name';
+      modelService?: ModelService;
+    },
   ) {}
 
   // ── Public API ─────────────────────────────────────────────
@@ -118,6 +121,13 @@ export class TypeService {
       schema: {},
       related: null,
     });
+
+    if (this.options?.modelService) {
+      await this.options.modelService.getOrBuildModel();
+      for (const t of this.options.modelService.dataTypeTypes.values()) {
+        types.push(t);
+      }
+    }
 
     // Build lookup map
     const byId = new Map<string, ObjectType>();

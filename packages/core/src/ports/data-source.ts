@@ -25,6 +25,7 @@ export interface SourceNodeInfo {
   /** Namespace URI for this node's browse name. */
   readonly namespaceUri: string;
   readonly eventNotifier: boolean;
+  readonly dataType?: string | null;
 }
 
 /**

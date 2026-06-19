@@ -24,6 +24,7 @@ export interface ModelNode {
   readonly sourceNodeId: string;
   readonly namespaceUri: string;
   readonly engUnit?: string | null;
+  readonly sourceTypeId?: string | null;
 }
 
 /**

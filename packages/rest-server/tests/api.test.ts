@@ -38,7 +38,7 @@ describe('REST API', () => {
     const valueService = new ValueService(ds, modelService, logger);
     const historyService = new HistoryService(ds, modelService, logger);
     subscriptionService = new SubscriptionService(ds, modelService, logger, 1000, 250);
-    const typeService = new TypeService(ds, logger);
+    const typeService = new TypeService(ds, logger, { modelService });
 
     app = await createApp({
       dataSource: ds,
@@ -143,7 +143,7 @@ describe('REST API', () => {
     const temp = bodyMeta.result.find((r: any) => r.displayName === 'Temperature');
     expect(temp).toBeDefined();
     expect(temp.metadata).toBeDefined();
-    expect(temp.metadata.sourceTypeId).toBe('nsu=http://opcfoundation.org/UA/;i=58');
+    expect(temp.metadata.sourceTypeId).toBe('nsu=http://opcfoundation.org/UA/;i=11');
     expect(temp.metadata.typeNamespaceUri).toBe('http://opcfoundation.org/UA/');
     expect(temp.metadata.engUnit).toBe('CEL');
   });

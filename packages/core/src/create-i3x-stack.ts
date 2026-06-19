@@ -47,6 +47,7 @@ export function createI3xStack(
   );
   const typeService = new TypeService(dataSource, logger, {
     typeIdFormat: options?.typeIdFormat,
+    modelService,
   });
 
   return {

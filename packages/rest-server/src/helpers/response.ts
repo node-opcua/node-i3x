@@ -60,6 +60,7 @@ export function toObjectInstance(
     namespaceUri?: string;
     sourceNodeId?: string;
     engUnit?: string | null;
+    sourceTypeId?: string | null;
   },
   parentId: string | null,
   includeMetadata?: boolean,
@@ -76,7 +77,7 @@ export function toObjectInstance(
       sourceTypeId = typeInfo.sourceTypeId;
     } else {
       typeNamespaceUri = node.namespaceUri ?? null;
-      sourceTypeId = node.sourceNodeId ?? null;
+      sourceTypeId = node.sourceTypeId ?? node.sourceNodeId ?? null;
     }
   }
 
