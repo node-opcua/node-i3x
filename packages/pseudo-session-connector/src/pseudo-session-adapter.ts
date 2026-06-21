@@ -156,17 +156,24 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
     );
     const variables = items.filter((item) => item.nodeClass === 'Variable');
     if (variables.length > 0) {
-      const readItems = variables.map((v) => ({
-        nodeId: v.sourceNodeId,
-        attributeId: AttributeIds.DataType,
-      }));
+      const readItems: ReadValueIdOptions[] = [];
+      for (const v of variables) {
+        readItems.push({
+          nodeId: v.sourceNodeId,
+          attributeId: AttributeIds.DataType,
+        });
+        readItems.push({
+          nodeId: v.sourceNodeId,
+          attributeId: AttributeIds.ValueRank,
+        });
+      }
       try {
         const dvs = await this.session.read(readItems);
         const dvsArr = Array.isArray(dvs) ? dvs : [dvs];
 
         const uniqueDtIds = new Set<string>();
         for (let i = 0; i < variables.length; i++) {
-          const rawDt = dvsArr[i]?.value?.value;
+          const rawDt = dvsArr[i * 2]?.value?.value;
           if (rawDt) {
             uniqueDtIds.add(rawDt.toString());
           }
@@ -191,7 +198,8 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
 
         for (let i = 0; i < variables.length; i++) {
           const v = variables[i]!;
-          const rawDt = dvsArr[i]?.value?.value;
+          const rawDt = dvsArr[i * 2]?.value?.value;
+          const rawVr = dvsArr[i * 2 + 1]?.value?.value;
           if (rawDt) {
             const rawDtStr = rawDt.toString();
             (v as any).dataType = toNsuNodeId(rawDtStr, this._namespaceArray);
@@ -200,10 +208,13 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
               (v as any).dataTypeName = name;
             }
           }
+          if (typeof rawVr === 'number') {
+            (v as any).valueRank = rawVr;
+          }
         }
       } catch (err) {
         this._logger.warn(
-          `Failed to batch-read Variable DataTypes in PseudoSession: ${err}`,
+          `Failed to batch-read Variable DataTypes/ValueRanks in PseudoSession: ${err}`,
         );
       }
     }
@@ -270,6 +281,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
 
       let dataType: string | null = null;
       let modellingRule: string | null = null;
+      let valueRank: number | null = null;
 
       // Read DataType for Variables
       if (ref.nodeClass === NodeClass.Variable) {
@@ -288,6 +300,19 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         } catch (err) {
           this._logger.debug(
             `Failed to read DataType for ${ref.nodeId.toString()}: ${(err as Error).message}`,
+          );
+        }
+        try {
+          const vrResult = await this.session.read({
+            nodeId: ref.nodeId,
+            attributeId: AttributeIds.ValueRank,
+          });
+          if (typeof vrResult.value?.value === 'number') {
+            valueRank = vrResult.value.value;
+          }
+        } catch (err) {
+          this._logger.debug(
+            `Failed to read ValueRank for ${ref.nodeId.toString()}: ${(err as Error).message}`,
           );
         }
       }
@@ -322,6 +347,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
               ? 'Object'
               : 'Method',
         dataType,
+        valueRank,
         modellingRule,
       });
     }

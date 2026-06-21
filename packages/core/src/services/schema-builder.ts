@@ -126,7 +126,17 @@ function schemaForMember(member: ObjectTypeMemberInfo): Record<string, unknown> 
     return { type: 'object', title: member.displayName };
   }
 
-  const schema = jsonSchemaForDataType(member.dataType);
+  let schema = jsonSchemaForDataType(member.dataType);
+  if (
+    member.valueRank !== undefined &&
+    member.valueRank !== null &&
+    member.valueRank >= 0
+  ) {
+    schema = {
+      type: 'array',
+      items: schema,
+    };
+  }
   if (member.displayName && member.displayName !== member.browseName) {
     schema.title = member.displayName;
   }

@@ -240,6 +240,7 @@ export class ModelService {
             this.options?.typeIdFormat || 'prefixed-name',
             namespaceArray,
             srcNode.dataTypeName,
+            srcNode.valueRank,
           );
         } else {
           typeOverride = 'UnknownType';
@@ -334,6 +335,7 @@ export class ModelService {
     format: 'hash' | 'name' | 'prefixed-name',
     namespaceArray: readonly string[],
     dataTypeName?: string | null,
+    valueRank?: number | null,
   ): string {
     let resolvedDataTypeNodeId = dataTypeNodeId;
     if (dataTypeNodeId.toLowerCase() === 'double') {
@@ -375,6 +377,11 @@ export class ModelService {
       }
     }
 
+    const isArray = valueRank !== undefined && valueRank !== null && valueRank >= 0;
+    if (isArray) {
+      name = `${name}[]`;
+    }
+
     let typeElementId = '';
     if (format === 'hash') {
       typeElementId = stableI3xId(`nsu=${nsu}:${name}`, 'type');
@@ -387,12 +394,18 @@ export class ModelService {
     }
 
     if (!this.dataTypeTypes.has(typeElementId)) {
-      const schema = jsonSchemaForDataType(identifier);
+      let schema = jsonSchemaForDataType(identifier);
+      if (isArray) {
+        schema = {
+          type: 'array',
+          items: schema,
+        };
+      }
       this.dataTypeTypes.set(typeElementId, {
         elementId: typeElementId,
         displayName: name,
         namespaceUri: nsu,
-        sourceTypeId: `nsu=${nsu};${identifier}`,
+        sourceTypeId: `nsu=${nsu};${identifier}${isArray ? ';Array' : ''}`,
         version: null,
         schema,
         related: null,

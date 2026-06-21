@@ -27,6 +27,7 @@ export interface SourceNodeInfo {
   readonly eventNotifier: boolean;
   readonly dataType?: string | null;
   readonly dataTypeName?: string | null;
+  readonly valueRank?: number | null;
 }
 
 /**
@@ -68,6 +69,7 @@ export interface ObjectTypeMemberInfo {
   readonly dataType: string | null;
   /** 'Mandatory' | 'Optional' | null */
   readonly modellingRule: string | null;
+  readonly valueRank?: number | null;
 }
 
 /** A single value read from the source, with quality + timestamp. */

@@ -617,17 +617,24 @@ export class OpcUaClient {
 
     const variables = items.filter((item) => item.nodeClass === 'Variable');
     if (variables.length > 0) {
-      const readItems = variables.map((v) => ({
-        nodeId: v.sourceNodeId,
-        attributeId: AttributeIds.DataType,
-      }));
+      const readItems: ReadValueIdOptions[] = [];
+      for (const v of variables) {
+        readItems.push({
+          nodeId: v.sourceNodeId,
+          attributeId: AttributeIds.DataType,
+        });
+        readItems.push({
+          nodeId: v.sourceNodeId,
+          attributeId: AttributeIds.ValueRank,
+        });
+      }
       try {
         const dvs = await this.session.read(readItems);
         const dvsArr = Array.isArray(dvs) ? dvs : [dvs];
 
         const uniqueDtIds = new Set<string>();
         for (let i = 0; i < variables.length; i++) {
-          const rawDt = dvsArr[i]?.value?.value;
+          const rawDt = dvsArr[i * 2]?.value?.value;
           if (rawDt) {
             uniqueDtIds.add(rawDt.toString());
           }
@@ -652,7 +659,8 @@ export class OpcUaClient {
 
         for (let i = 0; i < variables.length; i++) {
           const v = variables[i]!;
-          const rawDt = dvsArr[i]?.value?.value;
+          const rawDt = dvsArr[i * 2]?.value?.value;
+          const rawVr = dvsArr[i * 2 + 1]?.value?.value;
           if (rawDt) {
             const rawDtStr = rawDt.toString();
             (v as any).dataType = toNsuNodeId(rawDtStr, this._namespaceArray);
@@ -661,9 +669,12 @@ export class OpcUaClient {
               (v as any).dataTypeName = name;
             }
           }
+          if (typeof rawVr === 'number') {
+            (v as any).valueRank = rawVr;
+          }
         }
       } catch (err) {
-        this.logger.warn(`Failed to batch-read Variable DataTypes: ${err}`);
+        this.logger.warn(`Failed to batch-read Variable DataTypes/ValueRanks: ${err}`);
       }
     }
 
@@ -787,24 +798,34 @@ export class OpcUaClient {
       }
     }
 
-    // Batch-read DataType for all Variable members
+    // Batch-read DataType and ValueRank for all Variable members
     const dataTypeMap = new Map<string, string | null>();
+    const valueRankMap = new Map<string, number | null>();
     if (variableRefs.length > 0) {
-      const readItems: ReadValueIdOptions[] = variableRefs.map((ref) => ({
-        nodeId: ref.nodeId,
-        attributeId: AttributeIds.DataType,
-      }));
+      const readItems: ReadValueIdOptions[] = [];
+      for (const ref of variableRefs) {
+        readItems.push({
+          nodeId: ref.nodeId,
+          attributeId: AttributeIds.DataType,
+        });
+        readItems.push({
+          nodeId: ref.nodeId,
+          attributeId: AttributeIds.ValueRank,
+        });
+      }
       try {
         const dvs = await this.session.read(readItems);
         const arr = Array.isArray(dvs) ? dvs : [dvs];
         for (let i = 0; i < variableRefs.length; i++) {
           const childId = variableRefs[i]!.nodeId.toString();
-          const dtValue = arr[i]?.value?.value;
+          const dtValue = arr[i * 2]?.value?.value;
+          const vrValue = arr[i * 2 + 1]?.value?.value;
           dataTypeMap.set(childId, dtValue ? dtValue.toString() : null);
+          valueRankMap.set(childId, typeof vrValue === 'number' ? vrValue : null);
         }
       } catch (err) {
         this.logger.debug(
-          `Failed to resolve DataTypes during browse: ${(err as Error).message}`,
+          `Failed to resolve DataTypes/ValueRanks during browse: ${(err as Error).message}`,
         );
       }
     }
@@ -852,6 +873,7 @@ export class OpcUaClient {
               ? 'Object'
               : 'Method',
         dataType: dataTypeMap.get(childId) ?? null,
+        valueRank: valueRankMap.get(childId) ?? null,
         modellingRule: modellingRuleMap.get(childId) ?? null,
       });
     }
