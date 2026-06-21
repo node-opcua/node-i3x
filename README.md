@@ -28,6 +28,19 @@ Built with [node-opcua](https://node-opcua.github.io/), [Fastify](https://fastif
 
 ---
 
+## Live Testing
+
+You can test **node-i3x** live in your browser using the public sandbox:
+👉 **[i3x-portal.sterfive.io](https://i3x-portal.sterfive.io)**
+
+The portal allows you to register an OPC UA server, bridge it to i3X REST endpoints in seconds, and run test API requests interactively.
+
+<p align="center">
+  <img src="docs/i3x-portal-dashboard.png" alt="node-i3x portal dashboard" width="720" />
+</p>
+
+---
+
 ## Architecture
 
 <!-- mermaid-img -->
