@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.9.5 (2026-06-21)
+
+- Version bump
+
 ## 0.9.4 (2026-06-19)
 
 - Version bump
