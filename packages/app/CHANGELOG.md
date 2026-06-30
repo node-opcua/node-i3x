@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.9.6 (2026-06-30)
+
+- docs: add live testing info and dashboard image to README
+
 ## 0.9.5 (2026-06-21)
 
 - Version bump

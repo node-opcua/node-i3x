@@ -161,16 +161,20 @@ export class HistoryService {
       );
     }
 
-    // Recurse into sub-object children
-    for (const subAsset of subAssets) {
-      const subComponents = await this._readComponentsHistory(
-        model,
-        subAsset,
-        startTime,
-        endTime,
-        maxDepth,
-        currentDepth + 1,
-      );
+    // Recurse into sub-object children in parallel
+    const subComponentsList = await Promise.all(
+      subAssets.map((subAsset) =>
+        this._readComponentsHistory(
+          model,
+          subAsset,
+          startTime,
+          endTime,
+          maxDepth,
+          currentDepth + 1,
+        ),
+      ),
+    );
+    for (const subComponents of subComponentsList) {
       for (const [key, val] of subComponents) {
         result.set(key, val);
       }

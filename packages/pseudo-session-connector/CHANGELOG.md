@@ -1,5 +1,9 @@
 # @node-i3x/pseudo-session-connector
 
+## 0.9.6 (2026-06-30)
+
+- docs: add live testing info and dashboard image to README
+
 ## 0.9.5 (2026-06-21)
 
 - feat(core): propagate ValueRank to JSON Schema for array/matrix variables

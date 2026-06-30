@@ -916,6 +916,12 @@ export class OpcUaClient {
     this._serviceCounters.write++;
     const nid = coerceNodeId(nodeId);
 
+    // Unpack value if it is a VQT object
+    let rawValue = value;
+    if (value && typeof value === 'object' && 'value' in value) {
+      rawValue = (value as any).value;
+    }
+
     // ── Step 1: Read the variable's declared DataType ──────────
     const readResults = await this.session.read([
       { nodeId: nid, attributeId: AttributeIds.DataType },
@@ -945,14 +951,14 @@ export class OpcUaClient {
     }
 
     // ── Step 2: Coerce the JSON value to the target DataType ──
-    let coercedValue: unknown = value;
+    let coercedValue: unknown = rawValue;
     try {
-      coercedValue = coerceToDataType(value, targetDataType);
+      coercedValue = coerceToDataType(rawValue, targetDataType);
     } catch (coerceErr) {
       const msg =
         `Write coercion failed for ${nodeId}: ` +
         `targetDataType=${DataType[targetDataType]}(${targetDataType}) ` +
-        `jsType=${typeof value} jsValue=${JSON.stringify(value)} ` +
+        `jsType=${typeof rawValue} jsValue=${JSON.stringify(rawValue)} ` +
         `error=${coerceErr}`;
       this.logger.warn(msg);
       throw new Error(msg);

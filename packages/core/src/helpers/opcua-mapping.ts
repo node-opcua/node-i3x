@@ -97,6 +97,67 @@ export function cleanOpcuaValue(val: unknown): unknown {
   return val;
 }
 
+export function cleanOpcuaVariant(variant: any): unknown {
+  if (variant === null || variant === undefined) {
+    return null;
+  }
+
+  if (typeof variant === 'object') {
+    const dataType = variant.dataType;
+    const val = 'value' in variant ? variant.value : variant;
+    const arrayType = variant.arrayType;
+
+    if (dataType === 8) {
+      // Int64
+      const signMask = 0x80000000n;
+      const shiftHigh = 4294967296n;
+      const int64ToNumber = (v: any): number => {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === 'bigint') return Number(v);
+        if (typeof v === 'number') return v;
+        if (Array.isArray(v) && v.length === 2) {
+          const h = BigInt(v[0]);
+          const l = BigInt(v[1]);
+          if ((h & signMask) === signMask) {
+            return Number((h & ~signMask) * shiftHigh + l - 0x8000000000000000n);
+          } else {
+            return Number(h * shiftHigh + l);
+          }
+        }
+        return 0;
+      };
+      if (arrayType === 1) {
+        return Array.isArray(val) ? val.map(int64ToNumber) : [];
+      }
+      return int64ToNumber(val);
+    }
+
+    if (dataType === 9) {
+      // UInt64
+      const shiftHigh = 4294967296n;
+      const uint64ToNumber = (v: any): number => {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === 'bigint') return Number(v);
+        if (typeof v === 'number') return v;
+        if (Array.isArray(v) && v.length === 2) {
+          const h = BigInt(v[0]);
+          const l = BigInt(v[1]);
+          return Number(h * shiftHigh + l);
+        }
+        return 0;
+      };
+      if (arrayType === 1) {
+        return Array.isArray(val) ? val.map(uint64ToNumber) : [];
+      }
+      return uint64ToNumber(val);
+    }
+
+    return cleanOpcuaValue(val);
+  }
+
+  return cleanOpcuaValue(variant);
+}
+
 /** Convert a DataValue-like object to a SourceDataValue. */
 export function dataValueToSource(dv: {
   statusCode?: { value: number } | null;
@@ -106,7 +167,7 @@ export function dataValueToSource(dv: {
 }): SourceDataValue {
   const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
-    value: cleanOpcuaValue(dv.value?.value),
+    value: cleanOpcuaVariant(dv.value),
     quality: isGood ? 'Good' : 'Bad',
     timestamp:
       dv.sourceTimestamp?.toISOString() ??
@@ -125,7 +186,7 @@ export function dataValueToHistorical(dv: {
 }): SourceHistoricalValue {
   const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
-    value: cleanOpcuaValue(dv.value?.value),
+    value: cleanOpcuaVariant(dv.value),
     quality: isGood ? 'Good' : 'Bad',
     timestamp:
       dv.sourceTimestamp?.toISOString() ??
