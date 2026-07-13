@@ -1,5 +1,9 @@
 # @node-i3x/core
 
+## 0.9.9 (2026-07-13)
+
+- fix(build): pin TypeScript to 6.x and restructure node-opcua deps
+
 ## 0.9.8 (2026-07-13)
 
 - Version bump
