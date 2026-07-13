@@ -173,6 +173,19 @@ describe('startServer', () => {
     }
   });
 
+  it('exits with code 1 when OPC UA connection fails', async () => {
+    mockConnect.mockRejectedValueOnce(new Error('Connection refused'));
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('process.exit');
+    }) as never);
+    try {
+      await expect(startServer(makeConfig(), '1.0.0')).rejects.toThrow('process.exit');
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    } finally {
+      exitSpy.mockRestore();
+    }
+  });
+
   it('registers SIGINT and SIGTERM handlers and handles graceful shutdown', async () => {
     let sigintHandler: (() => Promise<void>) | undefined;
     processOnSpy.mockImplementation(((event: string, handler: () => Promise<void>) => {

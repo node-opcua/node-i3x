@@ -122,9 +122,16 @@ export async function startServer(config: I3xConfig, version: string): Promise<v
   process.on('SIGTERM', shutdown);
 
   // 4. Connect to OPC UA
-  sendProgress('connecting', `Connecting to ${config.endpoint}...`);
-  await dataSource.connect();
-  sendProgress('connected', 'OPC UA session established');
+  try {
+    sendProgress('connecting', `Connecting to ${config.endpoint}...`);
+    await dataSource.connect();
+    sendProgress('connected', 'OPC UA session established');
+  } catch (err) {
+    const errorMsg = (err as Error).message;
+    sendProgress('error', `OPC UA connection failed: ${errorMsg}`);
+    logger.error(`OPC UA connection failed: ${errorMsg}`);
+    process.exit(1);
+  }
 
   // 5. Preload model
   let nodeCount: number | undefined;
