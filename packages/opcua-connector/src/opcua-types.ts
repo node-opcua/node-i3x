@@ -65,6 +65,12 @@ export interface OpcUaClientOptions {
    *   to include (e.g. `['ns=1;s=SmartFactory']`).
    */
   browseFilter?: BrowseFilter;
+  /**
+   * Maximum depth to crawl during BFS browsing.
+   * A negative value (e.g. -1) means unlimited.
+   * @default 25
+   */
+  browseMaxDepth?: number;
   /** OPC UA username for UserName identity token. */
   username?: string;
   /** OPC UA password for UserName identity token. */

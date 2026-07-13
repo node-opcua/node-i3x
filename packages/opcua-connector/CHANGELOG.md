@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.9.7 (2026-07-13)
+
+- docs(github): modernize issue templates and support files
+
 ## 0.9.6 (2026-06-30)
 
 - docs: add live testing info and dashboard image to README

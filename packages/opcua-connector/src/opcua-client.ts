@@ -141,6 +141,14 @@ function validateOpcUaClientOptions(opts: OpcUaClientOptions): void {
       throw new Error('OPC UA browseFilter array must contain only strings');
     }
   }
+  if (opts.browseMaxDepth !== undefined) {
+    if (
+      typeof opts.browseMaxDepth !== 'number' ||
+      !Number.isInteger(opts.browseMaxDepth)
+    ) {
+      throw new Error('OPC UA browseMaxDepth must be an integer');
+    }
+  }
   const stringFields: (keyof OpcUaClientOptions)[] = [
     'username',
     'password',
@@ -185,7 +193,12 @@ export class OpcUaClient {
   > &
     Pick<
       OpcUaClientOptions,
-      'username' | 'password' | 'applicationUri' | 'pkiFolder' | 'certificateSubject'
+      | 'username'
+      | 'password'
+      | 'applicationUri'
+      | 'pkiFolder'
+      | 'certificateSubject'
+      | 'browseMaxDepth'
     >;
 
   constructor(
@@ -206,6 +219,7 @@ export class OpcUaClient {
       applicationUri: opts.applicationUri,
       pkiFolder: opts.pkiFolder,
       certificateSubject: opts.certificateSubject,
+      browseMaxDepth: opts.browseMaxDepth ?? 25,
     };
   }
 
@@ -504,8 +518,8 @@ export class OpcUaClient {
     const visited = new Set<string>();
     let totalTx = 0;
 
-    let frontier: Array<{ nodeId: string; parentId: string | null }> = [
-      { nodeId: seedNodeId, parentId: null },
+    let frontier: Array<{ nodeId: string; parentId: string | null; depth: number }> = [
+      { nodeId: seedNodeId, parentId: null, depth: 0 },
     ];
 
     const useParallel = this._opts.browseStrategy !== 'browseAll';
@@ -555,10 +569,19 @@ export class OpcUaClient {
             if (m !== null) output.push(m);
           }
 
-          if (!shouldRecurse || shouldRecurse(ref, item.nodeId)) {
+          const maxDepth = this._opts.browseMaxDepth;
+          const nextDepth = item.depth + 1;
+          const canRecurse =
+            maxDepth === undefined || maxDepth < 0 || nextDepth <= maxDepth;
+
+          if (canRecurse && (!shouldRecurse || shouldRecurse(ref, item.nodeId))) {
             if (!queued.has(childId)) {
               queued.add(childId);
-              nextFrontier.push({ nodeId: childId, parentId: item.nodeId });
+              nextFrontier.push({
+                nodeId: childId,
+                parentId: item.nodeId,
+                depth: nextDepth,
+              });
             }
           }
         }
