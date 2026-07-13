@@ -1,7 +1,7 @@
 {
   "name": "node-i3x",
   "private": true,
-  "packageManager": "npm@11.16.0",
+  "packageManager": "npm@12.0.1",
   "description": "TypeScript implementation of the i3X Beta specification — bridging OPC UA industrial automation to a modern REST API",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -70,15 +70,15 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.16",
-    "@types/node": "^25.9.2",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@biomejs/biome": "^2.5.3",
+    "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.7",
+    "lint-staged": "^17.0.8",
     "tsup": "^8.5.1",
-    "turbo": "^2.9.17",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "turbo": "^2.10.4",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   },
   "lint-staged": {
     "*.{ts,json,md}": "biome check --write --no-errors-on-unmatched"

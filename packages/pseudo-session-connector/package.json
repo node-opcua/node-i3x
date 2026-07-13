@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/pseudo-session-connector",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "i3X data-source adapter using node-opcua PseudoSession — connects directly to an AddressSpace without binary OPC UA transport",
   "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
   "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
@@ -57,20 +57,20 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@node-i3x/core": "0.9.7",
-    "node-opcua-address-space": "^2.173.1",
-    "node-opcua-address-space-base": "^2.173.0",
-    "node-opcua-data-model": "^2.173.0",
-    "node-opcua-data-value": "^2.173.0",
-    "node-opcua-nodeid": "^2.173.0",
-    "node-opcua-pseudo-session": "^2.173.0",
-    "node-opcua-service-browse": "^2.173.0",
-    "node-opcua-status-code": "^2.173.0",
-    "node-opcua-variant": "^2.173.0",
-    "node-opcua-types": "^2.173.0",
-    "node-opcua-constants": "^2.157.0"
+    "@node-i3x/core": "0.9.8",
+    "node-opcua-address-space": "^2.175.1",
+    "node-opcua-address-space-base": "^2.175.1",
+    "node-opcua-data-model": "^2.175.1",
+    "node-opcua-data-value": "^2.175.1",
+    "node-opcua-nodeid": "^2.175.1",
+    "node-opcua-pseudo-session": "^2.175.1",
+    "node-opcua-service-browse": "^2.175.1",
+    "node-opcua-status-code": "^2.175.1",
+    "node-opcua-variant": "^2.175.1",
+    "node-opcua-types": "^2.175.1",
+    "node-opcua-constants": "^2.175.1"
   },
   "devDependencies": {
-    "node-opcua": "^2.173.1"
+    "node-opcua": "^2.175.1"
   }
 }

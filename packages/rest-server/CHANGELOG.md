@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.9.8 (2026-07-13)
+
+- Version bump
+
 ## 0.9.7 (2026-07-13)
 
 - docs(github): modernize issue templates and support files
