@@ -52,6 +52,7 @@
     "packages/demo-embedded"
   ],
   "scripts": {
+    "consistency": "npx -y @ster5/check-version-consistency",
     "dev": "npm run dev -w packages/app",
     "start": "npm run start -w packages/app",
     "build": "turbo run build",
@@ -66,7 +67,7 @@
     "release": "npm run build",
     "readme:update": "node scripts/mermaid-to-img.mjs --write",
     "bump": "node scripts/bump.mjs",
-    "ncu": "npx npm-check-updates -u --deep",
+    "ncu": "npx npm-check-updates -u --deep --dep peer,dev,prod -x typescript",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -77,7 +78,7 @@
     "lint-staged": "^17.0.8",
     "tsup": "^8.5.1",
     "turbo": "^2.10.4",
-    "typescript": "^7.0.2",
+    "typescript": "6",
     "vitest": "^4.1.10"
   },
   "lint-staged": {
