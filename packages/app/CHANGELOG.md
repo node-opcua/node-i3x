@@ -1,5 +1,10 @@
 # @node-i3x/app
 
+## 0.9.10 (2026-07-14)
+
+- feat(app): exit with code 1 when OPC UA connection fails at startup
+- chore: migrate biome config to 2.5.3 schema
+
 ## 0.9.9 (2026-07-13)
 
 - fix(build): pin TypeScript to 6.x and restructure node-opcua deps

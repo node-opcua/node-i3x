@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.9.10 (2026-07-14)
+
+- chore: migrate biome config to 2.5.3 schema
+
 ## 0.9.9 (2026-07-13)
 
 - fix(build): pin TypeScript to 6.x and restructure node-opcua deps
