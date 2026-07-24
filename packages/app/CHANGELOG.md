@@ -1,5 +1,9 @@
 # @node-i3x/app
 
+## 0.9.11 (2026-07-24)
+
+- Version bump
+
 ## 0.9.10 (2026-07-14)
 
 - feat(app): exit with code 1 when OPC UA connection fails at startup

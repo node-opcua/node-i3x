@@ -346,6 +346,21 @@ export class OpcUaClient {
 
     this._client = OPCUAClient.create(clientOptions);
 
+    this._client.on('send_request', (req: any) => {
+      const name = req?.schema?.name || req?.constructor?.name || '';
+      if (name.startsWith('Read')) this._serviceCounters.read++;
+      else if (name.startsWith('Browse')) this._serviceCounters.browse++;
+      else if (name.startsWith('Write')) this._serviceCounters.write++;
+      else if (name.startsWith('Call')) this._serviceCounters.call++;
+      else if (name.startsWith('Translate')) this._serviceCounters.translate++;
+      else if (
+        name.startsWith('CreateSubscription') ||
+        name.startsWith('CreateMonitored')
+      )
+        this._serviceCounters.subscribe++;
+      else if (name.startsWith('HistoryRead')) this._serviceCounters.readHistory++;
+    });
+
     this._client.on('backoff', (count: number, delay: number) => {
       this.logger.warn(`Connection backoff #${count}, retrying in ${delay}ms`);
     });
@@ -593,7 +608,6 @@ export class OpcUaClient {
   }
 
   async browseTree(): Promise<SourceNodeInfo[]> {
-    this._serviceCounters.browse++;
     const objectsFolderId = resolveNodeId('ObjectsFolder').toString();
     const filter = this._opts.browseFilter ?? 'application-only';
 
@@ -915,7 +929,6 @@ export class OpcUaClient {
   // ── Read / Write ───────────────────────────────────────────
 
   async readValue(nodeId: string): Promise<SourceDataValue> {
-    this._serviceCounters.read++;
     const dv = await this.session.read({
       nodeId: coerceNodeId(nodeId),
       attributeId: AttributeIds.Value,
@@ -924,7 +937,6 @@ export class OpcUaClient {
   }
 
   async readValues(nodeIds: string[]): Promise<SourceDataValue[]> {
-    this._serviceCounters.read++;
     if (nodeIds.length === 0) return [];
     const items: ReadValueIdOptions[] = nodeIds.map((id) => ({
       nodeId: coerceNodeId(id),
@@ -936,7 +948,6 @@ export class OpcUaClient {
   }
 
   async writeValue(nodeId: string, value: unknown): Promise<void> {
-    this._serviceCounters.write++;
     const nid = coerceNodeId(nodeId);
 
     // Unpack value if it is a VQT object
@@ -1049,7 +1060,6 @@ export class OpcUaClient {
     methodNodeId: string,
     args: unknown[],
   ): Promise<unknown> {
-    this._serviceCounters.call++;
     const request: CallMethodRequest = {
       objectId: coerceNodeId(objectNodeId),
       methodId: coerceNodeId(methodNodeId),
@@ -1064,7 +1074,6 @@ export class OpcUaClient {
   async createMonitoredSubscription(
     options: MonitoredSubscriptionOptions,
   ): Promise<IMonitoredSubscription> {
-    this._serviceCounters.subscribe++;
     // createSubscription2 works on both the standard session
     // and ClientSessionOptimized (which returns ClientSubscription2).
     const sub = await this.session.createSubscription2({

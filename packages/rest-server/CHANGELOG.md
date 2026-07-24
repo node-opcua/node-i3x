@@ -1,5 +1,9 @@
 # @node-i3x/rest-server
 
+## 0.9.11 (2026-07-24)
+
+- fix(rest-server): update X-Powered-By and vendor URL to https://www.sterfive.com
+
 ## 0.9.10 (2026-07-14)
 
 - chore: migrate biome config to 2.5.3 schema
