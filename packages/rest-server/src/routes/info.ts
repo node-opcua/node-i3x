@@ -28,7 +28,7 @@ export default async function infoRoutes(app: FastifyInstance): Promise<void> {
       serverName: 'node-i3x',
       vendor: {
         name: 'Sterfive SAS',
-        url: 'https://sterfive.com',
+        url: 'https://www.sterfive.com',
         support: 'contact@sterfive.com',
       },
       license: 'AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial',
