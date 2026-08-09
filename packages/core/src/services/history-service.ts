@@ -44,7 +44,7 @@ export class HistoryService {
             };
           }
 
-          const isComposition = node.kind === 'asset' && node.children.length > 0;
+          const isComposition = node.kind === 'instance' && node.children.length > 0;
 
           try {
             let history: SourceHistoricalValue[] = [];

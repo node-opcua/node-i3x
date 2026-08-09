@@ -131,7 +131,7 @@ describe('HistoryService', () => {
     const historyService = new HistoryService(ds, modelService, nullLogger);
 
     const model = await modelService.getOrBuildModel();
-    const rootId = stableI3xId(rootNsu, 'asset');
+    const rootId = stableI3xId(rootNsu, 'instance');
     const tempId = [...model.nodesById.values()].find(
       (n) => n.name === 'Temperature',
     )!.id;

@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 
 /** The four i3X node kinds mapped from OPC UA node classes. */
-export type NodeKind = 'asset' | 'property' | 'action' | 'eventSource';
+export type NodeKind = 'instance' | 'property' | 'action' | 'eventSource';
 
 /** OPC UA data quality indicators. */
 export type DataQuality = 'Good' | 'GoodNoData' | 'Bad' | 'Uncertain';

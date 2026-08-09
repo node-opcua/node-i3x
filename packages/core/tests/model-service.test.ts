@@ -9,7 +9,7 @@ function expectedPropertyId(
   parentBrowseName: string,
   relativePath: string,
 ): string {
-  const parentAssetId = stableI3xId(parentPath, 'asset');
+  const parentAssetId = stableI3xId(parentPath, 'instance');
   const hashPart = parentAssetId.split('-')[1];
 
   const cleanName = (name: string): string => {
@@ -93,11 +93,11 @@ describe('ModelService – browse path construction', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const expectedId = stableI3xId(nsu, 'asset');
+    const expectedId = stableI3xId(nsu, 'instance');
     expect(model.rootIds).toHaveLength(1);
     expect(model.rootIds[0]).toBe(expectedId);
     expect(model.nodesById.get(expectedId)).toBeDefined();
-    expect(model.nodesById.get(expectedId)!.kind).toBe('asset');
+    expect(model.nodesById.get(expectedId)!.kind).toBe('instance');
   });
 
   it('child browse path = parentPath / childNsu', async () => {
@@ -161,8 +161,8 @@ describe('ModelService – browse path construction', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const idA = stableI3xId(rootANsu, 'asset');
-    const idB = stableI3xId(rootBNsu, 'asset');
+    const idA = stableI3xId(rootANsu, 'instance');
+    const idB = stableI3xId(rootBNsu, 'instance');
 
     expect(model.rootIds).toHaveLength(2);
     expect(model.rootIds).toContain(idA);
@@ -196,7 +196,7 @@ describe('ModelService – browse path construction', () => {
     expect(expectedChildPath).toContain('http://di.org/');
     expect(expectedChildPath).toContain('http://coffee.com/');
 
-    const childId = stableI3xId(expectedChildPath, 'asset');
+    const childId = stableI3xId(expectedChildPath, 'instance');
     expect(model.nodesById.has(childId)).toBe(true);
   });
 });
@@ -287,11 +287,11 @@ describe('ModelService – uniqueness', () => {
   it('same path but different kinds produce different element IDs', async () => {
     const browsePath = 'nsu=http://test.org/:Root/nsu=http://test.org/:Foo';
 
-    const assetId = stableI3xId(browsePath, 'asset');
+    const assetId = stableI3xId(browsePath, 'instance');
     const propertyId = stableI3xId(browsePath, 'property');
 
     expect(assetId).not.toBe(propertyId);
-    expect(assetId).toMatch(/^asset-/);
+    expect(assetId).toMatch(/^instance-/);
     expect(propertyId).toMatch(/^property-/);
   });
 
@@ -311,8 +311,8 @@ describe('ModelService – uniqueness', () => {
     const svc = new ModelService(mockDataSource(nodes), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const expectedId1 = stableI3xId('ns=2;i=10', 'asset');
-    const expectedId2 = stableI3xId('ns=2;i=11', 'asset');
+    const expectedId1 = stableI3xId('ns=2;i=10', 'instance');
+    const expectedId2 = stableI3xId('ns=2;i=11', 'instance');
 
     expect(model.nodesById.has(expectedId1)).toBe(true);
     expect(model.nodesById.has(expectedId2)).toBe(true);
@@ -399,7 +399,7 @@ describe('ModelService – edge cases', () => {
     const svc = new ModelService(mockDataSource([root, ...children]), nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const rootId = stableI3xId(rootNsu, 'asset');
+    const rootId = stableI3xId(rootNsu, 'instance');
     expect(model.rootIds).toHaveLength(1);
     expect(model.rootIds[0]).toBe(rootId);
 
@@ -449,13 +449,13 @@ describe('ModelService – edge cases', () => {
     const svc = new ModelService(ds, nullLogger);
     const model = await svc.getOrBuildModel();
 
-    const rootId = stableI3xId(rootNsu, 'asset');
+    const rootId = stableI3xId(rootNsu, 'instance');
     const rootNode = model.nodesById.get(rootId);
     expect(rootNode?.type).toBe(
       'object-type:machinetype [ nsu=http://test.org/;i=1001 ]',
     );
 
-    const danglingId = stableI3xId('ns=2;i=2', 'asset');
+    const danglingId = stableI3xId('ns=2;i=2', 'instance');
     const danglingNode = model.nodesById.get(danglingId);
     expect(danglingNode?.type).toBe('UnknownType');
   });

@@ -170,7 +170,7 @@ export class SubscriptionService {
         propMappings.set(source, node.id);
       }
 
-      if (propMappings.size === 0 && node.kind === 'asset') {
+      if (propMappings.size === 0 && node.kind === 'instance') {
         // The requested maxDepth didn't reach any property
         // variables (e.g. SmartFactory → Pump → Temperature
         // with maxDepth=1). Do a deeper unbounded search to

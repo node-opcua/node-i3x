@@ -7,7 +7,7 @@ import type { ModelNode, NodeKind } from '../domain/model-node.js';
 import type { SourceNodeInfo } from '../ports/data-source.js';
 
 const CLASS_TO_KIND: Record<string, NodeKind> = {
-  Object: 'asset',
+  Object: 'instance',
   Variable: 'property',
   Method: 'action',
 };
@@ -31,7 +31,7 @@ export function stableI3xId(browsePath: string, kind: NodeKind | 'type'): string
 /** Infer the i3X NodeKind from source node metadata. */
 export function inferKind(node: SourceNodeInfo): NodeKind {
   if (node.eventNotifier) return 'eventSource';
-  return CLASS_TO_KIND[node.nodeClass] ?? 'asset';
+  return CLASS_TO_KIND[node.nodeClass] ?? 'instance';
 }
 
 export function mapType(node: SourceNodeInfo, kind: NodeKind): string | null {

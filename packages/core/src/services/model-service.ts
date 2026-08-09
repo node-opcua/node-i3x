@@ -137,20 +137,50 @@ export class ModelService {
     const propertyToSource = new Map<string, string>();
     const actionToMethod = new Map<string, readonly [string, string]>();
 
+    const isFolderNode = (node: SourceNodeInfo): boolean => {
+      if (node.nodeClass !== 'Object') return false;
+      const typeDef = node.typeDefinition;
+      if (
+        typeDef &&
+        (typeDef === 'ns=0;i=61' ||
+          typeDef.includes(';i=61') ||
+          typeDef.endsWith(':FolderType'))
+      ) {
+        return true;
+      }
+      const namePart = node.browseName.split(':').pop() ?? node.browseName;
+      return (
+        namePart === 'DeviceSet' || namePart === 'Objects' || namePart === 'ObjectsFolder'
+      );
+    };
+
+    const getNonFolderChildren = (sourceId: string): string[] => {
+      const results: string[] = [];
+      const traverse = (sId: string) => {
+        for (const childId of childSourcesByParent.get(sId) ?? []) {
+          const child = bySourceId.get(childId);
+          if (child) {
+            if (isFolderNode(child)) {
+              traverse(childId);
+            } else {
+              results.push(childId);
+            }
+          }
+        }
+      };
+      traverse(sourceId);
+      return results;
+    };
+
     const findParentAsset = (node: SourceNodeInfo): SourceNodeInfo | null => {
       let curr = node;
       let topmostObject: SourceNodeInfo | null = null;
       while (curr.parentSourceNodeId) {
         const parent = bySourceId.get(curr.parentSourceNodeId);
         if (!parent) break;
-        const namePart = parent.browseName.split(':').pop() ?? parent.browseName;
-        if (
-          namePart === 'DeviceSet' ||
-          namePart === 'Objects' ||
-          namePart === 'ObjectsFolder' ||
-          namePart === 'Server'
-        ) {
-          break;
+        if (isFolderNode(parent)) {
+          curr = parent;
+          continue;
         }
         if (parent.nodeClass === 'Object') {
           topmostObject = parent;
@@ -218,7 +248,9 @@ export class ModelService {
     };
 
     for (const [sourceId, srcNode] of bySourceId) {
-      const childSources = childSourcesByParent.get(sourceId) ?? [];
+      if (isFolderNode(srcNode)) continue;
+
+      const childSources = getNonFolderChildren(sourceId);
       const childIds = childSources.map((cId) => getNodeId(cId));
 
       const browsePath = browsePathBySourceId.get(sourceId) ?? srcNode.sourceNodeId;
@@ -263,7 +295,9 @@ export class ModelService {
       nodesById.set(nodeId, mapped);
       childrenById.set(nodeId, childIds);
 
-      if (srcNode.parentSourceNodeId == null) rootIds.push(nodeId);
+      if (mapped.kind === 'instance' && findParentAsset(srcNode) == null) {
+        rootIds.push(nodeId);
+      }
       if (mapped.kind === 'property') propertyToSource.set(nodeId, srcNode.sourceNodeId);
       if (mapped.kind === 'action' && srcNode.parentSourceNodeId != null) {
         actionToMethod.set(nodeId, [srcNode.parentSourceNodeId, srcNode.sourceNodeId]);

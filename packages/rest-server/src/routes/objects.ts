@@ -49,10 +49,10 @@ export default async function objectRoutes(app: FastifyInstance): Promise<void> 
       if (isRoot) {
         nodes = model.rootIds
           .map((id) => model.nodesById.get(id))
-          .filter((n): n is ModelNode => n !== undefined && n.kind === 'asset');
+          .filter((n): n is ModelNode => n !== undefined && n.kind === 'instance');
       } else {
         nodes = Array.from(model.nodesById.values()).filter(
-          (n): n is ModelNode => n.kind === 'asset' || n.kind === 'property',
+          (n): n is ModelNode => n.kind === 'instance' || n.kind === 'property',
         );
       }
 

@@ -109,8 +109,8 @@ describe('REST API', () => {
     const body = res.json();
     expect(body.success).toBe(true);
     expect(body.result.length).toBeGreaterThanOrEqual(1);
-    // Should contain at least one asset
-    expect(body.result.some((r: any) => r.elementId.startsWith('asset-'))).toBe(true);
+    // Should contain at least one asset/instance
+    expect(body.result.some((r: any) => r.elementId.startsWith('instance-'))).toBe(true);
   });
 
   it('GET /v1/objects respects includeMetadata query parameter', async () => {
@@ -205,9 +205,9 @@ describe('REST API', () => {
     expect(body.success).toBe(true);
     // Should return at least one root asset
     expect(body.result.length).toBeGreaterThanOrEqual(1);
-    // All returned objects should be assets (root nodes)
+    // All returned objects should be instances (root nodes)
     for (const obj of body.result) {
-      expect(obj.elementId).toMatch(/^asset-/);
+      expect(obj.elementId).toMatch(/^instance-/);
       // Root nodes have no parent
       expect(obj.parentId).toBeNull();
     }

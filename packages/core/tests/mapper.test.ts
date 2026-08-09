@@ -36,7 +36,7 @@ describe('mapper', () => {
       namespaceUri: 'http://example.com/',
       eventNotifier: false,
     };
-    expect(inferKind(node)).toBe('asset');
+    expect(inferKind(node)).toBe('instance');
   });
 
   it('maps a Method node to an action', () => {
@@ -96,7 +96,7 @@ describe('mapper', () => {
 
   it('different kinds at the same path produce different IDs', () => {
     const path = 'nsu=http://x/:Parent/nsu=http://x/:Node';
-    const assetId = stableI3xId(path, 'asset');
+    const assetId = stableI3xId(path, 'instance');
     const propId = stableI3xId(path, 'property');
     const actionId = stableI3xId(path, 'action');
     const eventId = stableI3xId(path, 'eventSource');
@@ -106,7 +106,7 @@ describe('mapper', () => {
     expect(new Set(ids).size).toBe(4);
 
     // Each should have the correct prefix
-    expect(assetId).toMatch(/^asset-/);
+    expect(assetId).toMatch(/^instance-/);
     expect(propId).toMatch(/^property-/);
     expect(actionId).toMatch(/^action-/);
     expect(eventId).toMatch(/^eventSource-/);
@@ -123,13 +123,13 @@ describe('mapper', () => {
   });
 
   it('root path (single segment) produces a valid ID', () => {
-    const id = stableI3xId('nsu=http://di.org/:DeviceSet', 'asset');
-    expect(id).toMatch(/^asset-[a-f0-9]{16}$/);
+    const id = stableI3xId('nsu=http://di.org/:DeviceSet', 'instance');
+    expect(id).toMatch(/^instance-[a-f0-9]{16}$/);
   });
 
   it('path order matters (parent/child ≠ child/parent)', () => {
-    const id1 = stableI3xId('nsu=http://x/:A/nsu=http://x/:B', 'asset');
-    const id2 = stableI3xId('nsu=http://x/:B/nsu=http://x/:A', 'asset');
+    const id1 = stableI3xId('nsu=http://x/:A/nsu=http://x/:B', 'instance');
+    const id2 = stableI3xId('nsu=http://x/:B/nsu=http://x/:A', 'instance');
     expect(id1).not.toBe(id2);
   });
 
@@ -140,8 +140,8 @@ describe('mapper', () => {
   });
 
   it('handles empty string path without throwing', () => {
-    const id = stableI3xId('', 'asset');
-    expect(id).toMatch(/^asset-[a-f0-9]{16}$/);
+    const id = stableI3xId('', 'instance');
+    expect(id).toMatch(/^instance-[a-f0-9]{16}$/);
   });
 
   it('handles unicode browse names', () => {
