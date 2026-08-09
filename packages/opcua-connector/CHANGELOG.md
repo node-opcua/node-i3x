@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.10.0 (2026-08-09)
+
+- feat: rename asset to instance, add folder suppression and smart composition
+
 ## 0.9.11 (2026-07-24)
 
 - Version bump
