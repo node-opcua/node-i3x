@@ -30,7 +30,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "node-i3x-mcp": "./dist/cli.js"
+    "node-i3x-mcp": "dist/cli.js"
   },
   "exports": {
     ".": {
