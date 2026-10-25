@@ -1,5 +1,9 @@
 # @node-i3x/opcua-connector
 
+## 0.11.1 (2026-10-25)
+
+- fix(ci): sync package-lock.json during bump to prevent npm ci failure
+
 ## 0.11.0 (2026-10-25)
 
 - chore(deps): upgrade dependencies with ncu and run biome migrate
