@@ -72,15 +72,15 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
-    "@types/node": "^26.1.1",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@biomejs/biome": "^2.6.3",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.5",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.8",
-    "tsup": "^8.5.1",
-    "turbo": "^2.10.4",
+    "lint-staged": "^17.6.0",
+    "tsup": "^9.0.0",
+    "turbo": "^2.11.10",
     "typescript": "6",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.5"
   },
   "lint-staged": {
     "*.{ts,json,md}": "biome check --write --no-errors-on-unmatched"
