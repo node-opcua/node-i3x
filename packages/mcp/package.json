@@ -1,6 +1,6 @@
 {
   "name": "@node-i3x/mcp",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "High-Value Model Context Protocol (MCP) server for i3X industrial automation",
   "keywords": [
     "mcp",
@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@node-i3x/core": "0.10.0",
+    "@node-i3x/core": "0.11.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
