@@ -1,5 +1,6 @@
 import type {
   BulkResponse,
+  BulkResultItem,
   CurrentValueResult,
   HistoricalValueResult,
   Namespace,
@@ -10,15 +11,29 @@ import type {
   ServerInfo,
   SuccessResponse,
 } from '@node-i3x/core';
-import { rankSuggestions } from '../utils/similarity.js';
-import type { I3XClientBinding } from './types.js';
+import { rankObjectSuggestions } from '../utils/similarity.js';
+import type { ElementResult, I3XClientBinding, Suggestion } from './types.js';
+
+/** How long the full object list used for suggestions is reused. */
+const OBJECT_CACHE_TTL_MS = 60_000;
 
 export class RestClientBinding implements I3XClientBinding {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
   private readonly requestTimeoutMs: number;
+  private readonly fetchImpl?: typeof fetch;
+  private objectCache?: { at: number; objects: Promise<ObjectInstanceResponse[]> };
 
-  constructor(baseUrl = 'http://localhost:3000', token?: string, timeoutMs = 15_000) {
+  /**
+   * @param fetchImpl - replaces the global fetch, e.g. to route requests into an
+   *   in-process server (see InProcessConnectorBinding).
+   */
+  constructor(
+    baseUrl = 'http://localhost:3000',
+    token?: string,
+    timeoutMs = 15_000,
+    fetchImpl?: typeof fetch,
+  ) {
     let cleanUrl = baseUrl.trim().replace(/\/+$/, '');
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = `http://${cleanUrl}`;
@@ -27,6 +42,7 @@ export class RestClientBinding implements I3XClientBinding {
     cleanUrl = cleanUrl.replace(/\/v1$/i, '');
     this.baseUrl = cleanUrl;
     this.requestTimeoutMs = timeoutMs;
+    this.fetchImpl = fetchImpl;
     this.headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -41,7 +57,7 @@ export class RestClientBinding implements I3XClientBinding {
     const signal = options.signal || AbortSignal.timeout(this.requestTimeoutMs);
 
     try {
-      const response = await fetch(url, {
+      const response = await (this.fetchImpl ?? fetch)(url, {
         ...options,
         signal,
         headers: {
@@ -69,11 +85,8 @@ export class RestClientBinding implements I3XClientBinding {
   }
 
   /** Unwrap a `{ success, result }` envelope; a `success: false` envelope becomes an error. */
-  private async get<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const res = await this.request<Partial<SuccessResponse<T>> & ErrorEnvelope>(
-      path,
-      options,
-    );
+  private async get<T>(path: string): Promise<T> {
+    const res = await this.request<Partial<SuccessResponse<T>> & ErrorEnvelope>(path);
     if (res?.success !== true || !('result' in res)) {
       throw new Error(`i3X request ${path} failed: ${describeFailure(res)}`);
     }
@@ -81,25 +94,11 @@ export class RestClientBinding implements I3XClientBinding {
   }
 
   /**
-   * Unwrap a bulk `{ success, results: [{ elementId, success, result }] }` envelope,
-   * one entry per requested elementId, in request order. A failed item becomes an
-   * error naming its elementId; `notFoundAsNull` maps a 404 item to `null` instead.
+   * POST a bulk request and return its `results` items, one per requested elementId.
+   * `success` is false on the envelope as soon as one item failed, so items are
+   * returned as they are; only a body without `results` is an error here.
    */
-  private async getBulk<T>(
-    path: string,
-    body: unknown,
-    notFoundAsNull?: false,
-  ): Promise<T[]>;
-  private async getBulk<T>(
-    path: string,
-    body: unknown,
-    notFoundAsNull: true,
-  ): Promise<Array<T | null>>;
-  private async getBulk<T>(
-    path: string,
-    body: unknown,
-    notFoundAsNull = false,
-  ): Promise<Array<T | null>> {
+  private async postBulk<T>(path: string, body: unknown): Promise<BulkResultItem<T>[]> {
     const res = await this.request<Partial<BulkResponse<T>> & ErrorEnvelope>(path, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -107,13 +106,32 @@ export class RestClientBinding implements I3XClientBinding {
     if (!Array.isArray(res?.results)) {
       throw new Error(`i3X request ${path} failed: ${describeFailure(res)}`);
     }
-    return res.results.map((item) => {
-      if (item.success) return (item.result ?? null) as T | null;
-      if (notFoundAsNull && item.responseDetail?.status === 404) return null;
-      throw new Error(
-        `i3X request ${path} failed for '${item.elementId}': ${describeFailure(item)}`,
-      );
+    return res.results;
+  }
+
+  /** Bulk items as per-element results: a failed item keeps its elementId and error. */
+  private async postBulkPerElement<T>(
+    path: string,
+    elementIds: string[],
+    body: Record<string, unknown>,
+  ): Promise<ElementResult<T>[]> {
+    const items = await this.postBulk<T>(path, { elementIds, ...body });
+    return items.map((item, idx) => {
+      const elementId = item.elementId ?? elementIds[idx] ?? `element_${idx}`;
+      return item.success
+        ? { elementId, result: (item.result ?? undefined) as T | undefined }
+        : { elementId, error: describeFailure(item) };
     });
+  }
+
+  /** The single item of a one-element bulk request. */
+  private async postBulkOne<T>(
+    path: string,
+    body: { elementIds: [string] } & Record<string, unknown>,
+  ): Promise<BulkResultItem<T>> {
+    const [item] = await this.postBulk<T>(path, body);
+    if (!item) throw new Error(`i3X request ${path} returned no result`);
+    return item;
   }
 
   async getInfo(): Promise<ServerInfo> {
@@ -145,38 +163,46 @@ export class RestClientBinding implements I3XClientBinding {
     return this.get<ObjectInstanceResponse[]>(`/v1/objects${query}`);
   }
 
+  /** `null` only when the server reports the element as not found (404). */
   async getObjectById(elementId: string): Promise<ObjectInstanceResponse | null> {
-    const [object] = await this.getBulk<ObjectInstanceResponse>(
-      '/v1/objects/list',
-      { elementIds: [elementId] },
-      true,
+    const path = '/v1/objects/list';
+    const item = await this.postBulkOne<ObjectInstanceResponse>(path, {
+      elementIds: [elementId],
+    });
+    if (item.success) return item.result ?? null;
+    if (item.responseDetail?.status === 404) return null;
+    throw new Error(
+      `i3X request ${path} failed for '${elementId}': ${describeFailure(item)}`,
     );
-    return object ?? null;
   }
 
   async getRelatedObjects(
     elementId: string,
     relationshipType?: string,
-  ): Promise<ObjectInstanceResponse[]> {
-    const body: Record<string, unknown> = { elementIds: [elementId] };
+  ): Promise<RelatedObjectResult[]> {
+    const path = '/v1/objects/related';
+    const body: { elementIds: [string] } & Record<string, unknown> = {
+      elementIds: [elementId],
+    };
     if (relationshipType) body.relationshipType = relationshipType;
 
-    const [related] = await this.getBulk<RelatedObjectResult[]>(
-      '/v1/objects/related',
-      body,
-    );
+    const item = await this.postBulkOne<RelatedObjectResult[]>(path, body);
+    if (!item.success) {
+      throw new Error(
+        `i3X request ${path} failed for '${elementId}': ${describeFailure(item)}`,
+      );
+    }
     // Servers may ignore relationshipType, so filter here as well.
-    return (related ?? [])
-      .filter((r) => !relationshipType || r.sourceRelationship === relationshipType)
-      .map((r) => r.object);
+    return (item.result ?? []).filter(
+      (r) => !relationshipType || r.sourceRelationship === relationshipType,
+    );
   }
 
   async getObjectValues(
     elementIds: string[],
     maxDepth = 1,
-  ): Promise<CurrentValueResult[]> {
-    return this.getBulk<CurrentValueResult>('/v1/objects/value', {
-      elementIds,
+  ): Promise<ElementResult<CurrentValueResult>[]> {
+    return this.postBulkPerElement<CurrentValueResult>('/v1/objects/value', elementIds, {
       maxDepth,
     });
   }
@@ -186,23 +212,25 @@ export class RestClientBinding implements I3XClientBinding {
     startTime: string,
     endTime: string,
     maxDepth = 1,
-  ): Promise<HistoricalValueResult[]> {
-    return this.getBulk<HistoricalValueResult>('/v1/objects/history', {
+  ): Promise<ElementResult<HistoricalValueResult>[]> {
+    return this.postBulkPerElement<HistoricalValueResult>(
+      '/v1/objects/history',
       elementIds,
-      startTime,
-      endTime,
-      maxDepth,
-    });
+      { startTime, endTime, maxDepth },
+    );
   }
 
-  async findSuggestions(unknownId: string): Promise<string[]> {
-    try {
-      const allObjects = await this.getObjects();
-      const candidates = allObjects.map((o) => o.elementId);
-      return rankSuggestions(unknownId, candidates, 5, 0.4);
-    } catch {
-      return [];
+  /** Closest objects by elementId or displayName; a failure to list objects propagates. */
+  async findSuggestions(query: string): Promise<Suggestion[]> {
+    const now = Date.now();
+    if (!this.objectCache || now - this.objectCache.at > OBJECT_CACHE_TTL_MS) {
+      const objects = this.getObjects();
+      this.objectCache = { at: now, objects };
+      objects.catch(() => {
+        if (this.objectCache?.objects === objects) this.objectCache = undefined;
+      });
     }
+    return rankObjectSuggestions(query, await this.objectCache.objects);
   }
 }
 

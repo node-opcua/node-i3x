@@ -56,3 +56,28 @@ export function rankSuggestions(
     .slice(0, topN)
     .map((item) => item.candidate);
 }
+
+/**
+ * Ranks objects against a query by the better of their elementId and displayName
+ * scores: elementIds are often opaque hashes, so names are what users type.
+ */
+export function rankObjectSuggestions(
+  query: string,
+  objects: ReadonlyArray<{ elementId: string; displayName?: string }>,
+  topN = 5,
+  minScore = 0.4,
+): Array<{ elementId: string; displayName?: string }> {
+  return objects
+    .map(({ elementId, displayName }) => ({
+      elementId,
+      displayName,
+      score: Math.max(
+        computeSimilarity(query, elementId),
+        displayName ? computeSimilarity(query, displayName) : 0,
+      ),
+    }))
+    .filter((item) => item.score >= minScore)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topN)
+    .map(({ elementId, displayName }) => ({ elementId, displayName }));
+}

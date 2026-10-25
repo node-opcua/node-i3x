@@ -1,2 +1,2 @@
-export type { RestServerDeps } from './app.js';
+export type { CreateAppOptions, RestServerDeps } from './app.js';
 export { createApp } from './app.js';

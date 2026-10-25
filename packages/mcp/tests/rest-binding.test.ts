@@ -61,6 +61,20 @@ const bulk = (fn: (id: string) => unknown) => (body?: Record<string, unknown>) =
 });
 
 describe('RestClientBinding', () => {
+  it('suggests by displayName for opaque ids and caches the object list', async () => {
+    let listed = 0;
+    routes['/v1/objects'] = () => {
+      listed++;
+      return { json: { success: true, result: [plant, machine, boiler] } };
+    };
+    const c = new RestClientBinding('https://portal.example/api/i3x/abc');
+    expect(await c.findSuggestions('CoffeeMachine')).toEqual([
+      { elementId: machine.elementId, displayName: 'CoffeeMachineA' },
+    ]);
+    await c.findSuggestions('Boilr');
+    expect(listed).toBe(1);
+  });
+
   describe('base URL', () => {
     it.each([
       'https://portal.example/api/i3x/abc',
@@ -112,10 +126,13 @@ describe('RestClientBinding', () => {
       expect(await c.getObjectById(machine.elementId)).toEqual(machine);
       expect(await c.getObjectValues([machine.elementId])).toEqual([
         {
-          isComposition: false,
-          value: 92.5,
-          quality: 'Good',
-          timestamp: '2026-10-25T10:00:00Z',
+          elementId: machine.elementId,
+          result: {
+            isComposition: false,
+            value: 92.5,
+            quality: 'Good',
+            timestamp: '2026-10-25T10:00:00Z',
+          },
         },
       ]);
       const history = await c.getHistoricalValues(
@@ -123,7 +140,8 @@ describe('RestClientBinding', () => {
         '2026-10-25T00:00:00Z',
         '2026-10-25T12:00:00Z',
       );
-      expect(history[0]?.values).toHaveLength(1);
+      expect(history[0]?.elementId).toBe(machine.elementId);
+      expect(history[0]?.result?.values).toHaveLength(1);
     });
 
     it('sends elementIds to /v1/objects/related and reads the related objects', async () => {
@@ -133,10 +151,13 @@ describe('RestClientBinding', () => {
       ]);
 
       const c = client();
-      expect(await c.getRelatedObjects(machine.elementId)).toEqual([boiler, plant]);
+      expect(await c.getRelatedObjects(machine.elementId)).toEqual([
+        { sourceRelationship: 'HasComponent', object: boiler },
+        { sourceRelationship: 'IsComponentOf', object: plant },
+      ]);
       expect(calls[0]?.body).toEqual({ elementIds: [machine.elementId] });
       expect(await c.getRelatedObjects(machine.elementId, 'HasComponent')).toEqual([
-        boiler,
+        { sourceRelationship: 'HasComponent', object: boiler },
       ]);
     });
 
@@ -177,8 +198,35 @@ describe('RestClientBinding', () => {
       await expect(client().getNamespaces()).rejects.toThrow(/unexpected response/);
     });
 
-    it('throws for a failed bulk item, naming its elementId', async () => {
+    it('keeps a failed bulk item as a per-element error, next to the good ones', async () => {
       routes['/v1/objects/value'] = () => ({
+        json: {
+          success: false,
+          results: [
+            {
+              success: false,
+              elementId: 'bad-id',
+              responseDetail: { title: 'Error', status: 404, detail: 'Not found' },
+            },
+            {
+              success: true,
+              elementId: 'good-id',
+              result: { isComposition: false, value: 1, quality: 'Good', timestamp: 't' },
+            },
+          ],
+        },
+      });
+      expect(await client().getObjectValues(['bad-id', 'good-id'])).toEqual([
+        { elementId: 'bad-id', error: '404 Error Not found' },
+        {
+          elementId: 'good-id',
+          result: { isComposition: false, value: 1, quality: 'Good', timestamp: 't' },
+        },
+      ]);
+    });
+
+    it('getRelatedObjects throws for a failed item instead of returning []', async () => {
+      routes['/v1/objects/related'] = () => ({
         json: {
           success: false,
           results: [
@@ -190,9 +238,20 @@ describe('RestClientBinding', () => {
           ],
         },
       });
-      await expect(client().getObjectValues(['bad-id'])).rejects.toThrow(
+      await expect(client().getRelatedObjects('bad-id')).rejects.toThrow(
         /'bad-id': 404 Error Not found/,
       );
+    });
+
+    it('findSuggestions propagates a failure instead of reporting "no close matches"', async () => {
+      routes['/v1/objects'] = () => ({
+        status: 401,
+        json: {
+          success: false,
+          responseDetail: { title: 'Unauthorized', status: 401, detail: 'bad token' },
+        },
+      });
+      await expect(client().findSuggestions('CoffeeMachine')).rejects.toThrow(/HTTP 401/);
     });
 
     it('getObjectById propagates a non-404 failure instead of reporting "not found"', async () => {
@@ -222,12 +281,17 @@ describe('RestClientBinding', () => {
 
     const res = await handleInspectAsset(
       new RestClientBinding('https://portal.example/api/i3x/abc/v1'),
-      { elementId: machine.elementId, includeValues: true, includeSchema: false },
+      {
+        elementId: machine.elementId,
+        includeValues: true,
+        includeSchema: false,
+        maxDepth: 2,
+      },
     );
     expect(res).toMatchObject({
       elementId: machine.elementId,
       displayName: 'CoffeeMachineA',
-      subComponents: [{ elementId: boiler.elementId }],
+      subComponents: [{ elementId: boiler.elementId, relationship: 'HasComponent' }],
       currentValues: { value: { Temperature: 92.5 } },
     });
     expect((res as { subComponents: unknown[] }).subComponents).toHaveLength(1);

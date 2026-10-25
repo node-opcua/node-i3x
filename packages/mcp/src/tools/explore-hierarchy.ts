@@ -51,8 +51,12 @@ export async function handleExploreHierarchy(
     visited.add(asset.elementId);
 
     if (currentDepth < maxDepth) {
-      const children = await binding.getRelatedObjects(asset.elementId);
-      const unvisitedChildren = children.filter((c) => !visited.has(c.elementId));
+      // Follow children only: related objects also include the parent (reverse
+      // relationship), and parentId is what the spec ties to the hierarchy.
+      const related = await binding.getRelatedObjects(asset.elementId);
+      const unvisitedChildren = related
+        .map((r) => r.object)
+        .filter((c) => c.parentId === asset.elementId && !visited.has(c.elementId));
 
       if (unvisitedChildren.length > 0) {
         node.children = await Promise.all(
