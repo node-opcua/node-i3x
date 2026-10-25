@@ -76,6 +76,9 @@ jobs:
       - name: Publish @node-i3x/demo-embedded
         run: npm publish -w packages/demo-embedded --access public --provenance
 
+      - name: Publish @node-i3x/mcp
+        run: npm publish -w packages/mcp --access public --provenance
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

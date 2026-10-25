@@ -26,6 +26,7 @@ const PACKAGES = [
   'rest-server',
   'app',
   'demo-embedded',
+  'mcp',
 ];
 
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
