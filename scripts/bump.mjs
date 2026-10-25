@@ -167,6 +167,7 @@ for (const name of PACKAGES) {
 }
 
 // ── Commit and tag ──────────────────────────────────────
+execSync('npm install --package-lock-only', { cwd: root, stdio: 'inherit' });
 execSync('git add -A', { cwd: root });
 execSync(`git commit -m "chore: release v${next}" --no-verify`, {
   cwd: root,
