@@ -171,6 +171,44 @@ describe('ModelService – browse path construction', () => {
     expect(idA).not.toBe(idB);
   });
 
+  it('an Object under a top-level Variable is not a root (conformance EXP-15)', async () => {
+    // Objects/Bool (historized Variable in a folder) -> HA Configuration (Object)
+    const nodes = [
+      sourceNode({
+        sourceNodeId: 'i=85',
+        nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/:Objects',
+        typeDefinition: 'ns=0;i=61',
+      }),
+      sourceNode({
+        sourceNodeId: 'ns=2;i=1',
+        nsuQualifiedName: 'nsu=http://test.org/:Line',
+      }),
+      sourceNode({
+        sourceNodeId: 'ns=2;i=2',
+        nsuQualifiedName: 'nsu=http://test.org/:Bool',
+        parentSourceNodeId: 'i=85',
+        nodeClass: 'Variable',
+      }),
+      sourceNode({
+        sourceNodeId: 'ns=2;i=3',
+        nsuQualifiedName: 'nsu=http://opcfoundation.org/UA/:HA Configuration',
+        parentSourceNodeId: 'ns=2;i=2',
+      }),
+    ];
+    const svc = new ModelService(mockDataSource(nodes), nullLogger);
+    const model = await svc.getOrBuildModel();
+
+    const lineId = stableI3xId('nsu=http://test.org/:Line', 'instance');
+    expect(model.rootIds).toEqual([lineId]);
+    for (const id of model.rootIds) expect(svc.parentIdOf(model, id)).toBeNull();
+
+    const haConfig = [...model.nodesById.values()].find(
+      (n) => n.name === 'HA Configuration',
+    );
+    expect(haConfig).toBeDefined();
+    expect(model.nodesById.get(svc.parentIdOf(model, haConfig!.id)!)?.name).toBe('Bool');
+  });
+
   it('multi-namespace tree encodes both URIs in child browse path', async () => {
     const rootNsu = 'nsu=http://di.org/:DeviceSet';
     const childNsu = 'nsu=http://coffee.com/:Machine';

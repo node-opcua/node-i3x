@@ -295,13 +295,20 @@ export class ModelService {
       nodesById.set(nodeId, mapped);
       childrenById.set(nodeId, childIds);
 
-      if (mapped.kind === 'instance' && findParentAsset(srcNode) == null) {
-        rootIds.push(nodeId);
-      }
       if (mapped.kind === 'property') propertyToSource.set(nodeId, srcNode.sourceNodeId);
       if (mapped.kind === 'action' && srcNode.parentSourceNodeId != null) {
         actionToMethod.set(nodeId, [srcNode.parentSourceNodeId, srcNode.sourceNodeId]);
       }
+    }
+
+    // A root is an instance nothing in the model points to as a child, so that its
+    // parentId (parentIdOf) is null. Having no Object ancestor is not enough: an
+    // Object under a top-level Variable (e.g. its HA Configuration) has that Variable
+    // as parent.
+    const allChildIds = new Set<string>();
+    for (const ids of childrenById.values()) for (const id of ids) allChildIds.add(id);
+    for (const [nodeId, node] of nodesById) {
+      if (node.kind === 'instance' && !allChildIds.has(nodeId)) rootIds.push(nodeId);
     }
 
     // ── Pre-fetch and map engineering units automatically ──
