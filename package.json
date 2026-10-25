@@ -49,7 +49,8 @@
     "packages/pseudo-session-connector",
     "packages/rest-server",
     "packages/app",
-    "packages/demo-embedded"
+    "packages/demo-embedded",
+    "packages/mcp"
   ],
   "scripts": {
     "consistency": "npx -y @ster5/check-version-consistency",

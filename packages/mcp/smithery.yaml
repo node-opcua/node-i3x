@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://smithery.ai/docs/config#schema
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      serverUrl:
+        type: string
+        default: "http://localhost:3000"
+        description: "Target i3X Gateway REST endpoint URL (e.g. http://127.0.0.1:8000)"
+      authToken:
+        type: string
+        description: "Optional Bearer authentication token for secured i3X endpoints"
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@node-i3x/mcp'],
+      env: {
+        I3X_SERVER_URL: config?.serverUrl || 'http://localhost:3000',
+        ...(config?.authToken ? { I3X_AUTH_TOKEN: config.authToken } : {})
+      }
+    })

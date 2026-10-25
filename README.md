@@ -100,6 +100,7 @@ graph TB
 | [`@node-i3x/pseudo-session-connector`](./packages/pseudo-session-connector) | PseudoSession adapter — implements `IDataSourcePort` using `node-opcua` PseudoSession (embedded in-process, zero network) | ✅ Stable |
 | [`@node-i3x/rest-server`](./packages/rest-server) | Fastify REST routes implementing the i3X Beta API surface | ✅ Stable |
 | [`@node-i3x/app`](./packages/app) | Composition root — wires all packages together, entry point | ✅ Stable |
+| [`@node-i3x/mcp`](./packages/mcp) | Model Context Protocol (MCP) server — connects Claude, Gemini, Cursor & AI agents to i3X/OPC UA | ✅ Stable |
 | [`@node-i3x/demo-embedded`](./packages/demo-embedded) | Embedded demo with live dashboard — OPC UA server + i3X API wired via PseudoSession | 🧪 Demo |
 
 ---
@@ -131,6 +132,39 @@ The server starts on `http://127.0.0.1:8000` by default. Verify with:
 curl http://127.0.0.1:8000/health
 # → { "status": "ok" }
 ```
+
+---
+
+## AI Agent Integration (Model Context Protocol)
+
+Connect AI assistants (Claude Desktop, Google Gemini, Cursor IDE) directly to your factory floor or i3X gateway:
+
+```bash
+# Run the MCP server directly via npx
+I3X_SERVER_URL=http://127.0.0.1:8000 npx @node-i3x/mcp
+```
+
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "node-i3x": {
+      "command": "npx",
+      "args": ["-y", "@node-i3x/mcp"],
+      "env": {
+        "I3X_SERVER_URL": "http://127.0.0.1:8000"
+      }
+    }
+  }
+}
+```
+
+Now Claude or Cursor can diagnose machinery in single turns:
+- `"Inspect Boiler_101. Is current temperature normal according to its schema definition?"`
+- `"Explore plant hierarchy and summarize any assets with Bad quality flags."`
+- `"Query telemetry trends for Pump_101 over the last 2 hours."`
+
+See [`packages/mcp`](./packages/mcp) for full documentation.
 
 ---
 

@@ -1,0 +1,67 @@
+{
+  "name": "@node-i3x/mcp",
+  "version": "0.10.0",
+  "description": "High-Value Model Context Protocol (MCP) server for i3X industrial automation",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "i3x",
+    "opcua",
+    "opc-ua",
+    "industrial-automation",
+    "cesmii",
+    "smart-manufacturing",
+    "industry40",
+    "claude-desktop",
+    "cursor",
+    "ai-agent",
+    "sterfive"
+  ],
+  "license": "AGPL-3.0-or-later OR LicenseRef-Sterfive-Commercial",
+  "author": "Sterfive SAS <contact@sterfive.com> (https://sterfive.com)",
+  "homepage": "https://sterfive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-opcua/node-i3x.git",
+    "directory": "packages/mcp"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "node-i3x-mcp": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE-AGPL-3.0",
+    "LICENSING.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.1.0",
+    "@node-i3x/core": "0.10.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsup": "^8.5.1",
+    "typescript": "6"
+  }
+}
