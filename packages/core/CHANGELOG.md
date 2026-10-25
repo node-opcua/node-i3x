@@ -1,5 +1,10 @@
 # @node-i3x/core
 
+## 0.11.0 (2026-10-25)
+
+- chore(deps): upgrade dependencies with ncu and run biome migrate
+- feat(mcp): introduce @node-i3x/mcp high-value agentic server
+
 ## 0.10.0 (2026-08-09)
 
 - feat: rename asset to instance, add folder suppression and smart composition
