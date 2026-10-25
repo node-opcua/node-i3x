@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module';
 import { RestClientBinding } from './bindings/rest-binding.js';
 import { NodeI3xMcpServer } from './server.js';
 
@@ -25,7 +26,10 @@ Environment Variables:
 }
 
 if (args.includes('--version') || args.includes('-v')) {
-  console.error('0.10.0');
+  const { version } = createRequire(import.meta.url)('../package.json') as {
+    version: string;
+  };
+  console.log(version);
   process.exit(0);
 }
 

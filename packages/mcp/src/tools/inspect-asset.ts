@@ -47,8 +47,9 @@ export async function handleInspectAsset(
     includeSchema && asset.typeElementId
       ? binding.getObjectTypes()
       : Promise.resolve(null);
+  // maxDepth 2: an Object has no value of its own, its readings are its components.
   const valuesPromise = includeValues
-    ? binding.getObjectValues([elementId])
+    ? binding.getObjectValues([elementId], 2)
     : Promise.resolve(null);
 
   const [relatedResult, schemaResult, valuesResult] = await Promise.allSettled([
@@ -58,12 +59,13 @@ export async function handleInspectAsset(
   ]);
 
   // Sub-components
-  if (
-    relatedResult.status === 'fulfilled' &&
-    Array.isArray(relatedResult.value) &&
-    relatedResult.value.length > 0
-  ) {
-    result.subComponents = relatedResult.value.map((r) => ({
+  // Related objects include the parent (reverse relationship): it is not a sub-component.
+  const subComponents =
+    relatedResult.status === 'fulfilled' && Array.isArray(relatedResult.value)
+      ? relatedResult.value.filter((r) => r.elementId !== asset.parentId)
+      : [];
+  if (subComponents.length > 0) {
+    result.subComponents = subComponents.map((r) => ({
       elementId: r.elementId,
       displayName: r.displayName || r.elementId,
       typeElementId: r.typeElementId,

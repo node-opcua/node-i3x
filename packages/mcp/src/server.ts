@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -18,6 +19,10 @@ import { handleInspectAsset, inspectAssetSchema } from './tools/inspect-asset.js
 import { handleMonitorEvents, monitorEventsSchema } from './tools/monitor-events.js';
 import { handleQueryTelemetry, queryTelemetrySchema } from './tools/query-telemetry.js';
 
+const { version } = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
+
 export class NodeI3xMcpServer {
   private readonly server: Server;
   private binding: I3XClientBinding;
@@ -28,7 +33,7 @@ export class NodeI3xMcpServer {
     this.server = new Server(
       {
         name: '@node-i3x/mcp',
-        version: '0.10.0',
+        version,
       },
       {
         capabilities: {

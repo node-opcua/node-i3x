@@ -1,11 +1,14 @@
 import type {
+  BulkResponse,
   CurrentValueResult,
   HistoricalValueResult,
   Namespace,
   ObjectInstanceResponse,
   ObjectType,
+  RelatedObjectResult,
   RelationshipType,
   ServerInfo,
+  SuccessResponse,
 } from '@node-i3x/core';
 import { rankSuggestions } from '../utils/similarity.js';
 import type { I3XClientBinding } from './types.js';
@@ -20,6 +23,8 @@ export class RestClientBinding implements I3XClientBinding {
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = `http://${cleanUrl}`;
     }
+    // i3X base URLs are usually given with the /v1 suffix; every path below adds it.
+    cleanUrl = cleanUrl.replace(/\/v1$/i, '');
     this.baseUrl = cleanUrl;
     this.requestTimeoutMs = timeoutMs;
     this.headers = {
@@ -63,28 +68,69 @@ export class RestClientBinding implements I3XClientBinding {
     }
   }
 
+  /** Unwrap a `{ success, result }` envelope; a `success: false` envelope becomes an error. */
+  private async get<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const res = await this.request<Partial<SuccessResponse<T>> & ErrorEnvelope>(
+      path,
+      options,
+    );
+    if (res?.success !== true || !('result' in res)) {
+      throw new Error(`i3X request ${path} failed: ${describeFailure(res)}`);
+    }
+    return res.result as T;
+  }
+
+  /**
+   * Unwrap a bulk `{ success, results: [{ elementId, success, result }] }` envelope,
+   * one entry per requested elementId, in request order. A failed item becomes an
+   * error naming its elementId; `notFoundAsNull` maps a 404 item to `null` instead.
+   */
+  private async getBulk<T>(
+    path: string,
+    body: unknown,
+    notFoundAsNull?: false,
+  ): Promise<T[]>;
+  private async getBulk<T>(
+    path: string,
+    body: unknown,
+    notFoundAsNull: true,
+  ): Promise<Array<T | null>>;
+  private async getBulk<T>(
+    path: string,
+    body: unknown,
+    notFoundAsNull = false,
+  ): Promise<Array<T | null>> {
+    const res = await this.request<Partial<BulkResponse<T>> & ErrorEnvelope>(path, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!Array.isArray(res?.results)) {
+      throw new Error(`i3X request ${path} failed: ${describeFailure(res)}`);
+    }
+    return res.results.map((item) => {
+      if (item.success) return (item.result ?? null) as T | null;
+      if (notFoundAsNull && item.responseDetail?.status === 404) return null;
+      throw new Error(
+        `i3X request ${path} failed for '${item.elementId}': ${describeFailure(item)}`,
+      );
+    });
+  }
+
   async getInfo(): Promise<ServerInfo> {
-    return this.request<ServerInfo>('/v1/info');
+    return this.get<ServerInfo>('/v1/info');
   }
 
   async getNamespaces(): Promise<Namespace[]> {
-    const res = await this.request<{ namespaces: Namespace[] }>('/v1/namespaces');
-    return res.namespaces || [];
+    return this.get<Namespace[]>('/v1/namespaces');
   }
 
   async getObjectTypes(namespaceUri?: string): Promise<ObjectType[]> {
     const query = namespaceUri ? `?namespaceUri=${encodeURIComponent(namespaceUri)}` : '';
-    const res = await this.request<{ objectTypes: ObjectType[] }>(
-      `/v1/objecttypes${query}`,
-    );
-    return res.objectTypes || [];
+    return this.get<ObjectType[]>(`/v1/objecttypes${query}`);
   }
 
   async getRelationshipTypes(): Promise<RelationshipType[]> {
-    const res = await this.request<{ relationshipTypes: RelationshipType[] }>(
-      '/v1/relationshiptypes',
-    );
-    return res.relationshipTypes || [];
+    return this.get<RelationshipType[]>('/v1/relationshiptypes');
   }
 
   async getObjects(options?: {
@@ -96,62 +142,43 @@ export class RestClientBinding implements I3XClientBinding {
     if (options?.typeElementId) params.set('typeElementId', options.typeElementId);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    const res = await this.request<{ objects: ObjectInstanceResponse[] }>(
-      `/v1/objects${query}`,
-    );
-    return res.objects || [];
+    return this.get<ObjectInstanceResponse[]>(`/v1/objects${query}`);
   }
 
   async getObjectById(elementId: string): Promise<ObjectInstanceResponse | null> {
-    try {
-      const res = await this.request<{ objects: ObjectInstanceResponse[] }>(
-        '/v1/objects/list',
-        {
-          method: 'POST',
-          body: JSON.stringify({ elementIds: [elementId] }),
-        },
-      );
-      if (res.objects && res.objects.length > 0) {
-        return res.objects[0] ?? null;
-      }
-      return null;
-    } catch {
-      return null;
-    }
+    const [object] = await this.getBulk<ObjectInstanceResponse>(
+      '/v1/objects/list',
+      { elementIds: [elementId] },
+      true,
+    );
+    return object ?? null;
   }
 
   async getRelatedObjects(
     elementId: string,
     relationshipType?: string,
   ): Promise<ObjectInstanceResponse[]> {
-    try {
-      const body: Record<string, unknown> = { elementId };
-      if (relationshipType) body.relationshipType = relationshipType;
+    const body: Record<string, unknown> = { elementIds: [elementId] };
+    if (relationshipType) body.relationshipType = relationshipType;
 
-      const res = await this.request<{
-        relatedObjects: Array<{ targetObject: ObjectInstanceResponse }>;
-      }>('/v1/objects/related', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-      return (res.relatedObjects || []).map((r) => r.targetObject);
-    } catch {
-      return [];
-    }
+    const [related] = await this.getBulk<RelatedObjectResult[]>(
+      '/v1/objects/related',
+      body,
+    );
+    // Servers may ignore relationshipType, so filter here as well.
+    return (related ?? [])
+      .filter((r) => !relationshipType || r.sourceRelationship === relationshipType)
+      .map((r) => r.object);
   }
 
   async getObjectValues(
     elementIds: string[],
     maxDepth = 1,
   ): Promise<CurrentValueResult[]> {
-    const res = await this.request<{ values: CurrentValueResult[] }>(
-      '/v1/objects/value',
-      {
-        method: 'POST',
-        body: JSON.stringify({ elementIds, maxDepth }),
-      },
-    );
-    return res.values || [];
+    return this.getBulk<CurrentValueResult>('/v1/objects/value', {
+      elementIds,
+      maxDepth,
+    });
   }
 
   async getHistoricalValues(
@@ -160,14 +187,12 @@ export class RestClientBinding implements I3XClientBinding {
     endTime: string,
     maxDepth = 1,
   ): Promise<HistoricalValueResult[]> {
-    const res = await this.request<{ history: HistoricalValueResult[] }>(
-      '/v1/objects/history',
-      {
-        method: 'POST',
-        body: JSON.stringify({ elementIds, startTime, endTime, maxDepth }),
-      },
-    );
-    return res.history || [];
+    return this.getBulk<HistoricalValueResult>('/v1/objects/history', {
+      elementIds,
+      startTime,
+      endTime,
+      maxDepth,
+    });
   }
 
   async findSuggestions(unknownId: string): Promise<string[]> {
@@ -179,4 +204,15 @@ export class RestClientBinding implements I3XClientBinding {
       return [];
     }
   }
+}
+
+interface ErrorEnvelope {
+  success?: boolean;
+  responseDetail?: { title?: string; status?: number; detail?: string } | null;
+}
+
+function describeFailure(res: ErrorEnvelope | null | undefined): string {
+  const d = res?.responseDetail;
+  if (d) return [d.status, d.title, d.detail].filter(Boolean).join(' ');
+  return `unexpected response ${JSON.stringify(res)?.slice(0, 200)}`;
 }
