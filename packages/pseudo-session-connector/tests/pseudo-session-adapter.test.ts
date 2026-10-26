@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { consoleLogger } from '@node-i3x/core';
+import { DataType, StatusCodes, Variant } from 'node-opcua';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PseudoSessionDataSourceAdapter } from '../src/pseudo-session-adapter.js';
 import {
@@ -222,6 +223,26 @@ describe('PseudoSessionDataSourceAdapter', () => {
 
     // The value should be the current temperature
     expect(typeof result[0].value).toBe('number');
+  });
+
+  it('readHistory reports an i3X quality, not the OPC UA status name', async () => {
+    const ns = ctx.addressSpace.getNamespace('http://test.i3x.example.com/')!;
+    const variable = ns.addVariable({
+      browseName: 'NeverInitialized',
+      dataType: 'Double',
+      organizedBy: ctx.addressSpace.rootFolder.objects,
+    });
+    variable.setValueFromSource(
+      new Variant({ dataType: DataType.Double, value: 1 }),
+      StatusCodes.UncertainInitialValue,
+    );
+    const now = new Date();
+    const result = await adapter.readHistory(
+      variable.nodeId.toString(),
+      new Date(now.getTime() - 3_600_000),
+      now,
+    );
+    expect(result[0]?.quality).toBe('Uncertain');
   });
 
   it('readHistory reads from historian when data exists', async () => {

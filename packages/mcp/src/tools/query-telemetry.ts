@@ -1,12 +1,12 @@
 import type { VQT } from '@node-i3x/core';
 import { z } from 'zod';
 import type { I3XClientBinding } from '../bindings/types.js';
+import { elementIdsSchema } from '../utils/element-ids.js';
 
 export const queryTelemetrySchema = z.object({
-  elementIds: z
-    .array(z.string())
-    .min(1)
-    .describe("Array of asset elementIds to query (e.g. ['Pump_101', 'Boiler_101'])"),
+  elementIds: elementIdsSchema(
+    "Array of asset elementIds to query (e.g. ['Pump_101', 'Boiler_101'])",
+  ),
   mode: z
     .enum(['current', 'history'])
     .optional()
@@ -76,6 +76,10 @@ export function parseTime(
     );
   }
   return parsed.toISOString();
+}
+
+function describeDetail(d: { status?: number; title?: string; detail?: string }): string {
+  return [d.status, d.title, d.detail].filter(Boolean).join(' ');
 }
 
 /** GoodNoData is a good status (no data in range), not a bad sample. */
@@ -155,12 +159,24 @@ export async function handleQueryTelemetry(
       statistics: seriesStatistics(result.values ?? []),
     };
     if (result.components) {
+      const entries = Object.entries(result.components);
       report.components = Object.fromEntries(
-        Object.entries(result.components).map(([componentId, { values }]) => [
+        entries.map(([componentId, { values, responseDetail }]) => [
           componentId,
-          { dataPoints: values ?? [], statistics: seriesStatistics(values ?? []) },
+          // A failed component read is not an empty time range: report why.
+          responseDetail
+            ? { error: describeDetail(responseDetail) }
+            : { dataPoints: values ?? [], statistics: seriesStatistics(values ?? []) },
         ]),
       );
+      const failed = entries.filter(([, c]) => c.responseDetail);
+      if (
+        failed.length > 0 &&
+        failed.length === entries.length &&
+        !result.values?.length
+      ) {
+        report.note = `No component history could be read (${describeDetail(failed[0]![1].responseDetail!)}): the server keeps no history for this asset's variables.`;
+      }
     }
     return report;
   });

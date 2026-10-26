@@ -57,6 +57,23 @@ export function rankSuggestions(
     .map((item) => item.candidate);
 }
 
+/** Longer queries are not ids or names someone typed: no fuzzy matching (O(n·m) each). */
+export const MAX_FUZZY_QUERY_LENGTH = 128;
+
+/**
+ * computeSimilarity, or 0 without running Levenshtein when the length difference
+ * alone keeps the score under `minScore` (distance >= |m - n|) and neither string
+ * contains the other.
+ */
+function boundedSimilarity(query: string, candidate: string, minScore: number): number {
+  const q = query.toLowerCase().trim();
+  const c = candidate.toLowerCase().trim();
+  if (!q || !c) return 0;
+  if (q.includes(c) || c.includes(q)) return computeSimilarity(q, c);
+  const lengthBound = 1 - Math.abs(q.length - c.length) / Math.max(q.length, c.length);
+  return lengthBound < minScore ? 0 : computeSimilarity(q, c);
+}
+
 /**
  * Ranks objects against a query by the better of their elementId and displayName
  * scores: elementIds are often opaque hashes, so names are what users type.
@@ -67,13 +84,14 @@ export function rankObjectSuggestions(
   topN = 5,
   minScore = 0.4,
 ): Array<{ elementId: string; displayName?: string }> {
+  if (query.trim().length > MAX_FUZZY_QUERY_LENGTH) return [];
   return objects
     .map(({ elementId, displayName }) => ({
       elementId,
       displayName,
       score: Math.max(
-        computeSimilarity(query, elementId),
-        displayName ? computeSimilarity(query, displayName) : 0,
+        boundedSimilarity(query, elementId, minScore),
+        displayName ? boundedSimilarity(query, displayName, minScore) : 0,
       ),
     }))
     .filter((item) => item.score >= minScore)

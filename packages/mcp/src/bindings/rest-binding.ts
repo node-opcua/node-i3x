@@ -11,7 +11,7 @@ import type {
   ServerInfo,
   SuccessResponse,
 } from '@node-i3x/core';
-import { rankObjectSuggestions } from '../utils/similarity.js';
+import { MAX_FUZZY_QUERY_LENGTH, rankObjectSuggestions } from '../utils/similarity.js';
 import type { ElementResult, I3XClientBinding, Suggestion } from './types.js';
 
 /** How long the full object list used for suggestions is reused. */
@@ -22,6 +22,7 @@ export class RestClientBinding implements I3XClientBinding {
   private readonly headers: Record<string, string>;
   private readonly requestTimeoutMs: number;
   private readonly fetchImpl?: typeof fetch;
+  private readonly token?: string;
   private objectCache?: { at: number; objects: Promise<ObjectInstanceResponse[]> };
 
   /**
@@ -43,6 +44,7 @@ export class RestClientBinding implements I3XClientBinding {
     this.baseUrl = cleanUrl;
     this.requestTimeoutMs = timeoutMs;
     this.fetchImpl = fetchImpl;
+    this.token = token;
     this.headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -50,6 +52,26 @@ export class RestClientBinding implements I3XClientBinding {
     if (token) {
       this.headers.Authorization = `Bearer ${token}`;
     }
+  }
+
+  /** Normalized base URL, without a trailing /v1. */
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  get hasToken(): boolean {
+    return Boolean(this.token);
+  }
+
+  /**
+   * A binding to `baseUrl`. Without `token`, the current token is kept when the URL
+   * is this binding's own (re-connecting must not silently drop the configured token).
+   */
+  connectTo(baseUrl: string, token?: string): RestClientBinding {
+    // No fetchImpl: a connect targets the network, even from an in-process binding.
+    const next = new RestClientBinding(baseUrl, token, this.requestTimeoutMs);
+    if (token !== undefined || next.baseUrl !== this.baseUrl || !this.token) return next;
+    return new RestClientBinding(baseUrl, this.token, this.requestTimeoutMs);
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -199,6 +221,16 @@ export class RestClientBinding implements I3XClientBinding {
     );
   }
 
+  async getRelatedObjectsBulk(
+    elementIds: string[],
+  ): Promise<ElementResult<RelatedObjectResult[]>[]> {
+    return this.postBulkPerElement<RelatedObjectResult[]>(
+      '/v1/objects/related',
+      elementIds,
+      {},
+    );
+  }
+
   async getObjectValues(
     elementIds: string[],
     maxDepth = 1,
@@ -223,6 +255,7 @@ export class RestClientBinding implements I3XClientBinding {
 
   /** Closest objects by elementId or displayName; a failure to list objects propagates. */
   async findSuggestions(query: string): Promise<Suggestion[]> {
+    if (query.trim().length > MAX_FUZZY_QUERY_LENGTH) return [];
     const now = Date.now();
     if (!this.objectCache || now - this.objectCache.at > OBJECT_CACHE_TTL_MS) {
       const objects = this.getObjects();

@@ -9,6 +9,17 @@ import type { ILogger } from '../ports/logger.js';
 import type { BulkResultItem } from '../types/api.js';
 import type { ModelService } from './model-service.js';
 
+type ComponentHistory = {
+  values: VQT[];
+  responseDetail?: { title: string; status: number; detail: string };
+};
+
+const HISTORY_NOT_SUPPORTED = {
+  title: 'Not Implemented',
+  status: 501,
+  detail: 'History read not supported',
+} as const;
+
 export class HistoryService {
   constructor(
     private readonly dataSource: IDataSourcePort,
@@ -91,11 +102,7 @@ export class HistoryService {
             return {
               success: false,
               elementId,
-              responseDetail: {
-                title: 'Not Implemented',
-                status: 501,
-                detail: 'History read not supported',
-              },
+              responseDetail: HISTORY_NOT_SUPPORTED,
             };
           }
         },
@@ -112,7 +119,7 @@ export class HistoryService {
     endTime: Date,
     maxDepth: number,
     currentDepth: number,
-  ): Promise<Map<string, { values: VQT[] }>> {
+  ): Promise<Map<string, ComponentHistory>> {
     if (maxDepth > 0 && currentDepth >= maxDepth) return new Map();
 
     const childIds = model.childrenById.get(parent.id) ?? [];
@@ -131,7 +138,7 @@ export class HistoryService {
       }
     }
 
-    const result = new Map<string, { values: VQT[] }>();
+    const result = new Map<string, ComponentHistory>();
 
     // Read history for direct property children
     if (propSources.length > 0) {
@@ -155,7 +162,7 @@ export class HistoryService {
             this._logger.debug(
               `readHistory failed for child property ${pid} (${sourceNodeId}): ${(err as Error).message}`,
             );
-            result.set(pid, { values: [] });
+            result.set(pid, { values: [], responseDetail: HISTORY_NOT_SUPPORTED });
           }
         }),
       );

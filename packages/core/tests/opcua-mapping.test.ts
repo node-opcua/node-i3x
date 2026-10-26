@@ -9,6 +9,7 @@ import {
   dataValueToSource,
   NODE_CLASS_NAMES,
   qualifiedNameToNsu,
+  qualityOfStatusCode,
 } from '../src/helpers/opcua-mapping.js';
 
 describe('qualifiedNameToNsu', () => {
@@ -140,7 +141,7 @@ describe('dataValueToHistorical', () => {
 
   it('marks bad historical value', () => {
     const result = dataValueToHistorical({
-      statusCode: { value: 1 },
+      statusCode: { value: 0x80000000 },
       value: { value: null },
       sourceTimestamp: null,
       serverTimestamp: null,
@@ -236,5 +237,28 @@ describe('cleanOpcuaValue', () => {
     expect(cleanOpcuaValue(true)).toBe(true);
     expect(cleanOpcuaValue(null)).toBeNull();
     expect(cleanOpcuaValue([1, 'two', { x: 1 }])).toEqual([1, 'two', { x: 1 }]);
+  });
+});
+
+describe('qualityOfStatusCode (OPC UA severity)', () => {
+  it.each([
+    ['Good', 0x00000000, 'Good'],
+    ['GoodClamped, a Good subcode', 0x00300000, 'Good'],
+    ['UncertainInitialValue, never received a value', 0x40920000, 'Uncertain'],
+    ['UncertainLastUsableValue', 0x408f0000, 'Uncertain'],
+    ['BadNodeIdUnknown', 0x80340000, 'Bad'],
+    ['Bad', 0x80000000, 'Bad'],
+  ])('maps %s to %s', (_name, statusCode, quality) => {
+    expect(qualityOfStatusCode(statusCode)).toBe(quality);
+    expect(dataValueToSource({ statusCode: { value: statusCode } }).quality).toBe(
+      quality,
+    );
+    expect(dataValueToHistorical({ statusCode: { value: statusCode } }).quality).toBe(
+      quality,
+    );
+  });
+
+  it('keeps a missing status code Bad', () => {
+    expect(qualityOfStatusCode(undefined)).toBe('Bad');
   });
 });

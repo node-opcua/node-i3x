@@ -153,4 +153,27 @@ describe('HistoryService', () => {
     expect(results2[0]!.result!.components![tempId]!.values).toHaveLength(2);
     expect(results2[0]!.result!.components![tempId]!.values[0]!.value).toBe(20.5);
   });
+
+  it('marks a component whose history read failed instead of an empty series', async () => {
+    const ds = mockDataSource(mockNodes, mockHistory);
+    const modelService = new ModelService(ds, nullLogger);
+    const historyService = new HistoryService(ds, modelService, nullLogger);
+
+    const model = await modelService.getOrBuildModel();
+    const rootId = stableI3xId(rootNsu, 'instance');
+    const byName = (name: string) =>
+      [...model.nodesById.values()].find((n) => n.name === name)!.id;
+
+    const [root] = await historyService.readHistory([rootId], null, null, 2);
+    const components = root!.result!.components!;
+    expect(components[byName('ErrorNode')]).toEqual({
+      values: [],
+      responseDetail: {
+        title: 'Not Implemented',
+        status: 501,
+        detail: 'History read not supported',
+      },
+    });
+    expect(components[byName('Temperature')]!.responseDetail).toBeUndefined();
+  });
 });

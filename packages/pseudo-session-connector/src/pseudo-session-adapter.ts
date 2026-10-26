@@ -15,6 +15,7 @@ import {
   type ObjectTypeInfo,
   type ObjectTypeMemberInfo,
   qualifiedNameToNsu,
+  qualityOfStatusCode,
   type SourceDataValue,
   type SourceHistoricalValue,
   type SourceNodeInfo,
@@ -469,7 +470,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
         if (dataValues.length > 0) {
           return dataValues.map((dv) => ({
             value: dv.value?.value ?? null,
-            quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
+            quality: qualityOfStatusCode(dv.statusCode?.value),
             timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
           }));
         }
@@ -487,7 +488,7 @@ export class PseudoSessionDataSourceAdapter implements IDataSourcePort {
     return [
       {
         value: dv.value?.value ?? null,
-        quality: dv.statusCode?.isGood() ? 'Good' : (dv.statusCode?.name ?? 'Bad'),
+        quality: qualityOfStatusCode(dv.statusCode?.value),
         timestamp: dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
       },
     ];

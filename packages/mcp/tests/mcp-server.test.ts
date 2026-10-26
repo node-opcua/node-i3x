@@ -93,6 +93,15 @@ class MockClientBinding implements I3XClientBinding {
     return [];
   }
 
+  async getRelatedObjectsBulk(elementIds: string[]) {
+    return Promise.all(
+      elementIds.map(async (elementId) => ({
+        elementId,
+        result: await this.getRelatedObjects(elementId),
+      })),
+    );
+  }
+
   async getObjectValues(elementIds: string[]) {
     return elementIds.map((elementId) => ({
       elementId,
@@ -310,6 +319,39 @@ describe('@node-i3x/mcp High-Value Tools', () => {
     expect(res.plantTopology?.[0]?.children?.map((c) => c.elementId)).toEqual([
       'Shared_Valve',
     ]);
+  });
+
+  it('i3x_monitor_asset_events summarizes alerts and caps the listed ones', async () => {
+    const binding = new MockClientBinding();
+    const components = Object.fromEntries(
+      Array.from({ length: 60 }, (_, i) => [
+        `State_${i}`,
+        {
+          value: i < 55 ? null : 1,
+          quality: (i < 55 ? 'Bad' : 'Uncertain') as 'Bad' | 'Uncertain',
+          timestamp: '2026-10-25T10:00:00Z',
+        },
+      ]),
+    );
+    binding.getObjectValues = async () => [
+      {
+        elementId: 'Machine',
+        result: {
+          isComposition: true,
+          value: null,
+          quality: 'GoodNoData' as const,
+          timestamp: '2026-10-25T10:00:00Z',
+          components,
+        },
+      },
+    ];
+    const res = await handleMonitorEvents(binding, {
+      elementIds: ['Machine'],
+      maxDepth: 2,
+    });
+    expect(res.summary).toEqual({ bad: 55, uncertain: 5, readErrors: 0 });
+    expect(res.alerts).toHaveLength(50);
+    expect(res.alertsOmitted).toBe(10);
   });
 
   it('i3x_discover_types_and_schemas lists ObjectTypes and schema field rules', async () => {

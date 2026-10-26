@@ -158,6 +158,22 @@ export function cleanOpcuaVariant(variant: any): unknown {
   return cleanOpcuaValue(variant);
 }
 
+/**
+ * i3X quality of an OPC UA StatusCode, from its severity (top two bits): Good
+ * (00, including subcodes like GoodClamped), Uncertain (01, e.g.
+ * UncertainInitialValue: a node that never received a value) or Bad (10/11).
+ * A missing status code is Bad, as before.
+ */
+export function qualityOfStatusCode(
+  statusCode: number | undefined,
+): 'Good' | 'Uncertain' | 'Bad' {
+  if (statusCode === undefined) return 'Bad';
+  const severity = statusCode >>> 30;
+  if (severity === 0) return 'Good';
+  if (severity === 1) return 'Uncertain';
+  return 'Bad';
+}
+
 /** Convert a DataValue-like object to a SourceDataValue. */
 export function dataValueToSource(dv: {
   statusCode?: { value: number } | null;
@@ -165,10 +181,9 @@ export function dataValueToSource(dv: {
   sourceTimestamp?: Date | null;
   serverTimestamp?: Date | null;
 }): SourceDataValue {
-  const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
     value: cleanOpcuaVariant(dv.value),
-    quality: isGood ? 'Good' : 'Bad',
+    quality: qualityOfStatusCode(dv.statusCode?.value),
     timestamp:
       dv.sourceTimestamp?.toISOString() ??
       dv.serverTimestamp?.toISOString() ??
@@ -184,10 +199,9 @@ export function dataValueToHistorical(dv: {
   sourceTimestamp?: Date | null;
   serverTimestamp?: Date | null;
 }): SourceHistoricalValue {
-  const isGood = dv.statusCode ? dv.statusCode.value === 0 : false;
   return {
     value: cleanOpcuaVariant(dv.value),
-    quality: isGood ? 'Good' : 'Bad',
+    quality: qualityOfStatusCode(dv.statusCode?.value),
     timestamp:
       dv.sourceTimestamp?.toISOString() ??
       dv.serverTimestamp?.toISOString() ??
