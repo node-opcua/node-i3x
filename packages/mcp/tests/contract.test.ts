@@ -4,11 +4,8 @@ import { createI3xStack, nullLogger } from '@node-i3x/core';
 import type { RestServerDeps } from '@node-i3x/rest-server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { MockDataSource } from '../../rest-server/tests/helpers/mock-data-source.js';
-import {
-  InProcessConnectorBinding,
-  injectFetch,
-} from '../src/bindings/connector-binding.js';
 import { RestClientBinding } from '../src/bindings/rest-binding.js';
+import { InProcessConnectorBinding, injectFetch } from '../src/in-process.js';
 import { handleExploreHierarchy } from '../src/tools/explore-hierarchy.js';
 import { handleInspectAsset } from '../src/tools/inspect-asset.js';
 

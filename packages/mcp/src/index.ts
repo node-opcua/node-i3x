@@ -1,4 +1,3 @@
-export * from './bindings/connector-binding.js';
 export * from './bindings/rest-binding.js';
 export * from './bindings/types.js';
 export * from './server.js';

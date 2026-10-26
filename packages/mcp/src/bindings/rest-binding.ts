@@ -118,9 +118,10 @@ export class RestClientBinding implements I3XClientBinding {
     const items = await this.postBulk<T>(path, { elementIds, ...body });
     return items.map((item, idx) => {
       const elementId = item.elementId ?? elementIds[idx] ?? `element_${idx}`;
-      return item.success
-        ? { elementId, result: (item.result ?? undefined) as T | undefined }
-        : { elementId, error: describeFailure(item) };
+      if (!item.success) return { elementId, error: describeFailure(item) };
+      // A success without a result would otherwise read as "no data" with no warning.
+      if (item.result == null) return { elementId, error: 'Server returned no result' };
+      return { elementId, result: item.result as T };
     });
   }
 

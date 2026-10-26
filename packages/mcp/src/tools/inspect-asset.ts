@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { I3XClientBinding } from '../bindings/types.js';
+import { isParentRelationship } from '../utils/relationships.js';
 
 export const inspectAssetSchema = z.object({
   elementId: z
@@ -71,7 +72,7 @@ export async function handleInspectAsset(
   // Sub-components: related objects also include the parent (a reverse relationship).
   if (relatedResult.status === 'fulfilled') {
     const subComponents = relatedResult.value.filter(
-      (r) => r.object.elementId !== asset.parentId,
+      (r) => !isParentRelationship(r.sourceRelationship),
     );
     if (subComponents.length > 0) {
       result.subComponents = subComponents.map((r) => ({

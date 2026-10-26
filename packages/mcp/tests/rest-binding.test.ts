@@ -225,6 +225,13 @@ describe('RestClientBinding', () => {
       ]);
     });
 
+    it('reports a successful item without result instead of silently dropping it', async () => {
+      routes['/v1/objects/value'] = bulk(() => null);
+      expect(await client().getObjectValues(['id-1'])).toEqual([
+        { elementId: 'id-1', error: 'Server returned no result' },
+      ]);
+    });
+
     it('getRelatedObjects throws for a failed item instead of returning []', async () => {
       routes['/v1/objects/related'] = () => ({
         json: {

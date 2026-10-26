@@ -266,6 +266,52 @@ describe('@node-i3x/mcp High-Value Tools', () => {
     expect(ok.mode).toBe('history');
   });
 
+  it('i3x_monitor_asset_events alerts on a Bad element read with a null value', async () => {
+    const binding = new MockClientBinding();
+    binding.getObjectValues = async () => [
+      {
+        elementId: 'Controller_1',
+        result: {
+          isComposition: false,
+          value: null,
+          quality: 'Bad' as const,
+          timestamp: '2026-10-25T10:00:00Z',
+        },
+      },
+    ];
+    const res = await handleMonitorEvents(binding, {
+      elementIds: ['Controller_1'],
+      maxDepth: 2,
+    });
+    expect(res.alerts).toEqual([{ elementId: 'Controller_1', quality: 'Bad' }]);
+  });
+
+  it('i3x_explore_plant_hierarchy keeps a shared component under every parent', async () => {
+    const binding = new MockClientBinding();
+    binding.getRelatedObjects = async (elementId: string) =>
+      elementId === 'Boiler_101'
+        ? [
+            {
+              // The server reports one parentId; this component is shared.
+              sourceRelationship: 'HasComponent',
+              object: {
+                elementId: 'Shared_Valve',
+                parentId: 'Boiler_202',
+                isComposition: false,
+              },
+            },
+            {
+              sourceRelationship: 'IsComponentOf',
+              object: { elementId: 'Plant', parentId: null, isComposition: true },
+            },
+          ]
+        : [];
+    const res = await handleExploreHierarchy(binding, { maxDepth: 2 });
+    expect(res.plantTopology?.[0]?.children?.map((c) => c.elementId)).toEqual([
+      'Shared_Valve',
+    ]);
+  });
+
   it('i3x_discover_types_and_schemas lists ObjectTypes and schema field rules', async () => {
     const res = await handleDiscoverTypes(mockBinding, {});
 

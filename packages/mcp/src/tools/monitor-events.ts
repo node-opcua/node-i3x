@@ -34,7 +34,7 @@ export async function handleMonitorEvents(
       alerts.push({ elementId, error });
       continue;
     }
-    if (result && result.value !== null && !isGood(result.quality)) {
+    if (result && !isGood(result.quality)) {
       alerts.push({ elementId, quality: result.quality });
     }
     for (const [componentId, vqt] of Object.entries(result?.components ?? {})) {
