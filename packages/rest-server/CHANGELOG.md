@@ -1,5 +1,10 @@
 # @node-i3x/rest-server
 
+## 0.12.0 (2026-10-26)
+
+- fix(mcp): per-element results, maxDepth, honest monitor, real in-process routes
+- fix(mcp): address PR review: monitor Bad/null, optional rest-server, shared children
+
 ## 0.11.2 (2026-10-25)
 
 - Version bump
