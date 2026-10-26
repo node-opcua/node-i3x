@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { HierarchyNode, I3XClientBinding } from '../bindings/types.js';
+import { isParentRelationship } from '../utils/relationships.js';
 
 export const exploreHierarchySchema = z.object({
   rootElementId: z
@@ -51,8 +52,13 @@ export async function handleExploreHierarchy(
     visited.add(asset.elementId);
 
     if (currentDepth < maxDepth) {
-      const children = await binding.getRelatedObjects(asset.elementId);
-      const unvisitedChildren = children.filter((c) => !visited.has(c.elementId));
+      // Follow children only: related objects also include the parent. Not filtered
+      // on parentId, which names a single parent: a shared component has several.
+      const related = await binding.getRelatedObjects(asset.elementId);
+      const unvisitedChildren = related
+        .filter((r) => !isParentRelationship(r.sourceRelationship))
+        .map((r) => r.object)
+        .filter((c) => !visited.has(c.elementId));
 
       if (unvisitedChildren.length > 0) {
         node.children = await Promise.all(

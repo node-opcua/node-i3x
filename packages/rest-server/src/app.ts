@@ -56,8 +56,16 @@ export interface RestServerDeps {
   };
 }
 
-export async function createApp(deps: RestServerDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: true });
+export interface CreateAppOptions {
+  /** Fastify request logging (to stdout); off for in-process use over MCP stdio. Default true. */
+  logger?: boolean;
+}
+
+export async function createApp(
+  deps: RestServerDeps,
+  options: CreateAppOptions = {},
+): Promise<FastifyInstance> {
+  const app = Fastify({ logger: options.logger ?? true });
 
   // Make deps available to all routes via Fastify's decorate API.
   app.decorate('deps', deps);

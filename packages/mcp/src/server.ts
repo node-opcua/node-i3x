@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -18,6 +19,10 @@ import { handleInspectAsset, inspectAssetSchema } from './tools/inspect-asset.js
 import { handleMonitorEvents, monitorEventsSchema } from './tools/monitor-events.js';
 import { handleQueryTelemetry, queryTelemetrySchema } from './tools/query-telemetry.js';
 
+const { version } = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
+
 export class NodeI3xMcpServer {
   private readonly server: Server;
   private binding: I3XClientBinding;
@@ -28,7 +33,7 @@ export class NodeI3xMcpServer {
     this.server = new Server(
       {
         name: '@node-i3x/mcp',
-        version: '0.10.0',
+        version,
       },
       {
         capabilities: {
@@ -100,6 +105,11 @@ export class NodeI3xMcpServer {
                 description:
                   'Whether to include the ObjectType JSON Schema definition (default: true)',
               },
+              maxDepth: {
+                type: 'number',
+                description:
+                  'Value read depth through components: 1 = the element only, 2 = with its components (default), 0 = unlimited',
+              },
             },
             required: ['elementId'],
           },
@@ -150,7 +160,13 @@ export class NodeI3xMcpServer {
               },
               endTime: {
                 type: 'string',
-                description: 'ISO 8601 end time (defaults to now) for history mode',
+                description:
+                  "ISO 8601 or relative duration (e.g. '-10m') end time (defaults to now) for history mode",
+              },
+              maxDepth: {
+                type: 'number',
+                description:
+                  'Value read depth through components: 1 = the element only, 2 = with its components (default), 0 = unlimited',
               },
               aggregateStats: {
                 type: 'boolean',
@@ -184,19 +200,19 @@ export class NodeI3xMcpServer {
         {
           name: 'i3x_monitor_asset_events',
           description:
-            'Create an i3X subscription stream to monitor real-time VQT value changes or threshold alert conditions.',
+            'One-shot health check of assets: current VQT values plus an alert list of every series whose quality is not Good. Does not subscribe; call again to re-check.',
           inputSchema: {
             type: 'object',
             properties: {
               elementIds: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Array of asset elementIds to monitor',
+                description: 'Array of asset elementIds to check',
               },
-              condition: {
-                type: 'string',
+              maxDepth: {
+                type: 'number',
                 description:
-                  "Optional alert condition filter (e.g. 'temperature > 85 || quality != Good')",
+                  'Value read depth through components: 1 = the element only, 2 = with its components (default), 0 = unlimited',
               },
             },
             required: ['elementIds'],

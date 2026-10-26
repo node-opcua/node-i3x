@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { I3XClientBinding } from '../bindings/types.js';
+import { isParentRelationship } from '../utils/relationships.js';
 
 export const inspectAssetSchema = z.object({
   elementId: z
@@ -15,13 +16,22 @@ export const inspectAssetSchema = z.object({
     .optional()
     .default(true)
     .describe('Whether to include the ObjectType JSON Schema definition'),
+  maxDepth: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .default(2)
+    .describe(
+      'Value read depth through components: 1 = the asset only (an Object usually has no value of its own), 2 = with its components (default), 0 = unlimited',
+    ),
 });
 
 export async function handleInspectAsset(
   binding: I3XClientBinding,
   args: z.infer<typeof inspectAssetSchema>,
 ) {
-  const { elementId, includeValues, includeSchema } = args;
+  const { elementId, includeValues, includeSchema, maxDepth } = args;
 
   const asset = await binding.getObjectById(elementId);
   if (!asset) {
@@ -38,8 +48,10 @@ export async function handleInspectAsset(
     displayName: asset.displayName || asset.elementId,
     description: asset.metadata?.description || undefined,
     typeElementId: asset.typeElementId,
+    parentId: asset.parentId ?? null,
     isRoot: !asset.parentId,
   };
+  const warnings: string[] = [];
 
   // Run sub-components, schema, and telemetry fetches concurrently for maximum speed & fault-tolerance
   const relatedPromise = binding.getRelatedObjects(elementId);
@@ -48,7 +60,7 @@ export async function handleInspectAsset(
       ? binding.getObjectTypes()
       : Promise.resolve(null);
   const valuesPromise = includeValues
-    ? binding.getObjectValues([elementId])
+    ? binding.getObjectValues([elementId], maxDepth)
     : Promise.resolve(null);
 
   const [relatedResult, schemaResult, valuesResult] = await Promise.allSettled([
@@ -57,22 +69,26 @@ export async function handleInspectAsset(
     valuesPromise,
   ]);
 
-  // Sub-components
-  if (
-    relatedResult.status === 'fulfilled' &&
-    Array.isArray(relatedResult.value) &&
-    relatedResult.value.length > 0
-  ) {
-    result.subComponents = relatedResult.value.map((r) => ({
-      elementId: r.elementId,
-      displayName: r.displayName || r.elementId,
-      typeElementId: r.typeElementId,
-    }));
+  // Sub-components: related objects also include the parent (a reverse relationship).
+  if (relatedResult.status === 'fulfilled') {
+    const subComponents = relatedResult.value.filter(
+      (r) => !isParentRelationship(r.sourceRelationship),
+    );
+    if (subComponents.length > 0) {
+      result.subComponents = subComponents.map((r) => ({
+        elementId: r.object.elementId,
+        displayName: r.object.displayName || r.object.elementId,
+        typeElementId: r.object.typeElementId,
+        relationship: r.sourceRelationship,
+      }));
+    }
+  } else {
+    warnings.push(`Sub-components unavailable: ${errorMessage(relatedResult.reason)}`);
   }
 
   // Schema definition
-  if (schemaResult.status === 'fulfilled' && Array.isArray(schemaResult.value)) {
-    const targetType = schemaResult.value.find(
+  if (schemaResult.status === 'fulfilled') {
+    const targetType = schemaResult.value?.find(
       (t) => t.elementId === asset.typeElementId,
     );
     if (targetType) {
@@ -82,18 +98,23 @@ export async function handleInspectAsset(
         schema: targetType.schema,
       };
     }
+  } else {
+    warnings.push(`Type schema unavailable: ${errorMessage(schemaResult.reason)}`);
   }
 
   // Current telemetry values
-  if (
-    valuesResult.status === 'fulfilled' &&
-    Array.isArray(valuesResult.value) &&
-    valuesResult.value.length > 0
-  ) {
-    result.currentValues = valuesResult.value[0];
-  } else if (valuesResult.status === 'rejected') {
-    result.currentValuesWarning = 'Telemetry data temporarily unavailable';
+  if (valuesResult.status === 'fulfilled') {
+    const entry = valuesResult.value?.[0];
+    if (entry?.result) result.currentValues = entry.result;
+    else if (entry?.error) warnings.push(`Telemetry unavailable: ${entry.error}`);
+  } else {
+    warnings.push(`Telemetry unavailable: ${errorMessage(valuesResult.reason)}`);
   }
 
+  if (warnings.length > 0) result.warnings = warnings;
   return result;
+}
+
+function errorMessage(reason: unknown): string {
+  return reason instanceof Error ? reason.message : String(reason);
 }

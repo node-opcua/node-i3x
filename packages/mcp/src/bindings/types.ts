@@ -4,9 +4,23 @@ import type {
   Namespace,
   ObjectInstanceResponse,
   ObjectType,
+  RelatedObjectResult,
   RelationshipType,
   ServerInfo,
 } from '@node-i3x/core';
+
+/** Outcome of a bulk read for one requested elementId: its result, or why it failed. */
+export interface ElementResult<T> {
+  elementId: string;
+  result?: T;
+  error?: string;
+}
+
+/** A known object whose elementId or displayName is close to an unknown query. */
+export interface Suggestion {
+  elementId: string;
+  displayName?: string;
+}
 
 export interface AssetDiagnosticReport {
   elementId: string;
@@ -53,16 +67,22 @@ export interface I3XClientBinding {
     typeElementId?: string;
   }): Promise<ObjectInstanceResponse[]>;
   getObjectById(elementId: string): Promise<ObjectInstanceResponse | null>;
+  /** Related objects with their relationship (children, and the parent as a reverse one). */
   getRelatedObjects(
     elementId: string,
     relationshipType?: string,
-  ): Promise<ObjectInstanceResponse[]>;
-  getObjectValues(elementIds: string[], maxDepth?: number): Promise<CurrentValueResult[]>;
+  ): Promise<RelatedObjectResult[]>;
+  /** One entry per requested elementId, in request order. */
+  getObjectValues(
+    elementIds: string[],
+    maxDepth?: number,
+  ): Promise<ElementResult<CurrentValueResult>[]>;
+  /** One entry per requested elementId, in request order. */
   getHistoricalValues(
     elementIds: string[],
     startTime: string,
     endTime: string,
     maxDepth?: number,
-  ): Promise<HistoricalValueResult[]>;
-  findSuggestions(unknownId: string): Promise<string[]>;
+  ): Promise<ElementResult<HistoricalValueResult>[]>;
+  findSuggestions(query: string): Promise<Suggestion[]>;
 }

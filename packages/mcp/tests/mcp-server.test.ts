@@ -79,9 +79,14 @@ class MockClientBinding implements I3XClientBinding {
     if (elementId === 'Boiler_101') {
       return [
         {
-          elementId: 'Pump_101',
-          displayName: 'Feed Pump 101',
-          typeElementId: 'PumpType',
+          sourceRelationship: 'HasComponent',
+          object: {
+            elementId: 'Pump_101',
+            displayName: 'Feed Pump 101',
+            typeElementId: 'PumpType',
+            parentId: 'Boiler_101',
+            isComposition: false,
+          },
         },
       ];
     }
@@ -89,26 +94,36 @@ class MockClientBinding implements I3XClientBinding {
   }
 
   async getObjectValues(elementIds: string[]) {
-    return elementIds.map((id) => ({
-      isComposition: true,
-      value: id === 'Boiler_101' ? { Temperature: 78.4, Pressure: 3.2 } : { Speed: 1500 },
-      quality: 'Good' as const,
-      timestamp: new Date().toISOString(),
+    return elementIds.map((elementId) => ({
+      elementId,
+      result: {
+        isComposition: true,
+        value:
+          elementId === 'Boiler_101'
+            ? { Temperature: 78.4, Pressure: 3.2 }
+            : { Speed: 1500 },
+        quality: 'Good' as const,
+        timestamp: new Date().toISOString(),
+      },
     }));
   }
 
   async getHistoricalValues(elementIds: string[]) {
-    return elementIds.map(() => ({
-      isComposition: true,
-      values: [
-        { timestamp: '2026-10-25T10:00:00Z', value: 75.0, quality: 'Good' as const },
-        { timestamp: '2026-10-25T11:00:00Z', value: 85.5, quality: 'Good' as const },
-      ],
+    return elementIds.map((elementId) => ({
+      elementId,
+      result: {
+        isComposition: true,
+        values: [
+          { timestamp: '2026-10-25T10:00:00Z', value: 75.0, quality: 'Good' as const },
+          { timestamp: '2026-10-25T11:00:00Z', value: 85.5, quality: 'Good' as const },
+        ],
+      },
     }));
   }
 
   async findSuggestions(unknownId: string) {
-    if (unknownId.includes('Boiler')) return ['Boiler_101'];
+    if (unknownId.includes('Boiler'))
+      return [{ elementId: 'Boiler_101', displayName: 'Boiler 101' }];
     return [];
   }
 }
@@ -121,6 +136,7 @@ describe('@node-i3x/mcp High-Value Tools', () => {
       elementId: 'Boiler_101',
       includeValues: true,
       includeSchema: true,
+      maxDepth: 2,
     });
 
     expect(res).toHaveProperty('elementId', 'Boiler_101');
@@ -135,10 +151,13 @@ describe('@node-i3x/mcp High-Value Tools', () => {
       elementId: 'Boiler_999',
       includeValues: true,
       includeSchema: true,
+      maxDepth: 2,
     });
 
     expect(res).toHaveProperty('error');
-    expect(res).toHaveProperty('suggestions', ['Boiler_101']);
+    expect(res).toHaveProperty('suggestions', [
+      { elementId: 'Boiler_101', displayName: 'Boiler 101' },
+    ]);
   });
 
   it('i3x_explore_plant_hierarchy traverses ISA-95 topology tree', async () => {
@@ -155,6 +174,7 @@ describe('@node-i3x/mcp High-Value Tools', () => {
       mode: 'history',
       startTime: '-2h',
       aggregateStats: true,
+      maxDepth: 2,
     });
 
     expect(res.mode).toBe('history');
@@ -167,6 +187,131 @@ describe('@node-i3x/mcp High-Value Tools', () => {
     });
   });
 
+  it('i3x_query_telemetry pairs each report with its own elementId after a failure', async () => {
+    const binding = new MockClientBinding();
+    binding.getHistoricalValues = async () => [
+      { elementId: 'Missing', error: '404 Error Not found' },
+      {
+        elementId: 'Boiler_101',
+        result: {
+          isComposition: true,
+          values: [],
+          components: {
+            Temp: {
+              values: [
+                {
+                  timestamp: '2026-10-25T10:00:00Z',
+                  value: 10,
+                  quality: 'Good' as const,
+                },
+                {
+                  timestamp: '2026-10-25T11:00:00Z',
+                  value: 20,
+                  quality: 'GoodNoData' as const,
+                },
+                {
+                  timestamp: '2026-10-25T12:00:00Z',
+                  value: 'x',
+                  quality: 'Bad' as const,
+                },
+              ],
+            },
+          },
+        },
+      },
+    ];
+    const res = await handleQueryTelemetry(binding, {
+      elementIds: ['Missing', 'Boiler_101'],
+      mode: 'history',
+      aggregateStats: true,
+      maxDepth: 2,
+    });
+
+    expect(res.telemetryReports?.[0]).toEqual({
+      elementId: 'Missing',
+      error: '404 Error Not found',
+    });
+    expect(res.telemetryReports?.[1]).toMatchObject({
+      elementId: 'Boiler_101',
+      statistics: { count: 0, badQualityCount: 0 },
+      components: {
+        Temp: {
+          statistics: { min: 10, max: 20, mean: 15, count: 2, badQualityCount: 1 },
+        },
+      },
+    });
+  });
+
+  it('i3x_query_telemetry rejects unparseable or inverted time ranges', async () => {
+    const base = {
+      elementIds: ['Boiler_101'],
+      mode: 'history' as const,
+      aggregateStats: true,
+      maxDepth: 2,
+    };
+    await expect(
+      handleQueryTelemetry(mockBinding, { ...base, startTime: 'yesterday' }),
+    ).rejects.toThrow(/Invalid startTime 'yesterday'/);
+    await expect(
+      handleQueryTelemetry(mockBinding, { ...base, endTime: 'soon' }),
+    ).rejects.toThrow(/Invalid endTime 'soon'/);
+    await expect(
+      handleQueryTelemetry(mockBinding, { ...base, startTime: '-1h', endTime: '-2h' }),
+    ).rejects.toThrow(/is after endTime/);
+    const ok = await handleQueryTelemetry(mockBinding, {
+      ...base,
+      startTime: '-2h',
+      endTime: '-1h',
+    });
+    expect(ok.mode).toBe('history');
+  });
+
+  it('i3x_monitor_asset_events alerts on a Bad element read with a null value', async () => {
+    const binding = new MockClientBinding();
+    binding.getObjectValues = async () => [
+      {
+        elementId: 'Controller_1',
+        result: {
+          isComposition: false,
+          value: null,
+          quality: 'Bad' as const,
+          timestamp: '2026-10-25T10:00:00Z',
+        },
+      },
+    ];
+    const res = await handleMonitorEvents(binding, {
+      elementIds: ['Controller_1'],
+      maxDepth: 2,
+    });
+    expect(res.alerts).toEqual([{ elementId: 'Controller_1', quality: 'Bad' }]);
+  });
+
+  it('i3x_explore_plant_hierarchy keeps a shared component under every parent', async () => {
+    const binding = new MockClientBinding();
+    binding.getRelatedObjects = async (elementId: string) =>
+      elementId === 'Boiler_101'
+        ? [
+            {
+              // The server reports one parentId; this component is shared.
+              sourceRelationship: 'HasComponent',
+              object: {
+                elementId: 'Shared_Valve',
+                parentId: 'Boiler_202',
+                isComposition: false,
+              },
+            },
+            {
+              sourceRelationship: 'IsComponentOf',
+              object: { elementId: 'Plant', parentId: null, isComposition: true },
+            },
+          ]
+        : [];
+    const res = await handleExploreHierarchy(binding, { maxDepth: 2 });
+    expect(res.plantTopology?.[0]?.children?.map((c) => c.elementId)).toEqual([
+      'Shared_Valve',
+    ]);
+  });
+
   it('i3x_discover_types_and_schemas lists ObjectTypes and schema field rules', async () => {
     const res = await handleDiscoverTypes(mockBinding, {});
 
@@ -175,14 +320,46 @@ describe('@node-i3x/mcp High-Value Tools', () => {
     expect(res.objectTypes[0].requiredProperties).toEqual(['Temperature', 'Pressure']);
   });
 
-  it('i3x_monitor_asset_events sets up subscription stream snapshot', async () => {
+  it('i3x_monitor_asset_events returns a snapshot and claims no subscription', async () => {
     const res = await handleMonitorEvents(mockBinding, {
       elementIds: ['Boiler_101'],
-      condition: 'temperature > 80',
+      maxDepth: 2,
     });
 
-    expect(res.status).toBe('monitoring_active');
-    expect(res.monitoredAssets).toEqual(['Boiler_101']);
+    expect(res.status).toBe('snapshot');
+    expect(res.alerts).toEqual([]);
+    expect(res.snapshot[0]?.elementId).toBe('Boiler_101');
+  });
+
+  it('i3x_monitor_asset_events alerts on non-Good components and failed elements', async () => {
+    const binding = new MockClientBinding();
+    binding.getObjectValues = async () => [
+      {
+        elementId: 'Boiler_101',
+        result: {
+          isComposition: true,
+          value: null,
+          quality: 'GoodNoData' as const,
+          timestamp: '2026-10-25T10:00:00Z',
+          components: {
+            Temp: {
+              value: 99,
+              quality: 'Bad' as const,
+              timestamp: '2026-10-25T10:00:00Z',
+            },
+          },
+        },
+      },
+      { elementId: 'Nope', error: '404 Error Not found' },
+    ];
+    const res = await handleMonitorEvents(binding, {
+      elementIds: ['Boiler_101', 'Nope'],
+      maxDepth: 2,
+    });
+    expect(res.alerts).toEqual([
+      { elementId: 'Temp', quality: 'Bad' },
+      { elementId: 'Nope', error: '404 Error Not found' },
+    ]);
   });
 
   it('similarity and ranking utility ranks typos higher than unrelated strings', async () => {
@@ -208,14 +385,14 @@ describe('@node-i3x/mcp High-Value Tools', () => {
       elementId: 'Boiler_101',
       includeValues: true,
       includeSchema: true,
+      maxDepth: 2,
     });
 
     expect(res).toHaveProperty('elementId', 'Boiler_101');
     expect(res).toHaveProperty('displayName', 'Boiler 101');
-    expect(res).toHaveProperty(
-      'currentValuesWarning',
-      'Telemetry data temporarily unavailable',
-    );
+    expect(res).toHaveProperty('warnings', [
+      'Telemetry unavailable: Sensor gateway timeout',
+    ]);
   });
 
   it('i3x_connect dynamically switches endpoint and verifies connection', async () => {
