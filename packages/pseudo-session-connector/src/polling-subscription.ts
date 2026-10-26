@@ -1,3 +1,4 @@
+import { qualityOfStatusCode } from '@node-i3x/core';
 // ─────────────────────────────────────────────────────────────
 // @node-i3x/pseudo-session-connector — PollingMonitoredSubscription
 // Polling-based: setInterval + IBasicSession.read()
@@ -96,7 +97,7 @@ export class PollingMonitoredSubscription implements IMonitoredSubscription {
           this._cb(
             nodeId,
             val,
-            dv.statusCode?.name ?? 'Good',
+            dv.statusCode ? qualityOfStatusCode(dv.statusCode.value) : 'Good',
             dv.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
           );
         }

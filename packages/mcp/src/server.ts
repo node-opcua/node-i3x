@@ -18,6 +18,7 @@ import {
 import { handleInspectAsset, inspectAssetSchema } from './tools/inspect-asset.js';
 import { handleMonitorEvents, monitorEventsSchema } from './tools/monitor-events.js';
 import { handleQueryTelemetry, queryTelemetrySchema } from './tools/query-telemetry.js';
+import { DEFAULT_MAX_RESULT_CHARS, serializeToolResult } from './utils/output-limit.js';
 
 const { version } = createRequire(import.meta.url)('../package.json') as {
   version: string;
@@ -27,8 +28,17 @@ export class NodeI3xMcpServer {
   private readonly server: Server;
   private binding: I3XClientBinding;
 
-  constructor(binding?: I3XClientBinding) {
+  private readonly maxResultChars: number;
+
+  /**
+   * @param options.maxResultChars - cap on a serialized tool result (default
+   *   I3X_MCP_MAX_RESULT_CHARS, else 100 000 characters).
+   */
+  constructor(binding?: I3XClientBinding, options: { maxResultChars?: number } = {}) {
     this.binding = binding || new RestClientBinding();
+    this.maxResultChars =
+      options.maxResultChars ??
+      (Number(process.env.I3X_MCP_MAX_RESULT_CHARS) || DEFAULT_MAX_RESULT_CHARS);
 
     this.server = new Server(
       {
@@ -72,12 +82,13 @@ export class NodeI3xMcpServer {
               },
               authToken: {
                 type: 'string',
-                description: 'Optional Bearer authentication token for secured endpoints',
+                description:
+                  'Optional Bearer authentication token. Omit it to keep the current token when re-connecting to the same URL.',
               },
               verifyConnection: {
                 type: 'boolean',
                 description:
-                  'Whether to verify connectivity by querying server /v1/info (default: true)',
+                  'Whether to verify connectivity and credentials before switching (default: true); a rejected token returns status auth_failed',
               },
             },
             required: ['serverUrl'],
@@ -129,7 +140,12 @@ export class NodeI3xMcpServer {
               maxDepth: {
                 type: 'number',
                 description:
-                  'Maximum depth to traverse child components (1 to 5, default: 2)',
+                  'Levels to show: 1 = roots only, 2 = roots and their children (default), 0 = unlimited (bounded by maxNodes)',
+              },
+              maxNodes: {
+                type: 'number',
+                description:
+                  'Node budget for the whole tree (default 500, max 5000); the result is marked truncated when reached',
               },
             },
           },
@@ -145,7 +161,7 @@ export class NodeI3xMcpServer {
                 type: 'array',
                 items: { type: 'string' },
                 description:
-                  "Array of asset elementIds to query (e.g. ['Pump_101', 'Boiler_101'])",
+                  "Array of asset elementIds to query (e.g. ['Pump_101', 'Boiler_101']); duplicates are ignored, at most 100",
               },
               mode: {
                 type: 'string',
@@ -207,7 +223,8 @@ export class NodeI3xMcpServer {
               elementIds: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Array of asset elementIds to check',
+                description:
+                  'Array of asset elementIds to check; duplicates are ignored, at most 100',
               },
               maxDepth: {
                 type: 'number',
@@ -231,9 +248,13 @@ export class NodeI3xMcpServer {
         switch (name) {
           case 'i3x_connect': {
             const parsed = connectSchema.parse(rawArgs);
-            result = await handleConnect(parsed, (newBinding) => {
-              this.binding = newBinding;
-            });
+            result = await handleConnect(
+              parsed,
+              (newBinding) => {
+                this.binding = newBinding;
+              },
+              this.binding,
+            );
             break;
           }
           case 'i3x_inspect_asset': {
@@ -269,7 +290,7 @@ export class NodeI3xMcpServer {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: serializeToolResult(name, result, this.maxResultChars),
             },
           ],
         };

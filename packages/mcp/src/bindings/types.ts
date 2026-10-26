@@ -43,6 +43,12 @@ export interface HierarchyNode {
   displayName?: string;
   typeElementId?: string;
   children?: HierarchyNode[];
+  /** Children could not be read; the rest of the tree is unaffected. */
+  error?: string;
+  /** Already expanded elsewhere in this tree (shared component or cycle). */
+  repeated?: true;
+  /** Children not fetched because the node budget was reached. */
+  truncated?: true;
 }
 
 export interface TelemetrySummary {
@@ -72,6 +78,10 @@ export interface I3XClientBinding {
     elementId: string,
     relationshipType?: string,
   ): Promise<RelatedObjectResult[]>;
+  /** Related objects of several elements in one request, one entry per elementId. */
+  getRelatedObjectsBulk(
+    elementIds: string[],
+  ): Promise<ElementResult<RelatedObjectResult[]>[]>;
   /** One entry per requested elementId, in request order. */
   getObjectValues(
     elementIds: string[],

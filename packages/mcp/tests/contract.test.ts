@@ -1,51 +1,11 @@
 // Contract tests: the MCP client against the real node-i3x rest-server routes,
 // in-process through Fastify inject() (no port), instead of a hand-written mock.
-import { createI3xStack, nullLogger } from '@node-i3x/core';
-import type { RestServerDeps } from '@node-i3x/rest-server';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { MockDataSource } from '../../rest-server/tests/helpers/mock-data-source.js';
 import { RestClientBinding } from '../src/bindings/rest-binding.js';
 import { InProcessConnectorBinding, injectFetch } from '../src/in-process.js';
 import { handleExploreHierarchy } from '../src/tools/explore-hierarchy.js';
 import { handleInspectAsset } from '../src/tools/inspect-asset.js';
-
-// Machine (root) ── Temperature, Reset, Motor ── Speed
-function makeDeps(extra: Partial<RestServerDeps> = {}): RestServerDeps {
-  const ds = new MockDataSource();
-  ds.values['ns=2;s=Speed'] = 1500;
-  ds.extraNodes = [
-    {
-      sourceNodeId: 'ns=2;s=Motor',
-      parentSourceNodeId: 'ns=2;s=Machine',
-      browseName: 'Motor',
-      nsuQualifiedName: 'nsu=http://example.com/:Motor',
-      displayName: 'Motor',
-      nodeClass: 'Object',
-      typeDefinition: null,
-      namespaceUri: 'http://example.com/',
-      eventNotifier: false,
-    },
-    {
-      sourceNodeId: 'ns=2;s=Speed',
-      parentSourceNodeId: 'ns=2;s=Motor',
-      browseName: 'Speed',
-      nsuQualifiedName: 'nsu=http://example.com/:Speed',
-      displayName: 'Speed',
-      nodeClass: 'Variable',
-      typeDefinition: 'Double',
-      dataType: 'Double',
-      dataTypeName: 'Double',
-      namespaceUri: 'http://example.com/',
-      eventNotifier: false,
-    },
-  ];
-  return {
-    ...createI3xStack(ds, nullLogger),
-    dataSource: ds,
-    logger: nullLogger,
-    ...extra,
-  };
-}
+import { makeDeps } from './helpers/contract-fixture.js';
 
 describe('MCP client against the real rest-server', () => {
   let binding: InProcessConnectorBinding;

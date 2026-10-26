@@ -11,21 +11,31 @@ export const connectSchema = z.object({
   authToken: z
     .string()
     .optional()
-    .describe('Optional Bearer authentication token for secured endpoints'),
+    .describe(
+      'Optional Bearer authentication token. Omitted when re-connecting to the current URL: the current token is kept.',
+    ),
   verifyConnection: z
     .boolean()
     .optional()
     .default(true)
-    .describe('Whether to immediately verify connectivity by querying server /v1/info'),
+    .describe(
+      'Whether to verify connectivity and credentials before switching (reads /v1/info and /v1/namespaces)',
+    ),
 });
 
 export async function handleConnect(
   args: z.infer<typeof connectSchema>,
   onBindingSwitch: (newBinding: I3XClientBinding) => void,
+  current?: I3XClientBinding,
 ) {
   const { serverUrl, authToken, verifyConnection } = args;
 
-  const newBinding = new RestClientBinding(serverUrl, authToken);
+  const newBinding =
+    current instanceof RestClientBinding
+      ? current.connectTo(serverUrl, authToken)
+      : new RestClientBinding(serverUrl, authToken);
+  const tokenKept = authToken === undefined && newBinding.hasToken;
+  const url = newBinding.getBaseUrl();
 
   let serverInfo: unknown;
   if (verifyConnection) {
@@ -34,9 +44,30 @@ export async function handleConnect(
     } catch (err) {
       return {
         status: 'connection_failed',
-        serverUrl,
+        serverUrl: url,
         error: (err as Error).message,
-        tip: 'Please check that the server URL is reachable and the authentication token (if required) is valid.',
+        tip: 'Please check that the server URL is reachable.',
+      };
+    }
+    // /v1/info is public on secured servers, so it proves nothing about the token:
+    // check credentials on an endpoint that requires them.
+    try {
+      await newBinding.getNamespaces();
+    } catch (err) {
+      const message = (err as Error).message;
+      if (/^HTTP 40[13]\b/.test(message)) {
+        return {
+          status: 'auth_failed',
+          serverUrl: url,
+          error: message,
+          tip: 'The server rejected the credentials. Pass a valid authToken; the previous connection is still active.',
+        };
+      }
+      return {
+        status: 'connection_failed',
+        serverUrl: url,
+        error: message,
+        tip: 'The server answered /v1/info but not /v1/namespaces; the previous connection is still active.',
       };
     }
   }
@@ -46,9 +77,12 @@ export async function handleConnect(
 
   return {
     status: 'connected',
-    serverUrl,
-    authenticated: Boolean(authToken),
+    serverUrl: url,
+    authenticated: newBinding.hasToken,
+    ...(tokenKept
+      ? { note: 'No authToken given: kept the token already in use for this URL.' }
+      : {}),
     serverInfo: serverInfo || 'Connection established without verification.',
-    message: `Successfully connected to ${serverUrl}. All subsequent i3X tool calls will query this endpoint.`,
+    message: `Successfully connected to ${url}. All subsequent i3X tool calls will query this endpoint.`,
   };
 }

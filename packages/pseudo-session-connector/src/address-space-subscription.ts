@@ -1,3 +1,4 @@
+import { qualityOfStatusCode } from '@node-i3x/core';
 // ─────────────────────────────────────────────────────────────
 // @node-i3x/pseudo-session-connector — AddressSpaceMonitoredSubscription
 // Event-based: UAVariable.on("value_changed")
@@ -44,7 +45,7 @@ export class AddressSpaceMonitoredSubscription implements IMonitoredSubscription
         this._cb(
           nodeId,
           dataValue.value?.value,
-          dataValue.statusCode?.name ?? 'Good',
+          dataValue.statusCode ? qualityOfStatusCode(dataValue.statusCode.value) : 'Good',
           dataValue.sourceTimestamp?.toISOString() ?? new Date().toISOString(),
         );
       };

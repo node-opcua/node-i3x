@@ -1,11 +1,14 @@
 import { z } from 'zod';
 import type { I3XClientBinding } from '../bindings/types.js';
+import { elementIdsSchema } from '../utils/element-ids.js';
+
+/** Alerts listed one by one; the summary still counts all of them. */
+const MAX_LISTED_ALERTS = 50;
 
 export const monitorEventsSchema = z.object({
-  elementIds: z
-    .array(z.string())
-    .min(1)
-    .describe("Array of asset elementIds to check (e.g. ['Boiler_101', 'Pump_101'])"),
+  elementIds: elementIdsSchema(
+    "Array of asset elementIds to check (e.g. ['Boiler_101', 'Pump_101'])",
+  ),
   maxDepth: z
     .number()
     .int()
@@ -43,10 +46,20 @@ export async function handleMonitorEvents(
     }
   }
 
+  const summary = {
+    bad: alerts.filter((a) => a.quality && /^bad/i.test(a.quality)).length,
+    uncertain: alerts.filter((a) => a.quality && /^uncertain/i.test(a.quality)).length,
+    readErrors: alerts.filter((a) => a.error).length,
+  };
+
   return {
     status: 'snapshot',
     checkedAt: new Date().toISOString(),
-    alerts,
+    summary,
+    alerts: alerts.slice(0, MAX_LISTED_ALERTS),
+    ...(alerts.length > MAX_LISTED_ALERTS
+      ? { alertsOmitted: alerts.length - MAX_LISTED_ALERTS }
+      : {}),
     snapshot,
     note: 'Point-in-time read; no subscription is created. Call again to re-check.',
   };
